@@ -739,3 +739,23 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe fisierele afectate -> fara erori.
 - Ce ramane:
 	- Optional: adaugare sectiune C. Utilaje cu itemizare completa in PDF, daca doresti separare explicita.
+
+### 2026-07-01 - Checkpoint Dashboard (Calendar operational azi)
+- Etapa: integrare planificare zilnica in dashboard, deasupra zonei `Atentie azi`.
+- Dovezi:
+	- Modul nou `Calendar azi` afisat in dashboard cu sumar operational (`evenimente`, `riscuri`) si data curenta.
+	- 6 categorii active in mini-view operational:
+		- Etape programate azi
+		- Taskuri cu deadline azi
+		- Utilaje rezervate azi
+		- Subcontractori programati azi
+		- Documente cu termen azi
+		- Verificari / calitate programate azi
+	- Datele sunt agregate din modulele existente si grupate pe categorii in backend-ul dashboard.
+	- `Atentie azi` ramane zona de risc, iar `Calendar azi` devine zona de planificare.
+- Validare:
+	- `artisan test tests/Feature/DashboardFinancialInsightsTest.php` -> passed (1/1).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate -> fara erori.
+- Ce ramane:
+	- Optional: predictor AI de intarziere pe baza blocajelor si resurselor indisponibile.

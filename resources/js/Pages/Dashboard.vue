@@ -53,6 +53,94 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-base font-semibold text-gray-800">Calendar azi</h2>
+                    <p class="text-sm text-gray-500 mt-1">Planificare operationala zilnica pe etape, taskuri, utilaje, subcontractori, documente si calitate.</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs uppercase tracking-wider text-gray-400">{{ todayCalendar.date }}</div>
+                    <div class="text-sm font-semibold text-gray-800 mt-1">{{ todayCalendar.total_events || 0 }} evenimente</div>
+                    <div class="text-xs mt-1" :class="(todayCalendar.risk_events || 0) > 0 ? 'text-red-600' : 'text-emerald-600'">
+                        {{ todayCalendar.risk_events || 0 }} riscuri identificate
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="(todayCalendar.total_events || 0) === 0" class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Nu exista evenimente operationale planificate pentru azi.
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Etape programate azi</div>
+                    <div v-if="todayCalendar.stages?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.stages" :key="`stage-${item.id}`" class="text-xs border rounded-lg px-3 py-2" :class="item.risk ? 'border-red-200 bg-red-50 text-red-800' : 'border-gray-200 bg-gray-50 text-gray-700'">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.project_name || '-' }} · {{ item.status }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara etape azi.</div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Taskuri cu deadline azi</div>
+                    <div v-if="todayCalendar.tasks?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.tasks" :key="`task-${item.id}`" class="text-xs border rounded-lg px-3 py-2" :class="item.risk ? 'border-red-200 bg-red-50 text-red-800' : 'border-gray-200 bg-gray-50 text-gray-700'">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.stage_name || '-' }} · {{ item.status }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara taskuri azi.</div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Utilaje rezervate azi</div>
+                    <div v-if="todayCalendar.equipment?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.equipment" :key="`equipment-${item.id}`" class="text-xs border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-gray-700">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.stage_name || '-' }} · {{ item.time_range }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara utilaje programate azi.</div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Subcontractori programati azi</div>
+                    <div v-if="todayCalendar.subcontractors?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.subcontractors" :key="`sub-${item.id}`" class="text-xs border rounded-lg px-3 py-2" :class="item.risk ? 'border-red-200 bg-red-50 text-red-800' : 'border-gray-200 bg-gray-50 text-gray-700'">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.stage_name || '-' }} · {{ item.window }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara subcontractori programati azi.</div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Documente cu termen azi</div>
+                    <div v-if="todayCalendar.documents?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.documents" :key="`doc-${item.id}`" class="text-xs border rounded-lg px-3 py-2" :class="item.risk ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-gray-200 bg-gray-50 text-gray-700'">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.project_name || '-' }} · {{ fmtCur(item.amount || 0) }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara documente scadente azi.</div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Verificari / calitate azi</div>
+                    <div v-if="todayCalendar.quality_checks?.length" class="space-y-2">
+                        <div v-for="item in todayCalendar.quality_checks" :key="`qc-${item.id}`" class="text-xs border rounded-lg px-3 py-2" :class="item.risk ? 'border-red-200 bg-red-50 text-red-800' : 'border-gray-200 bg-gray-50 text-gray-700'">
+                            <div class="font-medium">{{ item.title }}</div>
+                            <div>{{ item.stage_name || '-' }} · {{ item.planned_at || '-' }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Fara verificari programate azi.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <div class="flex items-center justify-between gap-4 mb-4">
                 <div>
                     <h2 class="text-base font-semibold text-gray-800">Atentie azi</h2>
@@ -233,6 +321,7 @@ const props = defineProps({
     stats:          { type: Object, default: () => ({ activeProjects: 0, teams: 0, quotes: 0, defects: 0, overdueTasks: 0, delayedPhases: 0, avgProgress: 0, estimatedEquipmentCost: 0, documentsUnpaidCount: 0, documentsUnpaidAmount: 0, documentsOverdueInvoices: 0, stageTasksOpen: 0 }) },
     recentProjects: { type: Array,  default: () => [] },
     todayTasks:     { type: Array,  default: () => [] },
+    todayCalendar:  { type: Object, default: () => ({ date: '', total_events: 0, risk_events: 0, stages: [], tasks: [], equipment: [], subcontractors: [], documents: [], quality_checks: [] }) },
     delayedPhases:  { type: Array,  default: () => [] },
     openDefects:    { type: Array,  default: () => [] },
     stagePlanVsReal:{ type: Array,  default: () => [] },

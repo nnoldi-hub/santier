@@ -39,6 +39,7 @@ use App\Models\Document;
 use App\Models\Quote;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\QualityCheck;
 use App\Models\StageReport;
 use App\Models\StageEquipment;
 use App\Models\StageTask;
@@ -144,6 +145,176 @@ Route::get('/dashboard', function () {
             ->orderByRaw("CASE WHEN priority = 'high' THEN 1 WHEN priority = 'medium' THEN 2 WHEN priority = 'low' THEN 3 ELSE 4 END")
             ->take(6)
             ->get(['id', 'project_id', 'title', 'status', 'priority', 'deadline']),
+        'todayCalendar' => (function () use ($today, $user) {
+            $stages = ProjectPhase::query()
+                ->with(['project:id,name'])
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->where(function ($query) use ($today) {
+                    $query
+                        ->whereDate('start_date', $today)
+                        ->orWhereDate('end_date', $today)
+                        ->orWhere(function ($inner) use ($today) {
+                            $inner
+                                ->whereNotNull('start_date')
+                                ->whereNotNull('end_date')
+                                ->whereDate('start_date', '<=', $today)
+                                ->whereDate('end_date', '>=', $today);
+                        });
+                })
+                ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->orderByRaw("CASE WHEN status = 'in_progress' THEN 1 ELSE 2 END")
+                ->orderBy('start_date')
+                ->take(6)
+                ->get(['id', 'project_id', 'name', 'status', 'start_date', 'end_date'])
+                ->map(fn (ProjectPhase $phase) => [
+                    'id' => $phase->id,
+                    'title' => $phase->name,
+                    'project_name' => $phase->project?->name,
+                    'status' => $phase->status,
+                    'start_date' => optional($phase->start_date)->format('Y-m-d'),
+                    'end_date' => optional($phase->end_date)->format('Y-m-d'),
+                    'risk' => $phase->status === 'pending'
+                        && !empty($phase->start_date)
+                        && Carbon::parse($phase->start_date)->lt(now()->startOfDay()),
+                ])
+                ->values();
+
+            $tasks = StageTask::query()
+                ->with(['stage:id,name,project_id', 'stage.project:id,name'])
+                ->whereDate('deadline', $today)
+                ->whereIn('status', ['todo', 'in_progress', 'blocked'])
+                ->whereHas('stage.project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->orderByRaw("CASE WHEN status = 'blocked' THEN 1 WHEN status = 'in_progress' THEN 2 ELSE 3 END")
+                ->take(6)
+                ->get(['id', 'stage_id', 'title', 'status', 'deadline'])
+                ->map(fn (StageTask $task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'project_name' => $task->stage?->project?->name,
+                    'stage_name' => $task->stage?->name,
+                    'status' => $task->status,
+                    'deadline' => optional($task->deadline)->format('Y-m-d H:i'),
+                    'risk' => $task->status === 'blocked',
+                ])
+                ->values();
+
+            $equipment = StageEquipment::query()
+                ->with(['equipment:id,name', 'phase:id,name,project_id', 'phase.project:id,name'])
+                ->where(function ($query) use ($today) {
+                    $query
+                        ->whereDate('usage_start', $today)
+                        ->orWhereDate('usage_end', $today)
+                        ->orWhere(function ($inner) use ($today) {
+                            $inner
+                                ->whereNotNull('usage_start')
+                                ->whereNotNull('usage_end')
+                                ->whereDate('usage_start', '<=', $today)
+                                ->whereDate('usage_end', '>=', $today);
+                        });
+                })
+                ->whereHas('phase.project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->orderBy('usage_start')
+                ->take(6)
+                ->get(['id', 'stage_id', 'equipment_id', 'quantity', 'usage_start', 'usage_end'])
+                ->map(fn (StageEquipment $reservation) => [
+                    'id' => $reservation->id,
+                    'title' => $reservation->equipment?->name,
+                    'project_name' => $reservation->phase?->project?->name,
+                    'stage_name' => $reservation->phase?->name,
+                    'time_range' => trim((optional($reservation->usage_start)->format('Y-m-d') ?? '-') . ' - ' . (optional($reservation->usage_end)->format('Y-m-d') ?? '-')),
+                    'quantity' => (int) $reservation->quantity,
+                    'risk' => false,
+                ])
+                ->values();
+
+            $subcontractors = ProjectPhase::query()
+                ->with(['project:id,name', 'contractor:id,name,type'])
+                ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->whereHas('contractor', fn ($q) => $q->whereIn('type', ['subcontractor', 'pfa']))
+                ->where(function ($query) use ($today) {
+                    $query
+                        ->whereDate('start_date', $today)
+                        ->orWhereDate('end_date', $today)
+                        ->orWhere(function ($inner) use ($today) {
+                            $inner
+                                ->whereNotNull('start_date')
+                                ->whereNotNull('end_date')
+                                ->whereDate('start_date', '<=', $today)
+                                ->whereDate('end_date', '>=', $today);
+                        });
+                })
+                ->orderBy('start_date')
+                ->take(6)
+                ->get(['id', 'project_id', 'name', 'contractor_id', 'status', 'start_date', 'end_date'])
+                ->map(fn (ProjectPhase $phase) => [
+                    'id' => $phase->id,
+                    'title' => $phase->contractor?->name,
+                    'project_name' => $phase->project?->name,
+                    'stage_name' => $phase->name,
+                    'status' => $phase->status,
+                    'window' => trim((optional($phase->start_date)->format('Y-m-d') ?? '-') . ' - ' . (optional($phase->end_date)->format('Y-m-d') ?? '-')),
+                    'risk' => $phase->status === 'pending'
+                        && !empty($phase->start_date)
+                        && Carbon::parse($phase->start_date)->lt(now()->startOfDay()),
+                ])
+                ->values();
+
+            $documents = Document::query()
+                ->with(['project:id,name', 'stage:id,name'])
+                ->whereIn('payment_status', ['unpaid', 'partial'])
+                ->whereDate('issued_at', $today)
+                ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->orderByDesc('amount')
+                ->take(6)
+                ->get(['id', 'project_id', 'stage_id', 'title', 'amount', 'payment_status', 'issued_at'])
+                ->map(fn (Document $document) => [
+                    'id' => $document->id,
+                    'title' => $document->title,
+                    'project_name' => $document->project?->name,
+                    'stage_name' => $document->stage?->name,
+                    'amount' => (float) $document->amount,
+                    'issued_at' => optional($document->issued_at)->format('Y-m-d'),
+                    'payment_status' => $document->payment_status,
+                    'risk' => in_array($document->payment_status, ['unpaid', 'partial'], true),
+                ])
+                ->values();
+
+            $quality = QualityCheck::query()
+                ->with(['project:id,name', 'phase:id,name'])
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->whereDate('planned_at', $today)
+                ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
+                ->orderBy('planned_at')
+                ->take(6)
+                ->get(['id', 'project_id', 'phase_id', 'title', 'status', 'planned_at'])
+                ->map(fn (QualityCheck $check) => [
+                    'id' => $check->id,
+                    'title' => $check->title,
+                    'project_name' => $check->project?->name,
+                    'stage_name' => $check->phase?->name,
+                    'status' => $check->status,
+                    'planned_at' => optional($check->planned_at)->format('Y-m-d H:i'),
+                    'risk' => $check->status === 'pending',
+                ])
+                ->values();
+
+            $riskCount = collect([$stages, $tasks, $equipment, $subcontractors, $documents, $quality])
+                ->flatten(1)
+                ->filter(fn ($item) => (bool) ($item['risk'] ?? false))
+                ->count();
+
+            return [
+                'date' => now()->isoFormat('D MMMM YYYY'),
+                'total_events' => $stages->count() + $tasks->count() + $equipment->count() + $subcontractors->count() + $documents->count() + $quality->count(),
+                'risk_events' => $riskCount,
+                'stages' => $stages,
+                'tasks' => $tasks,
+                'equipment' => $equipment,
+                'subcontractors' => $subcontractors,
+                'documents' => $documents,
+                'quality_checks' => $quality,
+            ];
+        })(),
         'delayedPhases' => ProjectPhase::with(['project:id,name'])
             ->whereIn('status', ['pending', 'in_progress'])
             ->whereNotNull('end_date')
