@@ -646,3 +646,20 @@ Template de evaluare plusuri / minusuri:
 	- Structura permite urmarire operationala zilnica fara interpretari suplimentare.
 - Ce ramane:
 	- Marcare progres real pe LW-01..LW-14 in functie de executia echipei.
+
+### 2026-07-01 - Checkpoint AI Tools (MVP Card 1 - Factura prin poza)
+- Etapa: introducere modul AI in pagina proiectului + flow functional minim.
+- Dovezi:
+	- Pagina proiectului include modul nou `AI Tools` cu 3 carduri, dintre care Card 1 este functional (`Factura prin poza`).
+	- Flow Card 1 implementat cap-coada: upload fisier -> extractie draft AI -> revizuire manuala -> confirmare -> creare `Document` + `Contractor` (furnizor).
+	- Endpoint-uri noi pe proiect pentru AI invoice flow:
+		- `projects.ai.invoice.extract`
+		- `projects.ai.invoice.commit`
+	- Test dedicat adaugat: `ProjectAiToolsTest`.
+- Validare:
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (1/1).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele noi/modificate -> fara erori.
+- Ce ramane:
+	- Sprint 2: Card 3 (Alerta depasire buget) cu recomandari automate pe etapa.
+	- Sprint 3: Card 2 (Deviz automat) pe baza normelor tehnice.

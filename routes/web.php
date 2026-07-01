@@ -29,6 +29,7 @@ use App\Http\Controllers\MaterialInvoiceController;
 use App\Http\Controllers\StageReportController;
 use App\Http\Controllers\StageTaskController;
 use App\Http\Controllers\StageProgressController;
+use App\Http\Controllers\ProjectAiToolsController;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
 use App\Support\DemoScope;
@@ -278,6 +279,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('projects/{project}/phases/{phase}/assignments/{assignment}', [PhaseTeamAssignmentController::class, 'destroy'])->name('phase-assignments.destroy');
         Route::post('projects/{project}/phases/{phase}/equipment', [StageEquipmentController::class, 'store'])->name('stage-equipment.store');
         Route::delete('projects/{project}/phases/{phase}/equipment/{reservation}', [StageEquipmentController::class, 'destroy'])->name('stage-equipment.destroy');
+        Route::post('projects/{project}/ai/invoice/extract', [ProjectAiToolsController::class, 'extractInvoice'])->name('projects.ai.invoice.extract');
+        Route::post('projects/{project}/ai/invoice/commit', [ProjectAiToolsController::class, 'commitInvoice'])->name('projects.ai.invoice.commit');
     });
 });
 

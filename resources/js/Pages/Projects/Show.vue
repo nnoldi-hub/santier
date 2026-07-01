@@ -11,6 +11,41 @@
             </Link>
         </div>
 
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="font-semibold text-gray-800">🟧 AI Tools (Asistent inteligent)</h3>
+                    <p class="text-xs text-gray-500 mt-1">Instrumente de automatizare pentru factura, deviz si buget pe proiect.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button @click="openAiInvoiceFlow" class="text-left border border-orange-200 bg-orange-50 rounded-xl p-4 hover:bg-orange-100 transition">
+                    <div class="text-sm font-semibold text-orange-700 mb-1">Înregistrare facturi prin poză</div>
+                    <div class="text-xs text-orange-700/90">Faci o poză -> furnizor, sumă, TVA extrase și transformate în document financiar.</div>
+                </button>
+
+                <div class="text-left border border-gray-200 bg-gray-50 rounded-xl p-4">
+                    <div class="text-sm font-semibold text-gray-700 mb-1">Deviz automat din dimensiuni</div>
+                    <div class="text-xs text-gray-600">Input dimensiuni -> AI propune cantități, manoperă, utilaje și etape WBS.</div>
+                    <div class="mt-2 text-[11px] inline-block px-2 py-0.5 rounded bg-gray-200 text-gray-700">In roadmap (MVP Sprint 3)</div>
+                </div>
+
+                <div class="text-left border border-gray-200 bg-gray-50 rounded-xl p-4">
+                    <div class="text-sm font-semibold text-gray-700 mb-1">Alertă depășire buget</div>
+                    <div class="text-xs text-gray-600">La achiziție nouă, AI calculează depășirea pe etapă și recomandă acțiuni.</div>
+                    <div class="mt-2 text-[11px] inline-block px-2 py-0.5 rounded bg-gray-200 text-gray-700">In roadmap (MVP Sprint 2)</div>
+                </div>
+            </div>
+
+            <div v-if="aiInvoiceState.success" class="mt-3 text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-lg">
+                {{ aiInvoiceState.success }}
+            </div>
+            <div v-if="aiInvoiceState.error" class="mt-3 text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg">
+                {{ aiInvoiceState.error }}
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <!-- Detalii -->
             <div class="xl:col-span-1 bg-white rounded-xl border border-gray-200 p-6 space-y-4 h-fit">
@@ -309,11 +344,100 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="showAiInvoiceFlow" class="fixed inset-0 z-50 bg-black/40 p-4 overflow-y-auto">
+            <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 p-5 mt-8">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800">Factură prin poză -> document financiar</h3>
+                        <p class="text-xs text-gray-500 mt-1">Upload, extragere draft AI, verificare manuală, apoi confirmare în proiect.</p>
+                    </div>
+                    <button @click="closeAiInvoiceFlow" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Etapa asociată *</label>
+                        <select v-model="aiInvoiceForm.stage_id" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="">— Selecteaza etapa —</option>
+                            <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Poza/PDF factura *</label>
+                        <input ref="aiInvoiceFileInput" type="file" accept="image/*,.pdf" @change="onAiInvoiceFileChange" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                    </div>
+
+                    <div class="md:col-span-2 flex gap-2">
+                        <button @click="extractAiInvoiceDraft" :disabled="aiInvoiceState.extracting" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 disabled:opacity-50">
+                            {{ aiInvoiceState.extracting ? 'Se extrage...' : 'Extrage date (AI)' }}
+                        </button>
+                        <button @click="closeAiInvoiceFlow" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Anuleaza</button>
+                    </div>
+                </div>
+
+                <div v-if="aiInvoiceState.draftLoaded" class="mt-5 border-t border-gray-100 pt-4">
+                    <h4 class="text-sm font-semibold text-gray-800 mb-3">Verificare draft extras</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Furnizor</label>
+                            <input v-model="aiInvoiceForm.supplier_name" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Titlu document</label>
+                            <input v-model="aiInvoiceForm.title" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Suma totală (RON)</label>
+                            <input v-model="aiInvoiceForm.amount" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">TVA (RON)</label>
+                            <input v-model="aiInvoiceForm.vat_amount" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data emiterii</label>
+                            <input v-model="aiInvoiceForm.issued_at" type="date" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Status plată</label>
+                            <select v-model="aiInvoiceForm.payment_status" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                <option value="unpaid">Neplatit</option>
+                                <option value="partial">Plata partiala</option>
+                                <option value="paid">Platit</option>
+                                <option value="cancelled">Anulat</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs text-gray-600 mb-1">Observatii</label>
+                            <textarea v-model="aiInvoiceForm.notes" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-xs text-gray-500">
+                        Fisier draft: {{ aiInvoiceForm.file_name }}
+                    </div>
+
+                    <div class="mt-4 flex gap-2">
+                        <button @click="commitAiInvoiceDraft" :disabled="aiInvoiceState.saving" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50">
+                            {{ aiInvoiceState.saving ? 'Se salveaza...' : 'Confirmă și creează document' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="aiInvoiceState.error" class="mt-3 text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg">
+                    {{ aiInvoiceState.error }}
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
+import axios from 'axios';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
@@ -327,6 +451,30 @@ const props = defineProps({
 });
 
 const showAddPhase = ref(false);
+const showAiInvoiceFlow = ref(false);
+const aiInvoiceFileInput = ref(null);
+
+const aiInvoiceState = reactive({
+    extracting: false,
+    saving: false,
+    error: '',
+    success: '',
+    draftLoaded: false,
+});
+
+const aiInvoiceForm = reactive({
+    stage_id: '',
+    supplier_name: '',
+    amount: '',
+    vat_amount: '',
+    issued_at: new Date().toISOString().slice(0, 10),
+    payment_status: 'unpaid',
+    title: '',
+    notes: '',
+    temp_file_path: '',
+    file_name: '',
+    attachment: null,
+});
 
 const phaseForm = useForm({
     name:         '',
@@ -376,6 +524,130 @@ function getEquipmentDraft(phaseId) {
 function autoName() {
     if (props.typeLabels[phaseForm.type]) {
         phaseForm.name = props.typeLabels[phaseForm.type];
+    }
+}
+
+function openAiInvoiceFlow() {
+    showAiInvoiceFlow.value = true;
+    aiInvoiceState.error = '';
+    aiInvoiceState.success = '';
+}
+
+function resetAiInvoiceFlow() {
+    aiInvoiceState.error = '';
+    aiInvoiceState.success = '';
+    aiInvoiceState.extracting = false;
+    aiInvoiceState.saving = false;
+    aiInvoiceState.draftLoaded = false;
+
+    aiInvoiceForm.stage_id = '';
+    aiInvoiceForm.supplier_name = '';
+    aiInvoiceForm.amount = '';
+    aiInvoiceForm.vat_amount = '';
+    aiInvoiceForm.issued_at = new Date().toISOString().slice(0, 10);
+    aiInvoiceForm.payment_status = 'unpaid';
+    aiInvoiceForm.title = '';
+    aiInvoiceForm.notes = '';
+    aiInvoiceForm.temp_file_path = '';
+    aiInvoiceForm.file_name = '';
+    aiInvoiceForm.attachment = null;
+
+    if (aiInvoiceFileInput.value) {
+        aiInvoiceFileInput.value.value = '';
+    }
+}
+
+function closeAiInvoiceFlow() {
+    showAiInvoiceFlow.value = false;
+    resetAiInvoiceFlow();
+}
+
+function onAiInvoiceFileChange(event) {
+    const file = event.target.files?.[0] || null;
+    aiInvoiceForm.attachment = file;
+    aiInvoiceState.error = '';
+}
+
+async function extractAiInvoiceDraft() {
+    aiInvoiceState.error = '';
+    aiInvoiceState.success = '';
+
+    if (!aiInvoiceForm.stage_id) {
+        aiInvoiceState.error = 'Selecteaza etapa asociata inainte de incarcare.';
+        return;
+    }
+
+    if (!aiInvoiceForm.attachment) {
+        aiInvoiceState.error = 'Incarca o poza/PDF de factura pentru extractie.';
+        return;
+    }
+
+    aiInvoiceState.extracting = true;
+
+    try {
+        const payload = new FormData();
+        payload.append('stage_id', String(aiInvoiceForm.stage_id));
+        payload.append('attachment', aiInvoiceForm.attachment);
+
+        const response = await axios.post(route('projects.ai.invoice.extract', props.project.id), payload, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        const draft = response.data?.draft || {};
+
+        aiInvoiceForm.temp_file_path = draft.temp_file_path || '';
+        aiInvoiceForm.file_name = draft.file_name || '';
+        aiInvoiceForm.supplier_name = draft.supplier_name || '';
+        aiInvoiceForm.amount = draft.amount || '';
+        aiInvoiceForm.vat_amount = draft.vat_amount || '';
+        aiInvoiceForm.issued_at = draft.issued_at || new Date().toISOString().slice(0, 10);
+        aiInvoiceForm.payment_status = draft.payment_status || 'unpaid';
+        aiInvoiceForm.title = draft.title || '';
+        aiInvoiceForm.notes = draft.notes || '';
+
+        aiInvoiceState.draftLoaded = true;
+        aiInvoiceState.success = response.data?.message || 'Draft extras cu succes. Verifica datele.';
+    } catch (error) {
+        aiInvoiceState.error = error?.response?.data?.message || 'Nu am putut extrage datele facturii.';
+    } finally {
+        aiInvoiceState.extracting = false;
+    }
+}
+
+async function commitAiInvoiceDraft() {
+    aiInvoiceState.error = '';
+    aiInvoiceState.success = '';
+
+    if (!aiInvoiceState.draftLoaded || !aiInvoiceForm.temp_file_path) {
+        aiInvoiceState.error = 'Extrage mai intai draft-ul facturii.';
+        return;
+    }
+
+    aiInvoiceState.saving = true;
+
+    try {
+        const response = await axios.post(route('projects.ai.invoice.commit', props.project.id), {
+            stage_id: aiInvoiceForm.stage_id,
+            temp_file_path: aiInvoiceForm.temp_file_path,
+            supplier_name: aiInvoiceForm.supplier_name,
+            amount: aiInvoiceForm.amount,
+            vat_amount: aiInvoiceForm.vat_amount || null,
+            issued_at: aiInvoiceForm.issued_at,
+            payment_status: aiInvoiceForm.payment_status,
+            title: aiInvoiceForm.title,
+            notes: aiInvoiceForm.notes,
+        });
+
+        aiInvoiceState.success = response.data?.message || 'Factura a fost inregistrata.';
+
+        closeAiInvoiceFlow();
+        router.reload({ preserveScroll: true });
+    } catch (error) {
+        aiInvoiceState.error = error?.response?.data?.message || 'Nu am putut salva factura.';
+    } finally {
+        aiInvoiceState.saving = false;
     }
 }
 
