@@ -282,6 +282,8 @@ Route::middleware('auth')->group(function () {
         Route::post('projects/{project}/ai/invoice/extract', [ProjectAiToolsController::class, 'extractInvoice'])->name('projects.ai.invoice.extract');
         Route::post('projects/{project}/ai/invoice/commit', [ProjectAiToolsController::class, 'commitInvoice'])->name('projects.ai.invoice.commit');
         Route::post('projects/{project}/ai/budget-alert', [ProjectAiToolsController::class, 'budgetAlert'])->name('projects.ai.budget-alert');
+        Route::post('projects/{project}/ai/estimate/generate', [ProjectAiToolsController::class, 'generateEstimate'])->name('projects.ai.estimate.generate');
+        Route::post('projects/{project}/ai/estimate/commit', [ProjectAiToolsController::class, 'commitEstimate'])->name('projects.ai.estimate.commit');
     });
 });
 

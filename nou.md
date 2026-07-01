@@ -678,3 +678,19 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe fisierele afectate -> fara erori.
 - Ce ramane:
 	- Sprint 3: Card 2 (Deviz automat din dimensiuni) cu output materiale/manopera/utilaje + propunere WBS.
+
+### 2026-07-01 - Checkpoint AI Tools (MVP Card 2 - Deviz automat din dimensiuni)
+- Etapa: finalizare modul AI cu flow de estimare tehnico-financiara.
+- Dovezi:
+	- Card 2 (`Deviz automat din dimensiuni`) este activ in `AI Tools` pe pagina proiectului, cu modal complet pentru input (`tip lucrare`, `tip dimensiune`, `valoare`, `complexitate`).
+	- Endpoint-uri noi pentru Card 2:
+		- `projects.ai.estimate.generate` (genereaza materiale/manopera/utilaje/totale + etape WBS propuse)
+		- `projects.ai.estimate.commit` (salveaza oferta draft in `quotes` + creeaza etape lipsa in `project_phases`)
+	- UI afiseaza sumar costuri, lista materiale estimate, etape WBS propuse si permite commit direct in proiect.
+	- Test dedicat nou in `ProjectAiToolsTest` pentru flow cap-coada generate -> commit.
+- Validare:
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (3/3).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate (`ProjectAiToolsController`, `Projects/Show.vue`, `routes/web.php`, `ProjectAiToolsTest`) -> fara erori.
+- Ce ramane:
+	- Optional: ajustare catalog norme (costuri unitare) pe baza datelor istorice reale din proiecte.

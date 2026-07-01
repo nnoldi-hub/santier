@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\Quote;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -129,6 +130,65 @@ class ProjectAiToolsTest extends TestCase
         $response->assertJsonPath('alert.stage_overrun_pct', 10);
         $response->assertJsonPath('alert.project_overrun_amount', 2000);
         $response->assertJsonPath('alert.profit_impact_amount', -2000);
+    }
+
+    public function test_ai_estimate_flow_generates_and_commits_quote_with_wbs_stages(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+
+        $generateResponse = $this->actingAs($user)->post(route('projects.ai.estimate.generate', $project), [
+            'work_type' => 'foundation',
+            'measure_type' => 'volume',
+            'measure_value' => 10,
+            'complexity' => 'medium',
+        ]);
+
+        $generateResponse->assertOk();
+        $generateResponse->assertJsonStructure([
+            'message',
+            'estimate' => [
+                'materials',
+                'labor',
+                'equipment',
+                'totals',
+                'wbs_stages',
+            ],
+        ]);
+
+        $totalNet = (float) $generateResponse->json('estimate.totals.total_net');
+        $wbsStages = $generateResponse->json('estimate.wbs_stages');
+
+        $this->assertGreaterThan(0, $totalNet);
+        $this->assertIsArray($wbsStages);
+        $this->assertNotEmpty($wbsStages);
+
+        $commitResponse = $this->actingAs($user)->post(route('projects.ai.estimate.commit', $project), [
+            'title' => 'Deviz AI fundatie',
+            'total_net' => $totalNet,
+            'wbs_stages' => $wbsStages,
+            'notes' => 'Test commit deviz AI',
+        ]);
+
+        $commitResponse->assertOk();
+        $commitResponse->assertJsonStructure(['message', 'quote_id', 'created_stages']);
+
+        $quote = Quote::query()->find($commitResponse->json('quote_id'));
+        $this->assertNotNull($quote);
+        $this->assertSame($project->id, $quote->project_id);
+        $this->assertSame('draft', $quote->status);
+        $this->assertGreaterThan(0, (float) $quote->total_net);
+
+        $createdStages = $commitResponse->json('created_stages');
+        $this->assertNotEmpty($createdStages);
+
+        foreach ($createdStages as $stage) {
+            $this->assertDatabaseHas('project_phases', [
+                'id' => $stage['id'],
+                'project_id' => $project->id,
+                'name' => $stage['name'],
+            ]);
+        }
     }
 
     private function seedProjectContext(User $user): array

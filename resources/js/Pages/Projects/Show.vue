@@ -25,11 +25,10 @@
                     <div class="text-xs text-orange-700/90">Faci o poză -> furnizor, sumă, TVA extrase și transformate în document financiar.</div>
                 </button>
 
-                <div class="text-left border border-gray-200 bg-gray-50 rounded-xl p-4">
-                    <div class="text-sm font-semibold text-gray-700 mb-1">Deviz automat din dimensiuni</div>
-                    <div class="text-xs text-gray-600">Input dimensiuni -> AI propune cantități, manoperă, utilaje și etape WBS.</div>
-                    <div class="mt-2 text-[11px] inline-block px-2 py-0.5 rounded bg-gray-200 text-gray-700">In roadmap (MVP Sprint 3)</div>
-                </div>
+                <button @click="openEstimateFlow" class="text-left border border-violet-200 bg-violet-50 rounded-xl p-4 hover:bg-violet-100 transition">
+                    <div class="text-sm font-semibold text-violet-700 mb-1">Deviz automat din dimensiuni</div>
+                    <div class="text-xs text-violet-700/90">Introduci dimensiuni -> AI generează materiale, manoperă, utilaje, cost și etape WBS.</div>
+                </button>
 
                 <button @click="openBudgetAlertFlow" class="text-left border border-blue-200 bg-blue-50 rounded-xl p-4 hover:bg-blue-100 transition">
                     <div class="text-sm font-semibold text-blue-700 mb-1">Alertă depășire buget</div>
@@ -513,6 +512,121 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="showEstimateFlow" class="fixed inset-0 z-50 bg-black/40 p-4 overflow-y-auto">
+            <div class="max-w-3xl mx-auto bg-white rounded-xl border border-gray-200 p-5 mt-8">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800">Deviz automat din dimensiuni</h3>
+                        <p class="text-xs text-gray-500 mt-1">Introdu dimensiunile, iar AI propune costuri și etape WBS pentru proiect.</p>
+                    </div>
+                    <button @click="closeEstimateFlow" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Tip lucrare *</label>
+                        <select v-model="estimateForm.work_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="fence">Gard</option>
+                            <option value="foundation">Fundatie</option>
+                            <option value="plastering">Tencuieli</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Tip dimensiune *</label>
+                        <select v-model="estimateForm.measure_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="area">Suprafata (mp)</option>
+                            <option value="length">Lungime (ml)</option>
+                            <option value="volume">Volum (mc)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Valoare dimensiune *</label>
+                        <input v-model="estimateForm.measure_value" type="number" min="0.1" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 120" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Complexitate</label>
+                        <select v-model="estimateForm.complexity" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="low">Redusa</option>
+                            <option value="medium">Medie</option>
+                            <option value="high">Ridicata</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                    <button @click="generateEstimate" :disabled="estimateState.loading" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-violet-700 disabled:opacity-50">
+                        {{ estimateState.loading ? 'Se genereaza...' : 'Genereaza deviz' }}
+                    </button>
+                    <button @click="closeEstimateFlow" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Inchide</button>
+                </div>
+
+                <div v-if="estimateState.error" class="mt-3 text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg">
+                    {{ estimateState.error }}
+                </div>
+
+                <div v-if="estimateState.hasResult" class="mt-4 border-t border-gray-100 pt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Materiale</div>
+                            <div class="text-lg font-semibold text-gray-800">{{ fmtCur(estimateState.result.totals.materials_cost || 0) }}</div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Manopera</div>
+                            <div class="text-lg font-semibold text-gray-800">{{ fmtCur(estimateState.result.totals.labor_cost || 0) }}</div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Utilaje</div>
+                            <div class="text-lg font-semibold text-gray-800">{{ fmtCur(estimateState.result.totals.equipment_cost || 0) }}</div>
+                        </div>
+                        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3">
+                            <div class="text-xs text-violet-700">Total net estimat</div>
+                            <div class="text-lg font-semibold text-violet-700">{{ fmtCur(estimateState.result.totals.total_net || 0) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="text-sm font-semibold text-gray-800 mb-2">Materiale estimate</div>
+                            <div class="space-y-1 max-h-48 overflow-y-auto">
+                                <div v-for="item in estimateState.result.materials" :key="item.name" class="text-xs text-gray-700 flex items-center justify-between gap-3">
+                                    <span>{{ item.name }} ({{ item.quantity }} {{ item.unit }})</span>
+                                    <span class="font-medium">{{ fmtCur(item.estimated_cost) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="text-sm font-semibold text-gray-800 mb-2">Etape WBS propuse</div>
+                            <div class="space-y-1 max-h-48 overflow-y-auto">
+                                <div v-for="(stage, idx) in estimateState.result.wbs_stages" :key="stage.name + idx" class="text-xs text-gray-700">
+                                    {{ idx + 1 }}. {{ stage.name }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Titlu ofertă draft</label>
+                            <input v-model="estimateCommitForm.title" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Note ofertă</label>
+                            <input v-model="estimateCommitForm.notes" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Deviz AI pentru proiect" />
+                        </div>
+                    </div>
+
+                    <button @click="commitEstimate" :disabled="estimateState.saving" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50">
+                        {{ estimateState.saving ? 'Se salveaza...' : 'Creeaza oferta draft + etape WBS' }}
+                    </button>
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>
 
@@ -534,6 +648,7 @@ const props = defineProps({
 const showAddPhase = ref(false);
 const showAiInvoiceFlow = ref(false);
 const showBudgetAlertFlow = ref(false);
+const showEstimateFlow = ref(false);
 const aiInvoiceFileInput = ref(null);
 
 const aiInvoiceState = reactive({
@@ -546,6 +661,15 @@ const aiInvoiceState = reactive({
 
 const budgetAlertState = reactive({
     loading: false,
+    error: '',
+    success: '',
+    hasResult: false,
+    result: null,
+});
+
+const estimateState = reactive({
+    loading: false,
+    saving: false,
     error: '',
     success: '',
     hasResult: false,
@@ -570,6 +694,18 @@ const budgetAlertForm = reactive({
     stage_id: '',
     purchase_amount: '',
     purchase_source: 'other',
+});
+
+const estimateForm = reactive({
+    work_type: 'foundation',
+    measure_type: 'volume',
+    measure_value: '',
+    complexity: 'medium',
+});
+
+const estimateCommitForm = reactive({
+    title: '',
+    notes: 'Deviz generat automat din modul AI Tools.',
 });
 
 const phaseForm = useForm({
@@ -662,6 +798,89 @@ function openBudgetAlertFlow() {
     showBudgetAlertFlow.value = true;
     budgetAlertState.error = '';
     budgetAlertState.success = '';
+}
+
+function openEstimateFlow() {
+    showEstimateFlow.value = true;
+    estimateState.error = '';
+    estimateState.success = '';
+}
+
+function closeEstimateFlow() {
+    showEstimateFlow.value = false;
+    estimateState.loading = false;
+    estimateState.saving = false;
+    estimateState.error = '';
+    estimateState.success = '';
+    estimateState.hasResult = false;
+    estimateState.result = null;
+    estimateForm.work_type = 'foundation';
+    estimateForm.measure_type = 'volume';
+    estimateForm.measure_value = '';
+    estimateForm.complexity = 'medium';
+    estimateCommitForm.title = '';
+    estimateCommitForm.notes = 'Deviz generat automat din modul AI Tools.';
+}
+
+async function generateEstimate() {
+    estimateState.error = '';
+    estimateState.success = '';
+
+    if (!estimateForm.measure_value || Number(estimateForm.measure_value) <= 0) {
+        estimateState.error = 'Introdu o dimensiune valida pentru generarea devizului.';
+        return;
+    }
+
+    estimateState.loading = true;
+
+    try {
+        const response = await axios.post(route('projects.ai.estimate.generate', props.project.id), {
+            work_type: estimateForm.work_type,
+            measure_type: estimateForm.measure_type,
+            measure_value: Number(estimateForm.measure_value),
+            complexity: estimateForm.complexity,
+        });
+
+        estimateState.result = response.data?.estimate || null;
+        estimateState.hasResult = !!estimateState.result;
+        estimateState.success = response.data?.message || 'Deviz generat cu succes.';
+
+        estimateCommitForm.title = `Deviz AI - ${props.project.name} - ${estimateForm.work_type}`;
+    } catch (error) {
+        estimateState.error = error?.response?.data?.message || 'Nu am putut genera devizul.';
+    } finally {
+        estimateState.loading = false;
+    }
+}
+
+async function commitEstimate() {
+    estimateState.error = '';
+    estimateState.success = '';
+
+    if (!estimateState.hasResult || !estimateState.result) {
+        estimateState.error = 'Genereaza mai intai un deviz.';
+        return;
+    }
+
+    estimateState.saving = true;
+
+    try {
+        const response = await axios.post(route('projects.ai.estimate.commit', props.project.id), {
+            title: estimateCommitForm.title || `Deviz AI - ${props.project.name}`,
+            total_net: estimateState.result.totals?.total_net || 0,
+            wbs_stages: estimateState.result.wbs_stages || [],
+            notes: estimateCommitForm.notes,
+        });
+
+        estimateState.success = response.data?.message || 'Deviz salvat cu succes.';
+
+        closeEstimateFlow();
+        router.reload({ preserveScroll: true });
+    } catch (error) {
+        estimateState.error = error?.response?.data?.message || 'Nu am putut salva devizul.';
+    } finally {
+        estimateState.saving = false;
+    }
 }
 
 function closeBudgetAlertFlow() {
