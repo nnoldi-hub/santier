@@ -887,6 +887,15 @@ async function commitEstimate() {
             },
         ];
 
+        const equipmentDetails = [
+            {
+                name: `Utilaje ${estimateForm.work_type}`,
+                estimated_hours: estimateState.result.equipment?.estimated_hours || 0,
+                hour_rate: estimateState.result.equipment?.hour_rate || 0,
+                estimated_cost: estimateState.result.equipment?.estimated_cost || 0,
+            },
+        ];
+
         const response = await axios.post(route('projects.ai.estimate.commit', props.project.id), {
             title: estimateCommitForm.title || `Deviz AI - ${props.project.name}`,
             total_net: estimateState.result.totals?.total_net || 0,
@@ -899,6 +908,7 @@ async function commitEstimate() {
                 complexity: estimateForm.complexity,
                 materials: estimateState.result.materials || [],
                 labor: laborDetails,
+                equipment: equipmentDetails,
                 totals: estimateState.result.totals || {},
             },
         });

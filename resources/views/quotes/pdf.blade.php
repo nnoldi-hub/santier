@@ -27,6 +27,7 @@
     @php
         $materials = is_array($breakdown['materials'] ?? null) ? $breakdown['materials'] : [];
         $labor = is_array($breakdown['labor'] ?? null) ? $breakdown['labor'] : [];
+        $equipment = is_array($breakdown['equipment'] ?? null) ? $breakdown['equipment'] : [];
         $totals = is_array($breakdown['totals'] ?? null) ? $breakdown['totals'] : [];
         $materialsTotal = (float) ($totals['materials_cost'] ?? 0);
         $laborTotal = (float) ($totals['labor_cost'] ?? 0);
@@ -104,6 +105,34 @@
                 @empty
                     <tr>
                         <td colspan="4">Nu exista detalii de manopera pentru aceasta oferta.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">C. Utilaje</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tip utilaj</th>
+                    <th class="text-right">Ore estimate</th>
+                    <th class="text-right">Tarif / ora</th>
+                    <th class="text-right">Valoare</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($equipment as $item)
+                    <tr>
+                        <td>{{ $item['name'] ?? 'Utilaj' }}</td>
+                        <td class="text-right">{{ number_format((float) ($item['estimated_hours'] ?? 0), 2, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format((float) ($item['hour_rate'] ?? 0), 2, ',', '.') }} RON</td>
+                        <td class="text-right">{{ number_format((float) ($item['estimated_cost'] ?? 0), 2, ',', '.') }} RON</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4">Nu exista detalii de utilaje pentru aceasta oferta.</td>
                     </tr>
                 @endforelse
             </tbody>

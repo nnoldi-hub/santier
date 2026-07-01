@@ -109,6 +109,11 @@ class ProjectAiToolsController extends Controller
             'estimate_details.labor.*.estimated_hours' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.labor.*.hour_rate' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.labor.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment' => ['nullable', 'array'],
+            'estimate_details.equipment.*.name' => ['nullable', 'string', 'max:255'],
+            'estimate_details.equipment.*.estimated_hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.*.hour_rate' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals' => ['nullable', 'array'],
             'estimate_details.totals.materials_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals.labor_cost' => ['nullable', 'numeric', 'min:0'],
@@ -516,6 +521,7 @@ class ProjectAiToolsController extends Controller
             'complexity' => $estimateDetails['complexity'] ?? null,
             'materials' => $estimateDetails['materials'] ?? [],
             'labor' => $estimateDetails['labor'] ?? [],
+            'equipment' => $estimateDetails['equipment'] ?? [],
             'totals' => $estimateDetails['totals'] ?? [],
         ];
 
