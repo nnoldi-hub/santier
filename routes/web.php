@@ -281,6 +281,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('projects/{project}/phases/{phase}/equipment/{reservation}', [StageEquipmentController::class, 'destroy'])->name('stage-equipment.destroy');
         Route::post('projects/{project}/ai/invoice/extract', [ProjectAiToolsController::class, 'extractInvoice'])->name('projects.ai.invoice.extract');
         Route::post('projects/{project}/ai/invoice/commit', [ProjectAiToolsController::class, 'commitInvoice'])->name('projects.ai.invoice.commit');
+        Route::post('projects/{project}/ai/budget-alert', [ProjectAiToolsController::class, 'budgetAlert'])->name('projects.ai.budget-alert');
     });
 });
 

@@ -31,11 +31,10 @@
                     <div class="mt-2 text-[11px] inline-block px-2 py-0.5 rounded bg-gray-200 text-gray-700">In roadmap (MVP Sprint 3)</div>
                 </div>
 
-                <div class="text-left border border-gray-200 bg-gray-50 rounded-xl p-4">
-                    <div class="text-sm font-semibold text-gray-700 mb-1">Alertă depășire buget</div>
-                    <div class="text-xs text-gray-600">La achiziție nouă, AI calculează depășirea pe etapă și recomandă acțiuni.</div>
-                    <div class="mt-2 text-[11px] inline-block px-2 py-0.5 rounded bg-gray-200 text-gray-700">In roadmap (MVP Sprint 2)</div>
-                </div>
+                <button @click="openBudgetAlertFlow" class="text-left border border-blue-200 bg-blue-50 rounded-xl p-4 hover:bg-blue-100 transition">
+                    <div class="text-sm font-semibold text-blue-700 mb-1">Alertă depășire buget</div>
+                    <div class="text-xs text-blue-700/90">Înregistrezi o achiziție -> AI calculează depășirea pe etapă și impactul pe profit.</div>
+                </button>
             </div>
 
             <div v-if="aiInvoiceState.success" class="mt-3 text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-lg">
@@ -432,6 +431,88 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="showBudgetAlertFlow" class="fixed inset-0 z-50 bg-black/40 p-4 overflow-y-auto">
+            <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 p-5 mt-8">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800">Alertă depășire buget pe etapă</h3>
+                        <p class="text-xs text-gray-500 mt-1">Simulează o achiziție și vezi instant impactul financiar pe etapă și pe proiect.</p>
+                    </div>
+                    <button @click="closeBudgetAlertFlow" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Etapa *</label>
+                        <select v-model="budgetAlertForm.stage_id" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="">— Selecteaza etapa —</option>
+                            <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Sursa achiziției</label>
+                        <select v-model="budgetAlertForm.purchase_source" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="other">Alta cheltuiala</option>
+                            <option value="document">Document financiar</option>
+                            <option value="material_invoice">Factura materiale</option>
+                            <option value="equipment">Utilaje</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Valoare achiziție (RON) *</label>
+                        <input v-model="budgetAlertForm.purchase_amount" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 12500" />
+                    </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                    <button @click="runBudgetAlert" :disabled="budgetAlertState.loading" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+                        {{ budgetAlertState.loading ? 'Se calculeaza...' : 'Calculeaza impactul' }}
+                    </button>
+                    <button @click="closeBudgetAlertFlow" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Inchide</button>
+                </div>
+
+                <div v-if="budgetAlertState.error" class="mt-3 text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg">
+                    {{ budgetAlertState.error }}
+                </div>
+
+                <div v-if="budgetAlertState.hasResult" class="mt-4 border-t border-gray-100 pt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Depasire buget etapa</div>
+                            <div class="text-lg font-semibold" :class="(budgetAlertState.result.stage_overrun_amount || 0) > 0 ? 'text-red-600' : 'text-emerald-600'">
+                                {{ fmtCur(budgetAlertState.result.stage_overrun_amount || 0) }}
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Procent depasire etapa</div>
+                            <div class="text-lg font-semibold" :class="(budgetAlertState.result.stage_overrun_pct || 0) > 0 ? 'text-red-600' : 'text-emerald-600'">
+                                {{ budgetAlertState.result.stage_overrun_pct || 0 }}%
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Impact pe profit (proxy)</div>
+                            <div class="text-lg font-semibold" :class="(budgetAlertState.result.profit_impact_amount || 0) < 0 ? 'text-red-600' : 'text-emerald-600'">
+                                {{ fmtCur(budgetAlertState.result.profit_impact_amount || 0) }}
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs text-gray-500">Cost estimat etapa dupa achizitie</div>
+                            <div class="text-lg font-semibold text-gray-800">
+                                {{ fmtCur(budgetAlertState.result.predicted_stage_cost || 0) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-lg p-3 text-sm" :class="recommendationTone(budgetAlertState.result)">
+                        <div class="font-semibold mb-1">Recomandare AI</div>
+                        <div>{{ budgetAlertState.result.recommendation }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>
 
@@ -452,6 +533,7 @@ const props = defineProps({
 
 const showAddPhase = ref(false);
 const showAiInvoiceFlow = ref(false);
+const showBudgetAlertFlow = ref(false);
 const aiInvoiceFileInput = ref(null);
 
 const aiInvoiceState = reactive({
@@ -460,6 +542,14 @@ const aiInvoiceState = reactive({
     error: '',
     success: '',
     draftLoaded: false,
+});
+
+const budgetAlertState = reactive({
+    loading: false,
+    error: '',
+    success: '',
+    hasResult: false,
+    result: null,
 });
 
 const aiInvoiceForm = reactive({
@@ -474,6 +564,12 @@ const aiInvoiceForm = reactive({
     temp_file_path: '',
     file_name: '',
     attachment: null,
+});
+
+const budgetAlertForm = reactive({
+    stage_id: '',
+    purchase_amount: '',
+    purchase_source: 'other',
 });
 
 const phaseForm = useForm({
@@ -560,6 +656,74 @@ function resetAiInvoiceFlow() {
 function closeAiInvoiceFlow() {
     showAiInvoiceFlow.value = false;
     resetAiInvoiceFlow();
+}
+
+function openBudgetAlertFlow() {
+    showBudgetAlertFlow.value = true;
+    budgetAlertState.error = '';
+    budgetAlertState.success = '';
+}
+
+function closeBudgetAlertFlow() {
+    showBudgetAlertFlow.value = false;
+    budgetAlertState.error = '';
+    budgetAlertState.success = '';
+    budgetAlertState.loading = false;
+    budgetAlertState.hasResult = false;
+    budgetAlertState.result = null;
+
+    budgetAlertForm.stage_id = '';
+    budgetAlertForm.purchase_amount = '';
+    budgetAlertForm.purchase_source = 'other';
+}
+
+async function runBudgetAlert() {
+    budgetAlertState.error = '';
+    budgetAlertState.success = '';
+
+    if (!budgetAlertForm.stage_id) {
+        budgetAlertState.error = 'Selecteaza etapa pentru evaluarea impactului.';
+        return;
+    }
+
+    if (!budgetAlertForm.purchase_amount || Number(budgetAlertForm.purchase_amount) <= 0) {
+        budgetAlertState.error = 'Introdu o valoare valida pentru achizitie.';
+        return;
+    }
+
+    budgetAlertState.loading = true;
+
+    try {
+        const response = await axios.post(route('projects.ai.budget-alert', props.project.id), {
+            stage_id: budgetAlertForm.stage_id,
+            purchase_amount: Number(budgetAlertForm.purchase_amount),
+            purchase_source: budgetAlertForm.purchase_source,
+        });
+
+        budgetAlertState.result = response.data?.alert || null;
+        budgetAlertState.hasResult = !!budgetAlertState.result;
+        budgetAlertState.success = response.data?.message || 'Alerta buget a fost calculata.';
+    } catch (error) {
+        budgetAlertState.error = error?.response?.data?.message || 'Nu am putut calcula alerta de buget.';
+    } finally {
+        budgetAlertState.loading = false;
+    }
+}
+
+function recommendationTone(alert) {
+    if (!alert) {
+        return 'bg-gray-50 border-gray-200 text-gray-700';
+    }
+
+    if ((alert.project_overrun_amount || 0) > 0 || (alert.stage_overrun_pct || 0) >= 10) {
+        return 'bg-red-50 border-red-200 text-red-700';
+    }
+
+    if ((alert.stage_overrun_pct || 0) >= 5) {
+        return 'bg-amber-50 border-amber-200 text-amber-700';
+    }
+
+    return 'bg-emerald-50 border-emerald-200 text-emerald-700';
 }
 
 function onAiInvoiceFileChange(event) {

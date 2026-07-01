@@ -663,3 +663,18 @@ Template de evaluare plusuri / minusuri:
 - Ce ramane:
 	- Sprint 2: Card 3 (Alerta depasire buget) cu recomandari automate pe etapa.
 	- Sprint 3: Card 2 (Deviz automat) pe baza normelor tehnice.
+
+### 2026-07-01 - Checkpoint AI Tools (MVP Card 3 - Alerta depasire buget)
+- Etapa: extindere modul AI cu analiza financiara pe etapa/proiect.
+- Dovezi:
+	- Card 3 (`Alerta depasire buget`) activat in modulul `AI Tools` din pagina proiectului.
+	- Flow functional nou: utilizatorul introduce achizitia + etapa, AI calculeaza depasirea pe etapa, impactul pe profit si ofera recomandare.
+	- Endpoint nou adaugat: `projects.ai.budget-alert`.
+	- Rezultatul afiseaza: depasire suma/procent, cost estimat post-achizitie, impact pe profit, recomandare contextuala.
+	- Test dedicat extins in `ProjectAiToolsTest` pentru scenariul de depasire.
+- Validare:
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (2/2).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate -> fara erori.
+- Ce ramane:
+	- Sprint 3: Card 2 (Deviz automat din dimensiuni) cu output materiale/manopera/utilaje + propunere WBS.

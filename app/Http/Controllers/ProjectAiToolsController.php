@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Contractor;
 use App\Models\Document;
+use App\Models\MaterialInvoice;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,90 @@ use Illuminate\Support\Str;
 
 class ProjectAiToolsController extends Controller
 {
+    public function budgetAlert(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
+            'purchase_amount' => ['required', 'numeric', 'min:0.01'],
+            'purchase_source' => ['nullable', 'in:document,material_invoice,equipment,other'],
+        ]);
+
+        $stage = $project->phases()->whereKey($validated['stage_id'])->first();
+        if (!$stage) {
+            return response()->json([
+                'message' => 'Etapa selectata nu apartine proiectului.',
+            ], 422);
+        }
+
+        $purchaseAmount = (float) $validated['purchase_amount'];
+
+        $currentStageDocumentsCost = (float) Document::query()
+            ->where('tenant_id', 1)
+            ->where('project_id', $project->id)
+            ->where('stage_id', $stage->id)
+            ->sum('amount');
+
+        $currentStageMaterialsCost = (float) MaterialInvoice::query()
+            ->where('tenant_id', 1)
+            ->where('project_id', $project->id)
+            ->where('phase_id', $stage->id)
+            ->sum('amount_total');
+
+        $currentStageCost = $currentStageDocumentsCost + $currentStageMaterialsCost;
+
+        $projectPhaseCount = max(1, (int) $project->phases()->count());
+        $projectBudget = (float) ($project->total_budget ?? 0);
+        $stageBudget = $projectBudget > 0 ? ($projectBudget / $projectPhaseCount) : 0;
+
+        $predictedStageCost = $currentStageCost + $purchaseAmount;
+        $stageOverrunAmount = max(0, $predictedStageCost - $stageBudget);
+        $stageOverrunPct = $stageBudget > 0
+            ? round(($stageOverrunAmount / $stageBudget) * 100, 2)
+            : 0;
+
+        $currentProjectDocumentsCost = (float) Document::query()
+            ->where('tenant_id', 1)
+            ->where('project_id', $project->id)
+            ->sum('amount');
+
+        $currentProjectMaterialsCost = (float) MaterialInvoice::query()
+            ->where('tenant_id', 1)
+            ->where('project_id', $project->id)
+            ->sum('amount_total');
+
+        $predictedProjectCost = $currentProjectDocumentsCost + $currentProjectMaterialsCost + $purchaseAmount;
+        $projectOverrunAmount = max(0, $predictedProjectCost - $projectBudget);
+        $profitImpactAmount = -1 * $projectOverrunAmount;
+        $profitImpactPct = $projectBudget > 0
+            ? round(($projectOverrunAmount / $projectBudget) * 100, 2)
+            : 0;
+
+        $recommendation = $this->buildBudgetRecommendation($stageOverrunPct, $projectOverrunAmount);
+
+        return response()->json([
+            'message' => 'Calcul AI buget finalizat.',
+            'alert' => [
+                'project_id' => $project->id,
+                'project_name' => $project->name,
+                'stage_id' => $stage->id,
+                'stage_name' => $stage->name,
+                'purchase_amount' => $purchaseAmount,
+                'purchase_source' => $validated['purchase_source'] ?? 'other',
+                'current_stage_cost' => round($currentStageCost, 2),
+                'stage_budget' => round($stageBudget, 2),
+                'predicted_stage_cost' => round($predictedStageCost, 2),
+                'stage_overrun_amount' => round($stageOverrunAmount, 2),
+                'stage_overrun_pct' => $stageOverrunPct,
+                'predicted_project_cost' => round($predictedProjectCost, 2),
+                'project_budget' => round($projectBudget, 2),
+                'project_overrun_amount' => round($projectOverrunAmount, 2),
+                'profit_impact_amount' => round($profitImpactAmount, 2),
+                'profit_impact_pct' => $profitImpactPct,
+                'recommendation' => $recommendation,
+            ],
+        ]);
+    }
+
     public function extractInvoice(Request $request, Project $project): JsonResponse
     {
         $validated = $request->validate([
@@ -148,5 +233,22 @@ class ProjectAiToolsController extends Controller
         $value = str_replace(',', '.', $matches[1]);
 
         return (float) $value;
+    }
+
+    private function buildBudgetRecommendation(float $stageOverrunPct, float $projectOverrunAmount): string
+    {
+        if ($projectOverrunAmount > 0 && $stageOverrunPct >= 10) {
+            return 'Depasire semnificativa. Recomandare: renegociere furnizori + replanificare buget pe etapa inainte de confirmare.';
+        }
+
+        if ($stageOverrunPct >= 5) {
+            return 'Risc moderat de depasire. Recomandare: reducere consum si verificare alternativa de achizitie.';
+        }
+
+        if ($stageOverrunPct > 0) {
+            return 'Depasire minora. Recomandare: continua achizitia cu monitorizare zilnica pe etapa.';
+        }
+
+        return 'Achizitia se incadreaza in bugetul etapei. Recomandare: continua conform planului curent.';
     }
 }

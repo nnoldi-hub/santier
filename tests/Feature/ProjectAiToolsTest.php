@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\Material;
+use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\User;
@@ -72,6 +74,61 @@ class ProjectAiToolsTest extends TestCase
 
         Storage::disk('local')->assertMissing($tempFilePath);
         Storage::disk('local')->assertExists($document->file_path);
+    }
+
+    public function test_ai_budget_alert_returns_stage_and_profit_impact(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $project->update(['total_budget' => 20000]);
+
+        Document::create([
+            'tenant_id' => 1,
+            'title' => 'Factura baza etapa',
+            'type' => 'invoice',
+            'project_id' => $project->id,
+            'stage_id' => $phase->id,
+            'amount' => 12000,
+            'issued_at' => now()->toDateString(),
+            'payment_status' => 'unpaid',
+        ]);
+
+        $material = Material::create([
+            'tenant_id' => 1,
+            'code' => 'AI-TEST-MAT',
+            'name' => 'Material AI test',
+            'category' => 'Structura',
+            'unit' => 'kg',
+            'unit_price' => 5,
+            'supplier' => 'Supplier test',
+            'active' => true,
+        ]);
+
+        MaterialInvoice::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'material_id' => $material->id,
+            'issue_date' => now()->toDateString(),
+            'amount_net' => 2500,
+            'amount_vat' => 500,
+            'amount_total' => 3000,
+            'payment_status' => 'unpaid',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('projects.ai.budget-alert', $project), [
+            'stage_id' => $phase->id,
+            'purchase_amount' => 7000,
+            'purchase_source' => 'material_invoice',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('alert.stage_name', $phase->name);
+        $response->assertJsonPath('alert.stage_overrun_amount', 2000);
+        $response->assertJsonPath('alert.stage_overrun_pct', 10);
+        $response->assertJsonPath('alert.project_overrun_amount', 2000);
+        $response->assertJsonPath('alert.profit_impact_amount', -2000);
     }
 
     private function seedProjectContext(User $user): array
