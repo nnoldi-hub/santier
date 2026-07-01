@@ -1,0 +1,487 @@
+<template>
+    <AppLayout :title="project.name">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <Link :href="route('projects.index')" class="text-gray-400 hover:text-gray-600 text-sm">← Proiecte</Link>
+                <h2 class="text-xl font-semibold text-gray-800">{{ project.name }}</h2>
+                <StatusBadge :status="project.status" />
+            </div>
+            <Link :href="route('projects.edit', project.id)" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
+                Editeaza
+            </Link>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Detalii -->
+            <div class="xl:col-span-1 bg-white rounded-xl border border-gray-200 p-6 space-y-4 h-fit">
+                <h3 class="font-semibold text-gray-500 text-xs uppercase tracking-wider">Detalii proiect</h3>
+                <div v-if="project.client" class="flex items-start gap-2 text-sm">
+                    <span class="w-5 text-gray-400">👥</span>
+                    <div><div class="text-xs text-gray-400">Client</div><div class="font-medium">{{ project.client.name }}</div></div>
+                </div>
+                <div v-if="project.address" class="flex items-start gap-2 text-sm">
+                    <span class="w-5 text-gray-400">📍</span>
+                    <div><div class="text-xs text-gray-400">Adresa</div><div>{{ project.address }}</div></div>
+                </div>
+                <div v-if="project.start_date" class="flex items-start gap-2 text-sm">
+                    <span class="w-5 text-gray-400">📅</span>
+                    <div><div class="text-xs text-gray-400">Perioada</div><div>{{ fmt(project.start_date) }} → {{ project.end_date ? fmt(project.end_date) : '?' }}</div></div>
+                </div>
+                <div v-if="project.total_budget" class="flex items-start gap-2 text-sm">
+                    <span class="w-5 text-gray-400">💰</span>
+                    <div><div class="text-xs text-gray-400">Buget</div><div class="font-semibold">{{ fmtCur(project.total_budget) }}</div></div>
+                </div>
+                <div v-if="project.description" class="text-sm border-t border-gray-100 pt-3">
+                    <div class="text-xs text-gray-400 mb-1">Descriere</div>
+                    <p class="text-gray-600">{{ project.description }}</p>
+                </div>
+            </div>
+
+            <!-- Etape -->
+            <div class="xl:col-span-2 space-y-4">
+                <!-- Lista etape -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">📅 Etape proiect</h3>
+                        <button @click="showAddPhase = !showAddPhase" class="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition">
+                            + Adauga etapa
+                        </button>
+                    </div>
+
+                    <!-- Formular adaugare etapa -->
+                    <div v-if="showAddPhase" class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                        <h4 class="text-sm font-medium text-orange-700 mb-3">Etapa noua</h4>
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-600 mb-1">Tip etapa</label>
+                                <select v-model="phaseForm.type" @change="autoName" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option v-for="(label, key) in typeLabels" :key="key" :value="key">{{ label }}</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-600 mb-1">Contractor responsabil</label>
+                                <select v-model="phaseForm.contractor_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option value="">— Nealocat —</option>
+                                    <option v-for="contractor in contractors" :key="contractor.id" :value="contractor.id">{{ contractor.name }} ({{ contractor.type }})</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-600 mb-1">Etapa parinte (sub-etapa)</label>
+                                <select v-model="phaseForm.parent_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option value="">— Fara parinte —</option>
+                                    <option v-for="existingPhase in project.phases" :key="existingPhase.id" :value="existingPhase.id">{{ existingPhase.name }}</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-600 mb-1">Denumire etapa *</label>
+                                <input v-model="phaseForm.name" type="text" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                                <p v-if="phaseForm.errors.name" class="text-red-500 text-xs mt-0.5">{{ phaseForm.errors.name }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Data inceput</label>
+                                <input v-model="phaseForm.start_date" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Data sfarsit</label>
+                                <input v-model="phaseForm.end_date" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="storePhase" :disabled="phaseForm.processing" class="bg-orange-500 text-white px-4 py-1.5 rounded text-sm hover:bg-orange-600 disabled:opacity-50 transition">
+                                {{ phaseForm.processing ? '...' : 'Adauga' }}
+                            </button>
+                            <button @click="showAddPhase = false" class="border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50">Anuleaza</button>
+                        </div>
+                    </div>
+
+                    <!-- Fara etape -->
+                    <div v-if="project.phases.length === 0 && !showAddPhase" class="text-center py-8 text-gray-400 text-sm">
+                        <div class="text-3xl mb-2">📅</div>
+                        Nicio etapa definita.<br />
+                        <button @click="showAddPhase = true" class="text-orange-500 hover:underline mt-1">Adauga prima etapa</button>
+                    </div>
+
+                    <!-- Lista etape existente -->
+                    <div v-else-if="project.phases.length > 0" class="space-y-2">
+                        <div v-for="phase in project.phases" :key="phase.id"
+                            class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 bg-gray-50">
+                            <!-- Progress bar + info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-sm font-medium text-gray-800 truncate">{{ phase.name }}</span>
+                                    <StatusBadge :status="phase.status" />
+                                </div>
+                                <div class="flex items-center gap-3 text-xs text-gray-400">
+                                    <span v-if="phase.start_date">📅 {{ fmt(phase.start_date) }}</span>
+                                    <span v-if="phase.end_date">→ {{ fmt(phase.end_date) }}</span>
+                                    <span v-if="phase.contractor">· 👷 {{ phase.contractor.name }}</span>
+                                </div>
+                                <!-- Progress bar -->
+                                <div class="mt-2 flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-orange-400 h-1.5 rounded-full transition-all" :style="{ width: phase.progress_pct + '%' }"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-500 w-8 text-right">{{ phase.progress_pct }}%</span>
+                                </div>
+                            </div>
+                            <!-- Delete -->
+                            <button @click="deletePhase(phase)" class="text-gray-300 hover:text-red-400 transition text-lg leading-none">×</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Taskuri placeholder -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">✅ Taskuri</h3>
+                        <Link :href="route('tasks.create', { project_id: project.id })" class="text-xs text-orange-500 hover:underline">+ Task nou</Link>
+                    </div>
+                    <div v-if="!project.tasks || project.tasks.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                        <div class="text-3xl mb-2">✅</div>
+                        Niciun task pentru acest proiect.
+                    </div>
+                    <div v-else class="space-y-2">
+                        <Link
+                            v-for="task in project.tasks"
+                            :key="task.id"
+                            :href="route('tasks.edit', task.id)"
+                            class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-gray-100"
+                        >
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-800 truncate">{{ task.title }}</div>
+                                <div class="text-xs text-gray-400">
+                                    {{ task.phase?.name || 'Fara etapa' }}
+                                    <span v-if="task.assignee"> · {{ task.assignee.name }}</span>
+                                </div>
+                            </div>
+                            <StatusBadge :status="task.status === 'in_progress' ? 'active' : task.status === 'done' ? 'completed' : task.status === 'cancelled' ? 'cancelled' : 'draft'" />
+                        </Link>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <h3 class="font-semibold text-gray-800 mb-4">👷 Alocari echipe pe etape</h3>
+                    <div v-if="project.phases.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                        Defineste mai intai etape pentru a putea aloca echipe.
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="phase in project.phases" :key="'assign-' + phase.id" class="border border-gray-100 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-sm font-medium text-gray-800">{{ phase.name }}</div>
+                                <div class="text-xs text-gray-400">{{ phase.assignments?.length || 0 }} alocari</div>
+                            </div>
+
+                            <div v-if="phase.assignments && phase.assignments.length > 0" class="space-y-2 mb-3">
+                                <div v-for="assignment in phase.assignments" :key="assignment.id" class="flex items-center justify-between text-xs bg-gray-50 border border-gray-100 rounded p-2">
+                                    <div class="text-gray-700">
+                                        <span class="font-medium">{{ assignment.team?.name || 'Echipa' }}</span>
+                                        <span> · necesar {{ assignment.workers_needed }}</span>
+                                        <span> · alocati {{ assignment.workers_assigned }}</span>
+                                    </div>
+                                    <button @click="removeAssignment(phase, assignment)" class="text-red-500 hover:text-red-700">Elimina</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs text-gray-600 mb-1">Echipa</label>
+                                    <select v-model="getAssignmentDraft(phase.id).team_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                                        <option value="">— Selecteaza —</option>
+                                        <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Necesar</label>
+                                    <input v-model.number="getAssignmentDraft(phase.id).workers_needed" type="number" min="1" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Alocati</label>
+                                    <input v-model.number="getAssignmentDraft(phase.id).workers_assigned" type="number" min="0" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Start</label>
+                                    <input v-model="getAssignmentDraft(phase.id).start_date" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">End</label>
+                                    <input v-model="getAssignmentDraft(phase.id).end_date" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <button @click="addAssignment(phase)" class="bg-orange-500 text-white px-3 py-1.5 rounded text-xs hover:bg-orange-600" :disabled="!getAssignmentDraft(phase.id).team_id">
+                                    + Aloca echipa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <h3 class="font-semibold text-gray-800 mb-4">🚜 Utilaje pe etape</h3>
+                    <div v-if="project.phases.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                        Defineste mai intai etape pentru a putea rezerva utilaje.
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="phase in project.phases" :key="'equip-' + phase.id" class="border border-gray-100 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-sm font-medium text-gray-800">{{ phase.name }}</div>
+                                <div class="text-xs text-gray-400">{{ phase.equipment_reservations?.length || 0 }} rezervari</div>
+                            </div>
+
+                            <div v-if="phase.equipment_reservations && phase.equipment_reservations.length > 0" class="space-y-2 mb-3">
+                                <div v-for="reservation in phase.equipment_reservations" :key="reservation.id" class="flex items-center justify-between text-xs bg-gray-50 border border-gray-100 rounded p-2">
+                                    <div class="text-gray-700">
+                                        <span class="font-medium">{{ reservation.equipment?.name || 'Utilaj' }}</span>
+                                        <span> · qty {{ reservation.quantity }}</span>
+                                        <span v-if="reservation.usage_start && reservation.usage_end"> · {{ fmt(reservation.usage_start) }} → {{ fmt(reservation.usage_end) }}</span>
+                                        <span v-if="reservation.equipment?.cost_per_hour"> · {{ fmtCur(Number(reservation.equipment.cost_per_hour) * reservation.quantity) }}/h</span>
+                                    </div>
+                                    <button @click="removeEquipmentReservation(phase, reservation)" class="text-red-500 hover:text-red-700">Elimina</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs text-gray-600 mb-1">Utilaj</label>
+                                    <select v-model="getEquipmentDraft(phase.id).equipment_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                                        <option value="">— Selecteaza —</option>
+                                        <option v-for="item in equipment" :key="item.id" :value="item.id">
+                                            {{ item.name }} ({{ fmtCur(item.cost_per_hour) }}/ora)
+                                        </option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Cantitate</label>
+                                    <input v-model.number="getEquipmentDraft(phase.id).quantity" type="number" min="1" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Start</label>
+                                    <input v-model="getEquipmentDraft(phase.id).usage_start" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">End</label>
+                                    <input v-model="getEquipmentDraft(phase.id).usage_end" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-500">Cost estimat interval</div>
+                                    <div class="text-sm font-semibold text-gray-800">
+                                        {{ estimateReservationCost(getEquipmentDraft(phase.id)) === null ? '-' : fmtCur(estimateReservationCost(getEquipmentDraft(phase.id))) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <button @click="addEquipmentReservation(phase)" class="bg-orange-500 text-white px-3 py-1.5 rounded text-xs hover:bg-orange-600" :disabled="!getEquipmentDraft(phase.id).equipment_id">
+                                    + Rezerva utilaj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">🔧 Defecte (Snag)</h3>
+                        <Link :href="route('defects.create', { project_id: project.id })" class="text-xs text-orange-500 hover:underline">+ Defect nou</Link>
+                    </div>
+                    <div v-if="!project.defects || project.defects.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                        <div class="text-3xl mb-2">🔧</div>
+                        Niciun defect raportat pentru acest proiect.
+                    </div>
+                    <div v-else class="space-y-2">
+                        <Link
+                            v-for="defect in project.defects"
+                            :key="defect.id"
+                            :href="route('defects.edit', defect.id)"
+                            class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-gray-100"
+                        >
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-800 truncate">{{ defect.title }}</div>
+                                <div class="text-xs text-gray-400">
+                                    {{ defect.phase?.name || 'Fara etapa' }}
+                                    <span v-if="defect.assignee"> · {{ defect.assignee.name }}</span>
+                                </div>
+                            </div>
+                            <StatusBadge :status="defect.status === 'in_progress' ? 'active' : defect.status === 'resolved' ? 'completed' : defect.status === 'rejected' ? 'cancelled' : 'draft'" />
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </AppLayout>
+</template>
+
+<script setup>
+import { reactive, ref } from 'vue';
+import { Link, useForm, router } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
+
+const props = defineProps({
+    project:    Object,
+    typeLabels: Object,
+    teams:      { type: Array, default: () => [] },
+    contractors:{ type: Array, default: () => [] },
+    equipment:  { type: Array, default: () => [] },
+});
+
+const showAddPhase = ref(false);
+
+const phaseForm = useForm({
+    name:         '',
+    type:         'custom',
+    status:       'pending',
+    start_date:   '',
+    end_date:     '',
+    duration_days: null,
+    progress_pct: 0,
+    contractor_id: '',
+    parent_id: '',
+    notes:        '',
+});
+
+const assignmentDrafts = reactive({});
+const equipmentDrafts = reactive({});
+
+function getAssignmentDraft(phaseId) {
+    if (!assignmentDrafts[phaseId]) {
+        assignmentDrafts[phaseId] = {
+            team_id: '',
+            workers_needed: 1,
+            workers_assigned: 0,
+            start_date: '',
+            end_date: '',
+            notes: '',
+        };
+    }
+
+    return assignmentDrafts[phaseId];
+}
+
+function getEquipmentDraft(phaseId) {
+    if (!equipmentDrafts[phaseId]) {
+        equipmentDrafts[phaseId] = {
+            equipment_id: '',
+            quantity: 1,
+            usage_start: '',
+            usage_end: '',
+            notes: '',
+        };
+    }
+
+    return equipmentDrafts[phaseId];
+}
+
+function autoName() {
+    if (props.typeLabels[phaseForm.type]) {
+        phaseForm.name = props.typeLabels[phaseForm.type];
+    }
+}
+
+function storePhase() {
+    phaseForm.post(route('phases.store', props.project.id), {
+        onSuccess: () => {
+            showAddPhase.value = false;
+            phaseForm.reset();
+        },
+    });
+}
+
+function deletePhase(phase) {
+    if (confirm('Stergi etapa "' + phase.name + '"?')) {
+        router.delete(route('phases.destroy', [props.project.id, phase.id]));
+    }
+}
+
+function addAssignment(phase) {
+    const draft = getAssignmentDraft(phase.id);
+
+    router.post(route('phase-assignments.store', [props.project.id, phase.id]), {
+        team_id: draft.team_id,
+        workers_needed: draft.workers_needed,
+        workers_assigned: draft.workers_assigned,
+        start_date: draft.start_date || null,
+        end_date: draft.end_date || null,
+        notes: draft.notes || null,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            assignmentDrafts[phase.id] = {
+                team_id: '',
+                workers_needed: 1,
+                workers_assigned: 0,
+                start_date: '',
+                end_date: '',
+                notes: '',
+            };
+        },
+    });
+}
+
+function removeAssignment(phase, assignment) {
+    if (confirm('Elimini alocarea pentru echipa "' + (assignment.team?.name || '') + '"?')) {
+        router.delete(route('phase-assignments.destroy', [props.project.id, phase.id, assignment.id]), {
+            preserveScroll: true,
+        });
+    }
+}
+
+function addEquipmentReservation(phase) {
+    const draft = getEquipmentDraft(phase.id);
+
+    router.post(route('stage-equipment.store', [props.project.id, phase.id]), {
+        equipment_id: draft.equipment_id,
+        quantity: draft.quantity,
+        usage_start: draft.usage_start || null,
+        usage_end: draft.usage_end || null,
+        notes: draft.notes || null,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            equipmentDrafts[phase.id] = {
+                equipment_id: '',
+                quantity: 1,
+                usage_start: '',
+                usage_end: '',
+                notes: '',
+            };
+        },
+    });
+}
+
+function removeEquipmentReservation(phase, reservation) {
+    if (confirm('Elimini rezervarea utilajului "' + (reservation.equipment?.name || '') + '"?')) {
+        router.delete(route('stage-equipment.destroy', [props.project.id, phase.id, reservation.id]), {
+            preserveScroll: true,
+        });
+    }
+}
+
+function estimateReservationCost(draft) {
+    const selected = props.equipment.find((item) => item.id === Number(draft.equipment_id));
+    if (!selected || !draft.usage_start || !draft.usage_end) {
+        return null;
+    }
+
+    const start = new Date(draft.usage_start);
+    const end = new Date(draft.usage_end);
+    const diffMs = end.getTime() - start.getTime();
+    if (Number.isNaN(diffMs) || diffMs < 0) {
+        return null;
+    }
+
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    const hours = days * 8;
+
+    return Number(selected.cost_per_hour || 0) * Number(draft.quantity || 1) * hours;
+}
+
+function fmt(date) {
+    return new Date(date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtCur(value) {
+    return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON', maximumFractionDigits: 0 }).format(value);
+}
+</script>

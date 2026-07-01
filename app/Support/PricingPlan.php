@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Project;
+use App\Models\User;
+
+class PricingPlan
+{
+    public static function current(User $user): string
+    {
+        $plan = $user->billing_plan ?? 'free';
+
+        return array_key_exists($plan, config('pricing.plans', [])) ? $plan : 'free';
+    }
+
+    public static function label(User $user): string
+    {
+        $plan = self::current($user);
+
+        return config("pricing.plans.{$plan}.label", 'Free');
+    }
+
+    public static function projectLimit(User $user): ?int
+    {
+        $plan = self::current($user);
+
+        return config("pricing.plans.{$plan}.project_limit");
+    }
+
+    public static function hasFeature(User $user, string $feature): bool
+    {
+        $plan = self::current($user);
+
+        return (bool) config("pricing.plans.{$plan}.features.{$feature}", false);
+    }
+
+    public static function canCreateProject(User $user): bool
+    {
+        $limit = self::projectLimit($user);
+
+        if ($limit === null) {
+            return true;
+        }
+
+        $currentCount = Project::query()
+            ->where('tenant_id', 1)
+            ->where('created_by', $user->id)
+            ->count();
+
+        return $currentCount < $limit;
+    }
+
+    public static function projectLimitMessage(User $user): string
+    {
+        $limit = self::projectLimit($user);
+
+        if ($limit === null) {
+            return 'Planul curent nu are limita la numarul de proiecte.';
+        }
+
+        return "Ai atins limita de {$limit} proiect(e) pentru planul " . self::label($user) . '. Upgrade necesar pentru proiecte suplimentare.';
+    }
+
+    public static function featureMessage(string $feature): string
+    {
+        return match ($feature) {
+            'gantt' => 'Gantt este disponibil incepand cu planul Starter.',
+            'exports_csv' => 'Exporturile sunt disponibile incepand cu planul Starter.',
+            'exports_enterprise' => 'Exporturile enterprise (XLSX/PDF/subscriptions) sunt disponibile incepand cu planul Pro.',
+            default => 'Functionalitatea nu este disponibila pe planul curent.',
+        };
+    }
+}

@@ -1,0 +1,50 @@
+name: Financial Regression
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  financial-tests:
+    name: Financial Test Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Run financial regression bundle
+        run: |
+          php artisan test \
+            tests/Feature/DocumentsTest.php \
+            tests/Feature/MaterialInvoicesTest.php \
+            tests/Feature/CostTrackingTest.php \
+            tests/Feature/DashboardFinancialInsightsTest.php \
+            tests/Feature/FinancialFlowSmokeTest.php

@@ -1,0 +1,119 @@
+<template>
+    <AppLayout title="Task nou">
+        <div class="max-w-2xl mx-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <Link :href="route('tasks.index')" class="text-gray-400 hover:text-gray-600 text-sm">← Inapoi</Link>
+                <h2 class="text-xl font-semibold text-gray-800">Task nou</h2>
+            </div>
+
+            <form @submit.prevent="submit" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titlu *</label>
+                    <input v-model="form.title" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: Comanda materiale pentru faza de tencuieli" />
+                    <p v-if="form.errors.title" class="text-red-500 text-xs mt-1">{{ form.errors.title }}</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proiect *</label>
+                        <select v-model="form.project_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="onProjectChange">
+                            <option value="">— Selecteaza proiect —</option>
+                            <option v-for="project in projects" :key="project.id" :value="String(project.id)">{{ project.name }}</option>
+                        </select>
+                        <p v-if="form.errors.project_id" class="text-red-500 text-xs mt-1">{{ form.errors.project_id }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Etapa</label>
+                        <select v-model="form.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">— Fara etapa —</option>
+                            <option v-for="phase in selectedPhases" :key="phase.id" :value="String(phase.id)">{{ phase.name }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                        <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="todo">To do</option>
+                            <option value="in_progress">In progres</option>
+                            <option value="done">Finalizat</option>
+                            <option value="cancelled">Anulat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prioritate *</label>
+                        <select v-model="form.priority" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                        <input v-model="form.deadline" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Responsabil</label>
+                    <select v-model="form.assigned_to" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">— Nealocat —</option>
+                        <option v-for="user in users" :key="user.id" :value="String(user.id)">{{ user.name }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descriere</label>
+                    <textarea v-model="form.description" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Detalii task..."></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition">
+                        {{ form.processing ? 'Se salveaza...' : 'Creeaza task' }}
+                    </button>
+                    <Link :href="route('tasks.index')" class="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                        Anuleaza
+                    </Link>
+                </div>
+            </form>
+        </div>
+    </AppLayout>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+
+const props = defineProps({
+    projects: Array,
+    users: Array,
+    selectedProjectId: Number,
+    phasesByProject: Object,
+});
+
+const form = useForm({
+    project_id: props.selectedProjectId ? String(props.selectedProjectId) : '',
+    phase_id: '',
+    assigned_to: '',
+    title: '',
+    description: '',
+    status: 'todo',
+    priority: 'medium',
+    deadline: '',
+});
+
+const selectedPhases = computed(() => {
+    if (!form.project_id) return [];
+    return props.phasesByProject[form.project_id] || props.phasesByProject[Number(form.project_id)] || [];
+});
+
+function onProjectChange() {
+    form.phase_id = '';
+}
+
+function submit() {
+    form.post(route('tasks.store'));
+}
+</script>
