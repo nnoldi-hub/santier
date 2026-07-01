@@ -236,6 +236,8 @@ Route::middleware('auth')->group(function () {
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
         Route::resource('quotes', QuoteController::class)->except('show');
+        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->name('quotes.pdf');
+        Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
         Route::resource('material-invoices', MaterialInvoiceController::class)->except('show');
 
         Route::middleware('plan:exports_csv')->group(function () {

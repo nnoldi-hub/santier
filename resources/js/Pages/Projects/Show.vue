@@ -388,6 +388,10 @@
                             <input v-model="aiInvoiceForm.title" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-600 mb-1">Numar factura</label>
+                            <input v-model="aiInvoiceForm.invoice_number" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                        </div>
+                        <div>
                             <label class="block text-xs text-gray-600 mb-1">Suma totală (RON)</label>
                             <input v-model="aiInvoiceForm.amount" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
                         </div>
@@ -624,6 +628,10 @@
                     <button @click="commitEstimate" :disabled="estimateState.saving" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50">
                         {{ estimateState.saving ? 'Se salveaza...' : 'Creeaza oferta draft + etape WBS' }}
                     </button>
+
+                    <button v-if="estimateState.quoteId" @click="downloadEstimatePdf" class="ml-2 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg text-sm hover:bg-indigo-50">
+                        Descarca PDF oferta
+                    </button>
                 </div>
             </div>
         </div>
@@ -674,11 +682,13 @@ const estimateState = reactive({
     success: '',
     hasResult: false,
     result: null,
+    quoteId: null,
 });
 
 const aiInvoiceForm = reactive({
     stage_id: '',
     supplier_name: '',
+    invoice_number: '',
     amount: '',
     vat_amount: '',
     issued_at: new Date().toISOString().slice(0, 10),
@@ -774,6 +784,7 @@ function resetAiInvoiceFlow() {
 
     aiInvoiceForm.stage_id = '';
     aiInvoiceForm.supplier_name = '';
+    aiInvoiceForm.invoice_number = '';
     aiInvoiceForm.amount = '';
     aiInvoiceForm.vat_amount = '';
     aiInvoiceForm.issued_at = new Date().toISOString().slice(0, 10);
@@ -814,6 +825,7 @@ function closeEstimateFlow() {
     estimateState.success = '';
     estimateState.hasResult = false;
     estimateState.result = null;
+    estimateState.quoteId = null;
     estimateForm.work_type = 'foundation';
     estimateForm.measure_type = 'volume';
     estimateForm.measure_value = '';
@@ -844,6 +856,7 @@ async function generateEstimate() {
         estimateState.result = response.data?.estimate || null;
         estimateState.hasResult = !!estimateState.result;
         estimateState.success = response.data?.message || 'Deviz generat cu succes.';
+        estimateState.quoteId = null;
 
         estimateCommitForm.title = `Deviz AI - ${props.project.name} - ${estimateForm.work_type}`;
     } catch (error) {
@@ -865,22 +878,48 @@ async function commitEstimate() {
     estimateState.saving = true;
 
     try {
+        const laborDetails = [
+            {
+                name: `Manopera ${estimateForm.work_type}`,
+                estimated_hours: estimateState.result.labor?.estimated_hours || 0,
+                hour_rate: estimateState.result.labor?.hour_rate || 0,
+                estimated_cost: estimateState.result.labor?.estimated_cost || 0,
+            },
+        ];
+
         const response = await axios.post(route('projects.ai.estimate.commit', props.project.id), {
             title: estimateCommitForm.title || `Deviz AI - ${props.project.name}`,
             total_net: estimateState.result.totals?.total_net || 0,
             wbs_stages: estimateState.result.wbs_stages || [],
             notes: estimateCommitForm.notes,
+            estimate_details: {
+                work_type: estimateForm.work_type,
+                measure_type: estimateForm.measure_type,
+                measure_value: Number(estimateForm.measure_value || 0),
+                complexity: estimateForm.complexity,
+                materials: estimateState.result.materials || [],
+                labor: laborDetails,
+                totals: estimateState.result.totals || {},
+            },
         });
 
         estimateState.success = response.data?.message || 'Deviz salvat cu succes.';
+        estimateState.quoteId = response.data?.quote_id || null;
 
-        closeEstimateFlow();
         router.reload({ preserveScroll: true });
     } catch (error) {
         estimateState.error = error?.response?.data?.message || 'Nu am putut salva devizul.';
     } finally {
         estimateState.saving = false;
     }
+}
+
+function downloadEstimatePdf() {
+    if (!estimateState.quoteId) {
+        return;
+    }
+
+    window.open(route('quotes.pdf', estimateState.quoteId), '_blank');
 }
 
 function closeBudgetAlertFlow() {
@@ -983,6 +1022,7 @@ async function extractAiInvoiceDraft() {
         aiInvoiceForm.temp_file_path = draft.temp_file_path || '';
         aiInvoiceForm.file_name = draft.file_name || '';
         aiInvoiceForm.supplier_name = draft.supplier_name || '';
+        aiInvoiceForm.invoice_number = draft.invoice_number || '';
         aiInvoiceForm.amount = draft.amount || '';
         aiInvoiceForm.vat_amount = draft.vat_amount || '';
         aiInvoiceForm.issued_at = draft.issued_at || new Date().toISOString().slice(0, 10);
@@ -1015,6 +1055,7 @@ async function commitAiInvoiceDraft() {
             stage_id: aiInvoiceForm.stage_id,
             temp_file_path: aiInvoiceForm.temp_file_path,
             supplier_name: aiInvoiceForm.supplier_name,
+            invoice_number: aiInvoiceForm.invoice_number || null,
             amount: aiInvoiceForm.amount,
             vat_amount: aiInvoiceForm.vat_amount || null,
             issued_at: aiInvoiceForm.issued_at,

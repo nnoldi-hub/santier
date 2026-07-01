@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'invoice_ocr' => [
+        'driver' => env('INVOICE_OCR_DRIVER', 'mock'),
+        'ocrspace_api_key' => env('OCRSPACE_API_KEY'),
+    ],
+
 ];

@@ -694,3 +694,48 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe fisierele afectate (`ProjectAiToolsController`, `Projects/Show.vue`, `routes/web.php`, `ProjectAiToolsTest`) -> fara erori.
 - Ce ramane:
 	- Optional: ajustare catalog norme (costuri unitare) pe baza datelor istorice reale din proiecte.
+
+### 2026-07-01 - Checkpoint AI Tools (PDF oferta + acceptare rapida)
+- Etapa: operationalizare flux comercial din deviz AI catre executie.
+- Dovezi:
+	- Ruta noua `quotes.pdf` genereaza fisier PDF dedicat pentru oferta/deviz.
+	- Ruta noua `quotes.accept` permite marcarea rapida a ofertei ca `accepted` (cu timestamp de acceptare).
+	- Lista de oferte include actiuni rapide: `PDF` si `Accepta`.
+	- In Card 2 AI (`Deviz automat`), dupa commit apare buton direct `Descarca PDF oferta`.
+- Validare:
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (3/3, 60 assertions).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate -> fara erori.
+- Ce ramane:
+	- Optional: template PDF extins cu breakdown detaliat pe materiale/manopera/utilaje direct din payload-ul estimarii AI.
+
+### 2026-07-01 - Checkpoint AI Tools (aliniere 1:1 pe logica carduri)
+- Etapa: aliniere functionala completa dupa checklist backend pe 3 carduri.
+- Dovezi:
+	- Card `Poza factura`: adaugat `invoice_number` in flow (extract + revizuire UI + commit), plus servicu OCR configurabil (`mock`/`ocrspace`) cu fallback safe.
+	- Card `Deviz automat`: commit-ul salveaza acum si `Document` de tip `estimate` in proiect (pe langa `Quote` + etape WBS).
+	- Config servicii extins cu `invoice_ocr.driver` si `invoice_ocr.ocrspace_api_key`.
+	- Schema extinsa: coloana noua `documents.invoice_number` + index.
+- Validare:
+	- `artisan migrate` -> passed.
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (3/3, 65 assertions).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate -> fara erori.
+- Ce ramane:
+	- Optional: calibrare parsing OCR pe sabloane reale de facturi RO pentru cresterea acuratetii.
+
+### 2026-07-01 - Checkpoint Oferta PDF profesionala (deviz)
+- Etapa: upgrade output ofertare pentru Card `Deviz automat`.
+- Dovezi:
+	- PDF-ul ofertei include acum sectiuni profesionale cu liste detaliate:
+		- A. Materiale (elemente listate una sub alta)
+		- B. Manopera (elemente listate una sub alta)
+		- sumar total cu TVA explicit.
+	- Flow-ul AI transmite breakdown detaliat (`materials`, `labor`, `totals`) la salvarea ofertei pentru a alimenta PDF-ul.
+	- TVA implicit a fost actualizat la 21% in fluxurile de ofertare (AI + manual quote create/edit).
+- Validare:
+	- `artisan test tests/Feature/ProjectAiToolsTest.php` -> passed (3/3, 67 assertions).
+	- `npm run build` -> passed.
+	- `get_errors` pe fisierele afectate -> fara erori.
+- Ce ramane:
+	- Optional: adaugare sectiune C. Utilaje cu itemizare completa in PDF, daca doresti separare explicita.

@@ -87,7 +87,7 @@ const form = useForm({
     status: 'draft',
     valid_until: '',
     discount_pct: 0,
-    tva_pct: 19,
+    tva_pct: 21,
     notes: '',
     total_net: 0,
 });

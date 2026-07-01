@@ -92,7 +92,7 @@ const form = useForm({
     status: props.quote.status || 'draft',
     valid_until: props.quote.valid_until || '',
     discount_pct: props.quote.discount_pct ?? 0,
-    tva_pct: props.quote.tva_pct ?? 19,
+    tva_pct: props.quote.tva_pct ?? 21,
     notes: props.quote.notes || '',
     total_net: props.quote.total_net ?? 0,
 });

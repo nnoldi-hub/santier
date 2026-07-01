@@ -52,6 +52,7 @@ class ProjectAiToolsTest extends TestCase
             'stage_id' => $phase->id,
             'temp_file_path' => $tempFilePath,
             'supplier_name' => 'Furnizor Demo AI',
+            'invoice_number' => 'INV-2026-0001',
             'amount' => 1250,
             'vat_amount' => 237.5,
             'issued_at' => now()->toDateString(),
@@ -70,6 +71,7 @@ class ProjectAiToolsTest extends TestCase
         $this->assertSame($project->id, $document->project_id);
         $this->assertSame($phase->id, $document->stage_id);
         $this->assertSame('invoice', $document->type);
+        $this->assertSame('INV-2026-0001', $document->invoice_number);
         $this->assertSame('unpaid', $document->payment_status);
         $this->assertStringContainsString('TVA estimat: 237.50', (string) $document->notes);
 
@@ -168,16 +170,63 @@ class ProjectAiToolsTest extends TestCase
             'total_net' => $totalNet,
             'wbs_stages' => $wbsStages,
             'notes' => 'Test commit deviz AI',
+            'estimate_details' => [
+                'work_type' => 'foundation',
+                'measure_type' => 'volume',
+                'measure_value' => 10,
+                'complexity' => 'medium',
+                'materials' => [
+                    [
+                        'name' => 'Beton C25/30',
+                        'quantity' => 10,
+                        'unit' => 'mc',
+                        'unit_price' => 450,
+                        'estimated_cost' => 4500,
+                    ],
+                ],
+                'labor' => [
+                    [
+                        'name' => 'Manopera foundation',
+                        'estimated_hours' => 13,
+                        'hour_rate' => 92,
+                        'estimated_cost' => 1196,
+                    ],
+                ],
+                'totals' => [
+                    'materials_cost' => 3300,
+                    'labor_cost' => 1200,
+                    'equipment_cost' => 700,
+                    'total_net' => $totalNet,
+                ],
+            ],
         ]);
 
         $commitResponse->assertOk();
-        $commitResponse->assertJsonStructure(['message', 'quote_id', 'created_stages']);
+        $commitResponse->assertJsonStructure(['message', 'quote_id', 'document_id', 'created_stages']);
 
         $quote = Quote::query()->find($commitResponse->json('quote_id'));
         $this->assertNotNull($quote);
         $this->assertSame($project->id, $quote->project_id);
         $this->assertSame('draft', $quote->status);
+        $this->assertSame('21.00', (string) $quote->tva_pct);
         $this->assertGreaterThan(0, (float) $quote->total_net);
+        $this->assertStringContainsString('[AI_BREAKDOWN_JSON]', (string) $quote->notes);
+
+        $estimateDocument = Document::query()->find($commitResponse->json('document_id'));
+        $this->assertNotNull($estimateDocument);
+        $this->assertSame('estimate', $estimateDocument->type);
+        $this->assertSame($project->id, $estimateDocument->project_id);
+
+        $pdfResponse = $this->actingAs($user)->get(route('quotes.pdf', $quote));
+        $pdfResponse->assertOk();
+        $pdfResponse->assertHeader('content-type', 'application/pdf');
+
+        $acceptResponse = $this->actingAs($user)->patch(route('quotes.accept', $quote));
+        $acceptResponse->assertRedirect(route('quotes.index'));
+        $this->assertDatabaseHas('quotes', [
+            'id' => $quote->id,
+            'status' => 'accepted',
+        ]);
 
         $createdStages = $commitResponse->json('created_stages');
         $this->assertNotEmpty($createdStages);

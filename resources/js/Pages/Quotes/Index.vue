@@ -59,6 +59,8 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="text-sm font-medium text-gray-700">{{ formatCurrency(quote.total_gross) }}</div>
+                    <a :href="route('quotes.pdf', quote.id)" class="text-xs border border-indigo-200 text-indigo-700 rounded px-2 py-1 hover:bg-indigo-50">PDF</a>
+                    <button v-if="quote.status !== 'accepted'" @click="acceptQuote(quote)" class="text-xs border border-emerald-200 text-emerald-700 rounded px-2 py-1 hover:bg-emerald-50">Accepta</button>
                     <Link :href="route('quotes.edit', quote.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Editeaza</Link>
                     <button @click="remove(quote)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50">Sterge</button>
                 </div>
@@ -96,6 +98,12 @@ function resetFilters() {
 function remove(quote) {
     if (confirm(`Stergi oferta "${quote.title}"?`)) {
         router.delete(route('quotes.destroy', quote.id));
+    }
+}
+
+function acceptQuote(quote) {
+    if (confirm(`Marchezi oferta "${quote.title}" ca acceptata?`)) {
+        router.patch(route('quotes.accept', quote.id));
     }
 }
 

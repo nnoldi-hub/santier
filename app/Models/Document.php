@@ -34,6 +34,7 @@ class Document extends Model
         'issued_at',
         'payment_status',
         'title',
+        'invoice_number',
         'file_path',
         'file_name',
         'mime_type',

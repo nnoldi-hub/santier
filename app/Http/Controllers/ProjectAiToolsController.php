@@ -8,6 +8,7 @@ use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Support\InvoiceOcrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -92,12 +93,37 @@ class ProjectAiToolsController extends Controller
             'wbs_stages' => ['required', 'array', 'min:1'],
             'wbs_stages.*.name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'estimate_details' => ['nullable', 'array'],
+            'estimate_details.work_type' => ['nullable', 'string', 'max:50'],
+            'estimate_details.measure_type' => ['nullable', 'string', 'max:50'],
+            'estimate_details.measure_value' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.complexity' => ['nullable', 'string', 'max:50'],
+            'estimate_details.materials' => ['nullable', 'array'],
+            'estimate_details.materials.*.name' => ['nullable', 'string', 'max:255'],
+            'estimate_details.materials.*.quantity' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.materials.*.unit' => ['nullable', 'string', 'max:50'],
+            'estimate_details.materials.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.materials.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor' => ['nullable', 'array'],
+            'estimate_details.labor.*.name' => ['nullable', 'string', 'max:255'],
+            'estimate_details.labor.*.estimated_hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.*.hour_rate' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.totals' => ['nullable', 'array'],
+            'estimate_details.totals.materials_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.totals.labor_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.totals.equipment_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.totals.total_net' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $tvaPct = 19.0;
+        $tvaPct = 21.0;
         $totalNet = (float) $validated['total_net'];
         $totalTva = round($totalNet * ($tvaPct / 100), 2);
         $totalGross = round($totalNet + $totalTva, 2);
+        $quoteNotes = $this->composeQuoteNotes(
+            $validated['notes'] ?? 'Deviz generat automat din modul AI Tools.',
+            $validated['estimate_details'] ?? null
+        );
 
         $nextVersion = (Quote::query()->where('project_id', $project->id)->max('version') ?? 0) + 1;
 
@@ -109,7 +135,7 @@ class ProjectAiToolsController extends Controller
             'status' => 'draft',
             'discount_pct' => 0,
             'tva_pct' => $tvaPct,
-            'notes' => $validated['notes'] ?? 'Deviz generat automat din modul AI Tools.',
+            'notes' => $quoteNotes,
             'total_net' => $totalNet,
             'total_tva' => $totalTva,
             'total_gross' => $totalGross,
@@ -118,6 +144,7 @@ class ProjectAiToolsController extends Controller
 
         $maxOrder = (int) ($project->phases()->max('order') ?? 0);
         $createdStages = [];
+        $estimateStageId = null;
 
         foreach ($validated['wbs_stages'] as $index => $stageInput) {
             $name = trim($stageInput['name']);
@@ -151,11 +178,32 @@ class ProjectAiToolsController extends Controller
                 'name' => $stage->name,
                 'position' => $index + 1,
             ];
+
+            if ($estimateStageId === null) {
+                $estimateStageId = $stage->id;
+            }
         }
 
+        if ($estimateStageId === null) {
+            $estimateStageId = $project->phases()->value('id');
+        }
+
+        $estimateDocument = Document::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'stage_id' => $estimateStageId,
+            'type' => 'estimate',
+            'amount' => $totalNet,
+            'issued_at' => now()->toDateString(),
+            'payment_status' => 'unpaid',
+            'title' => $validated['title'],
+            'notes' => $validated['notes'] ?? 'Deviz generat automat din modul AI Tools.',
+        ]);
+
         return response()->json([
-            'message' => 'Devizul a fost salvat ca oferta draft, iar etapele WBS au fost adaugate in proiect.',
+            'message' => 'Devizul a fost salvat ca oferta draft, document de tip deviz si etapele WBS au fost adaugate in proiect.',
             'quote_id' => $quote->id,
+            'document_id' => $estimateDocument->id,
             'created_stages' => $createdStages,
         ]);
     }
@@ -262,9 +310,20 @@ class ProjectAiToolsController extends Controller
         $originalName = $file->getClientOriginalName();
         $tempPath = $file->store('ai-temp-invoices', 'local');
 
-        $supplierGuess = $this->guessSupplierFromFilename($originalName);
-        $amountGuess = $this->guessAmountFromText($originalName);
-        $vatGuess = $amountGuess > 0 ? round($amountGuess * 0.19, 2) : null;
+        $absolutePath = Storage::disk('local')->path($tempPath);
+        $ocrResult = app(InvoiceOcrService::class)->extractText($absolutePath);
+        $ocrText = (string) ($ocrResult['text'] ?? '');
+
+        $supplierGuess = $this->guessSupplierFromText($ocrText) ?: $this->guessSupplierFromFilename($originalName);
+        $amountGuess = $this->guessAmountFromText($ocrText !== '' ? $ocrText : $originalName);
+        $vatGuess = $this->guessVatFromText($ocrText);
+
+        if ($vatGuess === null && $amountGuess > 0) {
+            $vatGuess = round($amountGuess * 0.19, 2);
+        }
+
+        $invoiceNumber = $this->guessInvoiceNumberFromText($ocrText !== '' ? $ocrText : $originalName);
+        $issuedAtGuess = $this->guessDateFromText($ocrText) ?: now()->toDateString();
 
         return response()->json([
             'message' => 'Factura a fost prelucrata. Verifica si confirma datele extrase.',
@@ -275,14 +334,20 @@ class ProjectAiToolsController extends Controller
                 'supplier_name' => $supplierGuess,
                 'amount' => $amountGuess,
                 'vat_amount' => $vatGuess,
-                'issued_at' => now()->toDateString(),
+                'invoice_number' => $invoiceNumber,
+                'issued_at' => $issuedAtGuess,
                 'payment_status' => 'unpaid',
                 'title' => 'Factura ' . $supplierGuess,
                 'notes' => 'Draft AI generat automat. Verifica datele inainte de confirmare.',
                 'confidence' => [
-                    'supplier_name' => 0.62,
+                    'supplier_name' => $supplierGuess !== '' ? 0.62 : 0.3,
                     'amount' => $amountGuess > 0 ? 0.58 : 0.35,
-                    'vat_amount' => $amountGuess > 0 ? 0.45 : 0.2,
+                    'vat_amount' => $vatGuess !== null ? 0.45 : 0.2,
+                    'invoice_number' => $invoiceNumber !== '' ? 0.55 : 0.2,
+                ],
+                'meta' => [
+                    'ocr_provider' => (string) ($ocrResult['provider'] ?? 'mock'),
+                    'ocr_confidence' => (float) ($ocrResult['confidence'] ?? 0),
                 ],
             ],
         ]);
@@ -294,6 +359,7 @@ class ProjectAiToolsController extends Controller
             'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
             'temp_file_path' => ['required', 'string'],
             'supplier_name' => ['required', 'string', 'max:255'],
+            'invoice_number' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'vat_amount' => ['nullable', 'numeric', 'min:0'],
             'issued_at' => ['required', 'date'],
@@ -341,11 +407,14 @@ class ProjectAiToolsController extends Controller
             'issued_at' => $validated['issued_at'],
             'payment_status' => $validated['payment_status'],
             'title' => $validated['title'] ?: ('Factura ' . $validated['supplier_name']),
+            'invoice_number' => $validated['invoice_number'] ?? null,
             'file_path' => $finalPath,
             'file_name' => basename($finalPath),
             'mime_type' => null,
             'file_size' => Storage::disk('local')->size($finalPath),
-            'notes' => trim(($validated['notes'] ?? '') . "\nTVA estimat: " . number_format((float) ($validated['vat_amount'] ?? 0), 2, '.', '')),
+            'notes' => trim(($validated['notes'] ?? '')
+                . "\nNumar factura: " . ($validated['invoice_number'] ?? '-')
+                . "\nTVA estimat: " . number_format((float) ($validated['vat_amount'] ?? 0), 2, '.', '')),
         ]);
 
         return response()->json([
@@ -380,6 +449,77 @@ class ProjectAiToolsController extends Controller
         $value = str_replace(',', '.', $matches[1]);
 
         return (float) $value;
+    }
+
+    private function guessVatFromText(string $text): ?float
+    {
+        if ($text === '') {
+            return null;
+        }
+
+        if (preg_match('/(?:TVA|VAT)\s*[:\-]?\s*(\d{1,6}(?:[\.,]\d{1,2})?)/iu', $text, $matches) !== 1) {
+            return null;
+        }
+
+        return (float) str_replace(',', '.', $matches[1]);
+    }
+
+    private function guessInvoiceNumberFromText(string $text): string
+    {
+        if (preg_match('/(?:factura|invoice|nr\.?|no\.?|numar)\s*[:#\-]?\s*([A-Z0-9\-\/]{3,})/iu', $text, $matches) === 1) {
+            return strtoupper(trim($matches[1]));
+        }
+
+        if (preg_match('/\b([A-Z]{1,4}-?\d{3,12})\b/u', $text, $matches) === 1) {
+            return strtoupper(trim($matches[1]));
+        }
+
+        return '';
+    }
+
+    private function guessDateFromText(string $text): ?string
+    {
+        if ($text === '') {
+            return null;
+        }
+
+        if (preg_match('/\b(\d{2})[\.\/-](\d{2})[\.\/-](\d{4})\b/u', $text, $matches) === 1) {
+            return sprintf('%04d-%02d-%02d', (int) $matches[3], (int) $matches[2], (int) $matches[1]);
+        }
+
+        return null;
+    }
+
+    private function guessSupplierFromText(string $text): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        if (preg_match('/(?:furnizor|supplier|emitent)\s*[:\-]?\s*([^\n\r]{3,80})/iu', $text, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+
+    private function composeQuoteNotes(string $plainNotes, ?array $estimateDetails): string
+    {
+        if (!$estimateDetails) {
+            return $plainNotes;
+        }
+
+        $payload = [
+            'work_type' => $estimateDetails['work_type'] ?? null,
+            'measure_type' => $estimateDetails['measure_type'] ?? null,
+            'measure_value' => $estimateDetails['measure_value'] ?? null,
+            'complexity' => $estimateDetails['complexity'] ?? null,
+            'materials' => $estimateDetails['materials'] ?? [],
+            'labor' => $estimateDetails['labor'] ?? [],
+            'totals' => $estimateDetails['totals'] ?? [],
+        ];
+
+        return trim($plainNotes) . "\n\n[AI_BREAKDOWN_JSON]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
 
     private function buildBudgetRecommendation(float $stageOverrunPct, float $projectOverrunAmount): string
