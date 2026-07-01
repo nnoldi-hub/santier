@@ -103,3 +103,33 @@ Daca oricare conditie este incalcata:
 - Fluxurile critice functionale end-to-end.
 - Metrici in limitele acceptate.
 - Echipa confirma intrarea in operare normala.
+
+## Launch Week Checklist (executabil)
+
+Legenda status:
+- NEINCEPUT
+- IN PROGRES
+- BLOCAT
+- INCHIS
+
+| ID | Task | Owner | Deadline | Status | Evidenta minima |
+|---|---|---|---|---|---|
+| LW-01 | Activeaza branch protection pe `main` (PR obligatoriu + 1 approval + required checks) | Tech Lead | Day 1 | NEINCEPUT | Screenshot setari GitHub |
+| LW-02 | Marcheaza check obligatoriu: `Financial Regression / Financial Test Bundle` | Tech Lead | Day 1 | NEINCEPUT | Branch rule actualizat |
+| LW-03 | Confirma release freeze (doar hotfix critic) | Product Owner | Day 1 | NEINCEPUT | Anunt intern + changelog freeze |
+| LW-04 | Ruleaza regresia minima + bundle financiar complet | Backend Engineer | Day 2 | NEINCEPUT | Output teste salvat |
+| LW-05 | Ruleaza backup DB + test restore pe mediu de staging | DevOps/Infra | Day 2 | NEINCEPUT | Log backup + restore valid |
+| LW-06 | Roteste credentiale productie (APP_KEY, DB, SMTP) | DevOps/Infra | Day 2 | NEINCEPUT | Secret versions actualizate |
+| LW-07 | Verifica configuratii productie (`APP_ENV`, `APP_DEBUG`, queue, scheduler) | DevOps/Infra | Day 3 | NEINCEPUT | Checklist operational completat |
+| LW-08 | Ruleaza dry-run complet dupa acest document (T-24h -> T+30m) | Incident Commander | Day 3 | NEINCEPUT | Minute dry-run + blocaje |
+| LW-09 | Finalizeaza script demo comercial 15 min + one-pager oferta | Product Owner | Day 4 | NEINCEPUT | Script + PDF in repo |
+| LW-10 | Actualizeaza landing pentru conversie (CTA, mesaj ICP, social proof) | Frontend Engineer | Day 4 | NEINCEPUT | Link preview + checklist UX |
+| LW-11 | Configureaza UTM standard + dashboard minim pentru signup/activation | Product + Marketing | Day 5 | NEINCEPUT | URL-uri UTM + snapshot analytics |
+| LW-12 | Ruleaza smoke productie in T+15m (login/onboarding/exporturi/analytics/pilot invites) | App Operator | Day 6 | NEINCEPUT | Raport smoke semnat |
+| LW-13 | Decizie Go/No-Go la T+30m pe baza gate-urilor din document | IC + Release Owner | Day 6 | NEINCEPUT | Decizie documentata |
+| LW-14 | Post-launch review la T+24h + lista prioritati Sprint urmator | Product + Tech Lead | Day 7 | NEINCEPUT | Raport final lansare |
+
+## Cadenta de update pentru Launch Week
+1. Update la ora 10:00 si 17:00 in fiecare zi de lansare.
+2. Orice task `BLOCAT` trebuie sa aiba owner secundar si ETA in aceeasi zi.
+3. Go-live este permis doar daca LW-01..LW-08 si LW-12..LW-13 sunt `INCHIS`.

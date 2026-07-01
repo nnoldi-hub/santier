@@ -635,3 +635,14 @@ Template de evaluare plusuri / minusuri:
 	- Bundle-ul local corespondent a fost deja validat verde (`10/10`).
 - Ce ramane:
 	- Optional: adaugare branch protection rule care cere acest workflow ca status check obligatoriu.
+
+### 2026-07-01 - Checkpoint Launch Readiness (operationalizare)
+- Etapa: pregatire executabila pentru saptamana de lansare.
+- Dovezi:
+	- `GO_LIVE_DAY.md` extins cu sectiunea `Launch Week Checklist (executabil)`.
+	- Checklist-ul include task-uri clare cu `Owner`, `Deadline`, `Status` si evidenta minima.
+	- Reguli de cadenta adaugate pentru update de 2 ori/zi si criteriu explicit de Go-Live.
+- Validare:
+	- Structura permite urmarire operationala zilnica fara interpretari suplimentare.
+- Ce ramane:
+	- Marcare progres real pe LW-01..LW-14 in functie de executia echipei.
