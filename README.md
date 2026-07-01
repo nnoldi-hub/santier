@@ -122,3 +122,18 @@ Pentru planul Sprint 2 vezi fisierul SPRINT_2_AUDIT.md.
 - Runbook operational: RUNBOOK_OPERATIONAL.md
 - Timeline ziua lansarii: GO_LIVE_DAY.md
 - Template raport post-lansare: POST_LAUNCH_REPORT_TEMPLATE.md
+
+## Repo governance recomandat
+
+Pentru ramura `main`, activeaza in GitHub urmatoarele reguli:
+
+1. Require a pull request before merging.
+2. Require approvals (minim 1).
+3. Require status checks to pass before merging.
+4. Include status check-ul din workflow-ul financiar:
+	- `Financial Regression / Financial Test Bundle`
+
+Fisiere de suport deja incluse in repo:
+- `.github/pull_request_template.md`
+- `.github/CODEOWNERS`
+- `.github/workflows/financial-regression.yml`

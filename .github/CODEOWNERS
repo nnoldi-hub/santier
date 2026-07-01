@@ -1,0 +1,18 @@
+# Default owner for the whole repository
+* @nnoldi-hub
+
+# CI and governance
+.github/workflows/* @nnoldi-hub
+.github/CODEOWNERS @nnoldi-hub
+.github/pull_request_template.md @nnoldi-hub
+
+# Backend
+app/** @nnoldi-hub
+config/** @nnoldi-hub
+database/** @nnoldi-hub
+routes/** @nnoldi-hub
+tests/** @nnoldi-hub
+
+# Frontend
+resources/js/** @nnoldi-hub
+resources/views/** @nnoldi-hub
