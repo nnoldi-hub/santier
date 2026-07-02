@@ -122,6 +122,7 @@
                         <NavItem :href="routeOrFallback('account.users.index')" :disabled="routeMissing('account.users.index')" icon="👥" label="Utilizatori" />
                         <NavItem :href="routeOrFallback('account.roles.index')" :disabled="routeMissing('account.roles.index')" icon="🛡️" label="Roluri si permisiuni" />
                         <NavItem :href="routeOrFallback('account.audit.index')" :disabled="routeMissing('account.audit.index')" icon="🧾" label="Audit acces" />
+                        <NavItem :href="routeOrFallback('account.notifications.index')" :disabled="routeMissing('account.notifications.index')" icon="🔔" label="Notificari" />
                         <NavItem :href="routeOrFallback('profile.edit')" :disabled="routeMissing('profile.edit')" icon="👤" label="Profil" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" icon="🤝" label="Firme pilot" />
                         <NavItem :href="routeOrFallback('billing.index')" :disabled="routeMissing('billing.index')" icon="💳" label="Plan & Billing" />
@@ -186,14 +187,24 @@
                         >
                             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                 <div class="text-sm font-semibold text-gray-700">Notificari</div>
-                                <button
-                                    v-if="unreadNotificationCount > 0"
-                                    class="text-xs text-orange-600 hover:text-orange-700"
-                                    @click="markAllNotificationsRead"
-                                    type="button"
-                                >
-                                    Marcheaza toate
-                                </button>
+                                <div class="flex items-center gap-3">
+                                    <Link
+                                        v-if="hasRoute('account.notifications.index')"
+                                        :href="route('account.notifications.index')"
+                                        class="text-xs text-blue-600 hover:text-blue-700"
+                                        @click="notificationsOpen = false"
+                                    >
+                                        Vezi toate
+                                    </Link>
+                                    <button
+                                        v-if="unreadNotificationCount > 0"
+                                        class="text-xs text-orange-600 hover:text-orange-700"
+                                        @click="markAllNotificationsRead"
+                                        type="button"
+                                    >
+                                        Marcheaza toate
+                                    </button>
+                                </div>
                             </div>
 
                             <div v-if="unreadNotifications.length === 0" class="px-4 py-6 text-sm text-gray-500 text-center">
@@ -284,7 +295,7 @@ const sectionRoutes = {
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],
     reporting: ['exports.index', 'analytics.index', 'stage-progress.index'],
-    account: ['account.users.index', 'account.roles.index', 'account.audit.index', 'profile.edit', 'pilot-invites.index', 'billing.index'],
+    account: ['account.users.index', 'account.roles.index', 'account.audit.index', 'account.notifications.index', 'profile.edit', 'pilot-invites.index', 'billing.index'],
 };
 
 const toggleSection = (name) => {

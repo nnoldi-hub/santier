@@ -36,6 +36,7 @@ use App\Http\Controllers\DocumentBrandingController;
 use App\Http\Controllers\TenantRoleController;
 use App\Http\Controllers\TenantUserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationCenterController;
 use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
@@ -949,6 +950,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('account/roles/{role}', [TenantRoleController::class, 'destroy'])->name('account.roles.destroy');
         Route::get('account/audit', [AccessAuditLogController::class, 'index'])->name('account.audit.index');
         Route::get('account/audit/export', [AccessAuditLogController::class, 'exportCsv'])->name('account.audit.export');
+        Route::get('account/notifications', [NotificationCenterController::class, 'index'])->name('account.notifications.index');
 
         Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
