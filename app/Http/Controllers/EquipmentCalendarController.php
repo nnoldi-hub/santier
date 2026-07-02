@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StageEquipment;
 use App\Models\Equipment;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,6 +15,7 @@ class EquipmentCalendarController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $startDate = $request->string('start_date')->toString() ?: now()->toDateString();
         $endDate = $request->string('end_date')->toString() ?: now()->addDays(30)->toDateString();
         $equipmentId = $request->integer('equipment_id') ?: null;
@@ -44,7 +46,7 @@ class EquipmentCalendarController extends Controller
 
         return Inertia::render('EquipmentCalendar/Index', [
             'reservations' => $reservations,
-            'equipment' => Equipment::where('tenant_id', 1)
+            'equipment' => Equipment::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('reservations.phase.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')
                 ->get(['id', 'name', 'cost_per_hour', 'availability_status']),

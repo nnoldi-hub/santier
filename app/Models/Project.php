@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
@@ -55,6 +56,25 @@ class Project extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class)->latest();
+    }
+
+    public function projectRoleAssignments(): HasMany
+    {
+        return $this->hasMany(ProjectUserRole::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_user_roles')
+            ->withPivot(['project_role_id', 'tenant_id'])
+            ->withTimestamps();
+    }
+
+    public function projectRoles(): BelongsToMany
+    {
+        return $this->belongsToMany(ProjectRole::class, 'project_user_roles')
+            ->withPivot(['user_id', 'tenant_id'])
+            ->withTimestamps();
     }
 
     public function getStatusColorAttribute(): string

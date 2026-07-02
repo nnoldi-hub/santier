@@ -4,15 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Http\Requests\StoreClientRequest;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ClientController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $clients = Client::where('tenant_id', 1)
+        $tenantId = TenantContext::id($request->user());
+
+        $clients = Client::where('tenant_id', $tenantId)
             ->withCount('projects')
             ->orderBy('name')
             ->paginate(20);
@@ -29,9 +33,11 @@ class ClientController extends Controller
 
     public function store(StoreClientRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         Client::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('clients.index')->with('success', 'Client adaugat cu succes!');

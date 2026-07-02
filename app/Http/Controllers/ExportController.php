@@ -19,6 +19,7 @@ use App\Support\DemoScope;
 use App\Support\ExportAudit;
 use App\Support\ExportDatasetBuilder;
 use App\Support\ExportFilter;
+use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -31,11 +32,12 @@ class ExportController extends Controller
     public function index(): Response
     {
         $user = request()->user();
+        $tenantId = TenantContext::id($user);
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         return Inertia::render('Exports/Index', [
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
-            'teams' => Team::where('tenant_id', 1)
+            'teams' => Team::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('leader_id', $user->id))
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -44,12 +46,12 @@ class ExportController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'subscriptions' => ExportSubscription::query()
-                ->where('tenant_id', 1)
+                ->where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('created_by', $user->id))
                 ->orderByDesc('id')
                 ->get(['id', 'name', 'export_type', 'format', 'frequency', 'schedule_time', 'schedule_weekday', 'active', 'next_run_at']),
             'recentLogs' => ExportLog::query()
-                ->where('tenant_id', 1)
+                ->where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('user_id', $user->id))
                 ->latest('id')
                 ->take(20)

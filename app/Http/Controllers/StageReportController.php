@@ -7,6 +7,7 @@ use App\Models\Contractor;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\StageReport;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,6 +22,7 @@ class StageReportController extends Controller
 
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $filters = [
             'q' => $request->string('q')->toString(),
             'project_id' => $request->integer('project_id') > 0 ? $request->integer('project_id') : null,
@@ -30,7 +32,7 @@ class StageReportController extends Controller
 
         $reports = StageReport::query()
             ->with(['stage:id,project_id,name', 'stage.project:id,name', 'contractor:id,name', 'creator:id,name'])
-            ->whereHas('stage.project', fn ($query) => $query->where('tenant_id', 1))
+            ->whereHas('stage.project', fn ($query) => $query->where('tenant_id', $tenantId))
             ->when($filters['q'] !== '', function ($query) use ($filters) {
                 $query->where(function ($inner) use ($filters) {
                     $inner->where('activities', 'like', '%' . $filters['q'] . '%')
@@ -48,23 +50,25 @@ class StageReportController extends Controller
         return Inertia::render('StageReports/Index', [
             'reports' => $reports,
             'filters' => $filters,
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('StageReports/Create', [
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -78,15 +82,17 @@ class StageReportController extends Controller
         return redirect()->route('stage-reports.index')->with('success', 'Raportul de etapa a fost salvat.');
     }
 
-    public function edit(StageReport $stage_report): Response
+    public function edit(Request $request, StageReport $stage_report): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('StageReports/Edit', [
             'report' => $stage_report,
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

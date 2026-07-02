@@ -7,15 +7,19 @@ use App\Http\Requests\StoreTeamRequest;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TeamController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $teams = Team::where('tenant_id', 1)
+        $tenantId = TenantContext::id($request->user());
+
+        $teams = Team::where('tenant_id', $tenantId)
             ->with(['leader:id,name', 'members.user:id,name'])
             ->withCount('members')
             ->orderBy('name')
@@ -35,9 +39,11 @@ class TeamController extends Controller
 
     public function store(StoreTeamRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         Team::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('teams.index')->with('success', 'Echipa creata cu succes!');

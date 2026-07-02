@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Support\InvoiceOcrService;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -215,6 +216,8 @@ class ProjectAiToolsController extends Controller
 
     public function budgetAlert(Request $request, Project $project): JsonResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         $validated = $request->validate([
             'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
             'purchase_amount' => ['required', 'numeric', 'min:0.01'],
@@ -231,13 +234,13 @@ class ProjectAiToolsController extends Controller
         $purchaseAmount = (float) $validated['purchase_amount'];
 
         $currentStageDocumentsCost = (float) Document::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->where('project_id', $project->id)
             ->where('stage_id', $stage->id)
             ->sum('amount');
 
         $currentStageMaterialsCost = (float) MaterialInvoice::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->where('project_id', $project->id)
             ->where('phase_id', $stage->id)
             ->sum('amount_total');
@@ -255,12 +258,12 @@ class ProjectAiToolsController extends Controller
             : 0;
 
         $currentProjectDocumentsCost = (float) Document::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->where('project_id', $project->id)
             ->sum('amount');
 
         $currentProjectMaterialsCost = (float) MaterialInvoice::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->where('project_id', $project->id)
             ->sum('amount_total');
 

@@ -31,11 +31,15 @@ use App\Http\Controllers\StageReportController;
 use App\Http\Controllers\StageTaskController;
 use App\Http\Controllers\StageProgressController;
 use App\Http\Controllers\ProjectAiToolsController;
+use App\Http\Controllers\AccessAuditLogController;
 use App\Http\Controllers\DocumentBrandingController;
+use App\Http\Controllers\TenantRoleController;
+use App\Http\Controllers\TenantUserController;
 use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use App\Models\Defect;
 use App\Models\Document;
@@ -107,6 +111,7 @@ Route::get('/dashboard', function () {
     $dashboardRequest = request();
     $today = now()->toDateString();
     $user = $dashboardRequest->user();
+    $tenantId = TenantContext::id($user);
 
     $calendarWindow = $dashboardRequest->string('calendar_window')->toString();
     if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
@@ -140,7 +145,7 @@ Route::get('/dashboard', function () {
             'activeProjects' => DemoScope::applyProjectScope(Project::query(), $user)
                 ->where('status', 'active')
                 ->count(),
-            'teams'   => Team::where('tenant_id', 1)
+            'teams'   => Team::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('leader_id', $user->id))
                 ->where('active', true)
                 ->count(),
@@ -152,7 +157,7 @@ Route::get('/dashboard', function () {
                 ->whereIn('status', ['open', 'in_progress'])
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->count(),
-            'overdueTasks' => Task::where('tenant_id', 1)
+            'overdueTasks' => Task::where('tenant_id', $tenantId)
                 ->whereIn('status', ['todo', 'in_progress'])
                 ->whereDate('deadline', '<', $today)
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
@@ -206,7 +211,7 @@ Route::get('/dashboard', function () {
             ->take(5)
             ->get(['id', 'name', 'status', 'client_id']),
         'todayTasks' => Task::with(['project:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereDate('deadline', $today)
             ->whereIn('status', ['todo', 'in_progress'])
             ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
@@ -667,7 +672,7 @@ Route::get('/dashboard', function () {
             ->take(6)
             ->get(['id', 'project_id', 'name', 'status', 'end_date']),
         'openDefects' => Defect::with(['project:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereIn('status', ['open', 'in_progress'])
             ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
             ->orderByRaw("CASE WHEN priority = 'high' THEN 1 WHEN priority = 'medium' THEN 2 WHEN priority = 'low' THEN 3 ELSE 4 END")
@@ -814,6 +819,69 @@ Route::middleware('auth')->get('/help', function () {
                     ['label' => 'Verificari', 'href' => route('quality-checks.index')],
                 ],
             ],
+            [
+                'title' => 'Exemplu: faci deviz/oferta in 5 minute',
+                'steps' => [
+                    'Deschizi Oferte/Devize si alegi sablonul canonic potrivit tipului de proiect.',
+                    'Completezi cantitatile inteligente si alegi strategia de materiale (cu/fara materiale).',
+                    'Verifici cele doua scenarii de pret (fara materiale vs cu materiale plafonate).',
+                    'Salvezi oferta, generezi PDF si trimiti direct clientului.',
+                ],
+                'links' => [
+                    ['label' => 'Oferta noua', 'href' => route('quotes.create')],
+                    ['label' => 'Lista oferte', 'href' => route('quotes.index')],
+                    ['label' => 'Documente financiare', 'href' => route('documents.index')],
+                ],
+            ],
+            [
+                'title' => 'Exemplu: configurezi documente profesionale',
+                'steps' => [
+                    'Intrii in Documente > Configurare documente.',
+                    'Setezi emitentul, logo-ul, culorile si datele companiei.',
+                    'Folosesti Preview pentru a verifica aspectul final inainte de salvare.',
+                    'Generezi un PDF de test din oferta/document si verifici antetul si datele firmei.',
+                ],
+                'links' => [
+                    ['label' => 'Configurare documente', 'href' => route('documents.branding.index')],
+                    ['label' => 'Registru documente', 'href' => route('documents.index')],
+                    ['label' => 'Oferte / Devize', 'href' => route('quotes.index')],
+                ],
+            ],
+        ],
+        'focusGuides' => [
+            [
+                'title' => 'Deviz / Oferta: ce completezi obligatoriu',
+                'items' => [
+                    'Alege proiectul si titlul ofertei.',
+                    'Completeaza cantitatile inteligente (mp/buc) pentru calcul automat.',
+                    'Verifica marja minima si rezumatul pe etape.',
+                    'Decide strategia de materiale: client supplied sau capped allowance.',
+                ],
+                'href' => route('quotes.create'),
+                'cta' => 'Deschide creare oferta',
+            ],
+            [
+                'title' => 'Deviz / Oferta: verificari inainte de trimitere',
+                'items' => [
+                    'Verifica etapele cu marja sub pragul minim.',
+                    'Confirma valorile de materiale plafonate (parchet, gresie, vopsea/glet).',
+                    'Compara devizul fara materiale cu cel cu materiale.',
+                    'Genereaza PDF-ul final si revizuieste brandingul.',
+                ],
+                'href' => route('quotes.index'),
+                'cta' => 'Vezi ofertele',
+            ],
+            [
+                'title' => 'Configurare documente: ce poti personaliza',
+                'items' => [
+                    'Emitent document (persoana sau departament).',
+                    'Logo companie (URL sau upload).',
+                    'Culoare branding aleasa vizual din preseturi.',
+                    'Date de contact si adresa afisate in PDF.',
+                ],
+                'href' => route('documents.branding.index'),
+                'cta' => 'Deschide configurare',
+            ],
         ],
         'faqs' => [
             [
@@ -835,6 +903,14 @@ Route::middleware('auth')->get('/help', function () {
             [
                 'question' => 'Ce fac daca nu stiu unde se afla o functie?',
                 'answer' => 'Deschide Ajutor si urmareste sectiunea de module. Fiecare modul are un exemplu si un link spre pagina lui.',
+            ],
+            [
+                'question' => 'Cum fac rapid doua devize (cu si fara materiale)?',
+                'answer' => 'In pagina de oferta selectezi strategia materiale, completezi cantitatile inteligente, apoi verifici in rezumat cele doua scenarii generate automat.',
+            ],
+            [
+                'question' => 'Unde setez emitentul, logo-ul si culorile pentru PDF?',
+                'answer' => 'Din Documente > Configurare documente. Acolo ai setarile de branding si preview inainte de salvare.',
             ],
         ],
     ]);
@@ -859,12 +935,28 @@ Route::middleware('auth')->group(function () {
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
         Route::patch('billing', [BillingController::class, 'update'])->name('billing.update');
 
+        Route::get('account/users', [TenantUserController::class, 'index'])->name('account.users.index');
+        Route::post('account/users/invite', [TenantUserController::class, 'invite'])->name('account.users.invite');
+        Route::patch('account/users/{membership}/status', [TenantUserController::class, 'updateStatus'])->name('account.users.status.update');
+        Route::patch('account/users/{membership}/role', [TenantUserController::class, 'updateRole'])->name('account.users.role.update');
+
+        Route::get('account/roles', [TenantRoleController::class, 'index'])->name('account.roles.index');
+        Route::post('account/roles', [TenantRoleController::class, 'store'])->name('account.roles.store');
+        Route::patch('account/roles/{role}', [TenantRoleController::class, 'update'])->name('account.roles.update');
+        Route::delete('account/roles/{role}', [TenantRoleController::class, 'destroy'])->name('account.roles.destroy');
+        Route::get('account/audit', [AccessAuditLogController::class, 'index'])->name('account.audit.index');
+        Route::get('account/audit/export', [AccessAuditLogController::class, 'exportCsv'])->name('account.audit.export');
+
         Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
         Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
 
         // Proiecte & Clienti
-        Route::resource('projects', ProjectController::class);
+        Route::resource('projects', ProjectController::class)
+            ->middlewareFor(['index', 'show'], 'permission:projects.view')
+            ->middlewareFor(['create', 'store'], 'permission:projects.create')
+            ->middlewareFor(['edit', 'update'], 'permission:projects.edit')
+            ->middlewareFor(['destroy'], 'permission:projects.delete');
         Route::get('wbs', [WbsController::class, 'index'])->name('wbs.index');
         Route::patch('wbs/phases/{phase}', [WbsController::class, 'updatePhase'])->name('wbs.phases.update');
         Route::resource('clients', ClientController::class);
@@ -893,12 +985,16 @@ Route::middleware('auth')->group(function () {
         Route::resource('quality-checks', QualityCheckController::class)->except('show');
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
-        Route::resource('quotes', QuoteController::class)->except('show');
-        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->name('quotes.pdf');
-        Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
-        Route::patch('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
-        Route::post('quotes/{quote}/convert', [QuoteController::class, 'convertToProject'])->name('quotes.convert');
-        Route::post('quotes/{quote}/template', [QuoteController::class, 'saveAsTemplate'])->name('quotes.template.store');
+        Route::resource('quotes', QuoteController::class)->except('show')
+            ->middlewareFor(['index'], 'permission:quotes.view')
+            ->middlewareFor(['create', 'store'], 'permission:quotes.create')
+            ->middlewareFor(['edit', 'update'], 'permission:quotes.edit')
+            ->middlewareFor(['destroy'], 'permission:quotes.delete');
+        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->middleware('permission:quotes.view')->name('quotes.pdf');
+        Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept'])->middleware('permission:quotes.approve')->name('quotes.accept');
+        Route::patch('quotes/{quote}/send', [QuoteController::class, 'send'])->middleware('permission:quotes.edit')->name('quotes.send');
+        Route::post('quotes/{quote}/convert', [QuoteController::class, 'convertToProject'])->middleware('permission:quotes.edit|projects.create')->name('quotes.convert');
+        Route::post('quotes/{quote}/template', [QuoteController::class, 'saveAsTemplate'])->middleware('permission:quotes.create|quotes.edit')->name('quotes.template.store');
         Route::resource('material-invoices', MaterialInvoiceController::class)->except('show');
 
         Route::middleware('plan:exports_csv')->group(function () {
@@ -942,6 +1038,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('projects/{project}/phases/{phase}/assignments/{assignment}', [PhaseTeamAssignmentController::class, 'destroy'])->name('phase-assignments.destroy');
         Route::post('projects/{project}/phases/{phase}/equipment', [StageEquipmentController::class, 'store'])->name('stage-equipment.store');
         Route::delete('projects/{project}/phases/{phase}/equipment/{reservation}', [StageEquipmentController::class, 'destroy'])->name('stage-equipment.destroy');
+        Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
+        Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
+        Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');
+        Route::delete('projects/{project}/roles/{assignment}', [ProjectController::class, 'destroyRole'])->name('projects.roles.destroy');
         Route::post('projects/{project}/ai/invoice/extract', [ProjectAiToolsController::class, 'extractInvoice'])->name('projects.ai.invoice.extract');
         Route::post('projects/{project}/ai/invoice/commit', [ProjectAiToolsController::class, 'commitInvoice'])->name('projects.ai.invoice.commit');
         Route::post('projects/{project}/ai/budget-alert', [ProjectAiToolsController::class, 'budgetAlert'])->name('projects.ai.budget-alert');

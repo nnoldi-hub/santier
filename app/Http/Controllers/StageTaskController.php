@@ -9,6 +9,7 @@ use App\Models\ProjectPhase;
 use App\Models\StageTask;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,7 @@ class StageTaskController extends Controller
 
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $filters = [
             'status' => $request->string('status')->toString(),
             'project_id' => $request->integer('project_id') > 0 ? $request->integer('project_id') : null,
@@ -31,7 +33,7 @@ class StageTaskController extends Controller
 
         $tasks = StageTask::query()
             ->with(['stage:id,project_id,name', 'stage.project:id,name', 'userAssignee:id,name', 'teamAssignee:id,name', 'contractorAssignee:id,name'])
-            ->whereHas('stage.project', fn ($query) => $query->where('tenant_id', 1))
+            ->whereHas('stage.project', fn ($query) => $query->where('tenant_id', $tenantId))
             ->when($filters['status'] !== '', fn ($query) => $query->where('status', $filters['status']))
             ->when($filters['project_id'], fn ($query, $value) => $query->whereHas('stage', fn ($q) => $q->where('project_id', $value)))
             ->when($filters['stage_id'], fn ($query, $value) => $query->where('stage_id', $value))
@@ -58,9 +60,9 @@ class StageTaskController extends Controller
         return Inertia::render('StageTasks/Index', [
             'tasks' => $tasks,
             'filters' => $filters,
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'statusLabels' => StageTask::$statusLabels,
@@ -68,18 +70,20 @@ class StageTaskController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('StageTasks/Create', [
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'statusLabels' => StageTask::$statusLabels,
             'assigneeTypes' => StageTask::$assigneeTypes,
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'teams' => Team::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -97,19 +101,21 @@ class StageTaskController extends Controller
         return redirect()->route('stage-tasks.index')->with('success', 'Taskul de etapa a fost creat.');
     }
 
-    public function edit(StageTask $stage_task): Response
+    public function edit(Request $request, StageTask $stage_task): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('StageTasks/Edit', [
             'task' => $stage_task,
             'stages' => ProjectPhase::query()
-                ->whereHas('project', fn ($query) => $query->where('tenant_id', 1))
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'statusLabels' => StageTask::$statusLabels,
             'assigneeTypes' => StageTask::$assigneeTypes,
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'teams' => Team::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

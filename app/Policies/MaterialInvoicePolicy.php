@@ -4,31 +4,49 @@ namespace App\Policies;
 
 use App\Models\MaterialInvoice;
 use App\Models\User;
+use App\Support\TenantContext;
 
 class MaterialInvoicePolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $this->legacyAllow($user) || $user->can('finance.view');
     }
 
     public function view(User $user, MaterialInvoice $materialInvoice): bool
     {
-        return true;
+        return $this->sameTenant($user, (int) $materialInvoice->tenant_id)
+            && ($this->legacyAllow($user) || $user->can('finance.view'));
     }
 
     public function create(User $user): bool
     {
-        return true;
+        return $this->legacyAllow($user) || $user->can('finance.create');
     }
 
     public function update(User $user, MaterialInvoice $materialInvoice): bool
     {
-        return true;
+        return $this->sameTenant($user, (int) $materialInvoice->tenant_id)
+            && ($this->legacyAllow($user) || $user->can('finance.edit'));
     }
 
     public function delete(User $user, MaterialInvoice $materialInvoice): bool
     {
-        return true;
+        return $this->sameTenant($user, (int) $materialInvoice->tenant_id)
+            && ($this->legacyAllow($user) || $user->can('finance.delete'));
+    }
+
+    private function legacyAllow(User $user): bool
+    {
+        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
+    }
+
+    private function sameTenant(User $user, int $resourceTenantId): bool
+    {
+        if (TenantContext::isSuperadmin($user)) {
+            return true;
+        }
+
+        return TenantContext::id($user) === $resourceTenantId;
     }
 }

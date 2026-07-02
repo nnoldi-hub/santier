@@ -6,7 +6,54 @@
                 <h2 class="text-xl font-semibold text-gray-800">Oferta noua</h2>
             </div>
 
+            <section class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Ajutor contextual</div>
+                        <div class="text-sm font-semibold text-amber-900">Deviz / oferta fara surprize la trimiterea catre client</div>
+                    </div>
+                    <button type="button" @click="showQuoteHelp = !showQuoteHelp" class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                        {{ showQuoteHelp ? 'Ascunde ghid' : 'Arata ghid' }}
+                    </button>
+                </div>
+
+                <div v-if="showQuoteHelp" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div v-for="guide in quoteHelpGuides" :key="guide.title" class="rounded-lg border border-amber-200 bg-white p-3">
+                        <div class="text-sm font-semibold text-slate-900">{{ guide.title }}</div>
+                        <ul class="mt-2 space-y-1.5">
+                            <li v-for="item in guide.items" :key="item" class="flex gap-2 text-xs text-slate-700">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <span>{{ item }}</span>
+                            </li>
+                        </ul>
+                        <Link :href="guide.href" class="mt-3 inline-flex rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                            {{ guide.cta }}
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
             <form @submit.prevent="submit" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+                <section class="rounded-xl border border-sky-200 bg-sky-50 p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 class="text-sm font-semibold text-sky-900">Onboarding ofertare: progres completare</h3>
+                        <span class="text-xs font-semibold" :class="onboardingPercent === 100 ? 'text-emerald-700' : 'text-sky-800'">
+                            {{ onboardingCompletedCount }} / {{ onboardingChecks.length }}
+                        </span>
+                    </div>
+                    <div class="h-2 rounded-full bg-sky-100 overflow-hidden">
+                        <div class="h-full transition-all" :class="onboardingPercent === 100 ? 'bg-emerald-500' : 'bg-sky-500'" :style="{ width: `${onboardingPercent}%` }"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div v-for="check in onboardingChecks" :key="check.label" class="flex items-center gap-2 text-xs">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full" :class="check.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                                {{ check.done ? '✓' : '•' }}
+                            </span>
+                            <span :class="check.done ? 'text-emerald-800' : 'text-slate-700'">{{ check.label }}</span>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="rounded-xl border border-gray-200 p-4 space-y-4">
                     <h3 class="text-sm font-semibold text-gray-800">A. Informatii generale</h3>
 
@@ -357,6 +404,40 @@ const props = defineProps({
 
 const selectedCanonicalId = ref('');
 const selectedTemplateId = ref('');
+const showQuoteHelp = ref(true);
+
+const quoteHelpGuides = [
+    {
+        title: '1) Inainte de generare',
+        items: [
+            'Selecteaza sablonul canonic potrivit tipului de proiect.',
+            'Completeaza minim suprafetele (pereti, pardoseala, faianta).',
+            'Verifica marja minima si data de valabilitate.',
+        ],
+        href: route('help.index'),
+        cta: 'Vezi ghid complet',
+    },
+    {
+        title: '2) Strategie materiale',
+        items: [
+            'Fara materiale: clientul cumpara materialele separat.',
+            'Cu materiale plafonate: foloseste limitele parchet/gresie/vopsea.',
+            'Prize si intrerupatoare se pot detalia ulterior, separat.',
+        ],
+        href: route('quotes.index'),
+        cta: 'Vezi ofertele',
+    },
+    {
+        title: '3) Inainte de trimitere',
+        items: [
+            'Compara Deviz 1 (fara materiale) cu Deviz 2 (plafonat).',
+            'Verifica etapele cu marja sub prag.',
+            'Genereaza PDF-ul si confirma brandingul documentului.',
+        ],
+        href: route('documents.branding.index'),
+        cta: 'Configurare documente',
+    },
+];
 
 const form = useForm({
     project_id: props.selectedProjectId ? String(props.selectedProjectId) : '',
@@ -486,6 +567,37 @@ const indirectAndOptionsRows = computed(() => {
 });
 
 const allItems = computed(() => [...flattenedStageItems.value, ...indirectAndOptionsRows.value]);
+
+const onboardingChecks = computed(() => {
+    const hasProject = String(form.project_id || '').trim() !== '';
+    const hasTitle = String(form.title || '').trim().length >= 6;
+    const hasOperationalItems = flattenedStageItems.value.length > 0;
+    const hasSmartInput = [
+        Number(smartInputs.walls_area || 0),
+        Number(smartInputs.floor_area || 0),
+        Number(smartInputs.tile_area || 0),
+        Number(smartInputs.outlets_count || 0),
+        Number(smartInputs.lights_count || 0),
+        Number(smartInputs.doors_count || 0),
+    ].some((value) => value > 0);
+    const hasMarginConfigured = Number(form.min_margin_pct || 0) > 0;
+    const hasMaterialStrategy = ['capped_allowance', 'client_supplied'].includes(String(quoteMeta.material_mode || ''));
+
+    return [
+        { label: 'Proiect selectat', done: hasProject },
+        { label: 'Titlu oferta completat', done: hasTitle },
+        { label: 'Articole adaugate in etape', done: hasOperationalItems },
+        { label: 'Cantitati smart introduse', done: hasSmartInput },
+        { label: 'Marja minima configurata', done: hasMarginConfigured },
+        { label: 'Strategie materiale aleasa', done: hasMaterialStrategy },
+    ];
+});
+
+const onboardingCompletedCount = computed(() => onboardingChecks.value.filter((check) => check.done).length);
+const onboardingPercent = computed(() => {
+    if (onboardingChecks.value.length === 0) return 0;
+    return Math.round((onboardingCompletedCount.value / onboardingChecks.value.length) * 100);
+});
 
 const totalCost = computed(() => allItems.value.reduce((sum, item) => sum + lineCost(item), 0));
 const totalNetBeforeDiscount = computed(() => allItems.value.reduce((sum, item) => sum + lineSell(item), 0));

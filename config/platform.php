@@ -3,6 +3,7 @@
 return [
     'defaults' => [
         'app_name' => env('APP_NAME', 'Santier'),
+        'default_tenant_id' => (int) env('PLATFORM_DEFAULT_TENANT_ID', 1),
         'company_name' => env('PLATFORM_COMPANY_NAME', 'Santier'),
         'document_issuer_name' => env('PLATFORM_DOCUMENT_ISSUER_NAME', ''),
         'company_phone' => env('PLATFORM_COMPANY_PHONE', ''),

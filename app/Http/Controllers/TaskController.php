@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTaskRequest;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,12 +16,13 @@ class TaskController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
         $projectId = $request->integer('project_id');
 
         $tasks = Task::query()
             ->with(['project:id,name', 'phase:id,name', 'assignee:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when($projectId > 0, fn ($q) => $q->where('project_id', $projectId))
             ->orderByRaw("FIELD(status, 'todo', 'in_progress', 'done', 'cancelled')")
@@ -36,13 +38,15 @@ class TaskController extends Controller
                 'status' => $status,
                 'project_id' => $projectId > 0 ? $projectId : '',
             ],
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function create(Request $request): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id($request->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -66,8 +70,9 @@ class TaskController extends Controller
 
     public function store(StoreTaskRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
         $data = $request->validated();
-        $data['tenant_id'] = 1;
+        $data['tenant_id'] = $tenantId;
         $data['created_by'] = $request->user()->id;
 
         if ($data['status'] === 'done') {
@@ -81,7 +86,9 @@ class TaskController extends Controller
 
     public function edit(Task $task): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id(request()->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);

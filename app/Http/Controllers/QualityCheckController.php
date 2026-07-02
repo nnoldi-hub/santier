@@ -6,6 +6,7 @@ use App\Http\Requests\StoreQualityCheckRequest;
 use App\Models\Project;
 use App\Models\QualityCheck;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,13 +21,14 @@ class QualityCheckController extends Controller
 
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
         $type = $request->string('check_type')->toString();
         $projectId = $request->integer('project_id');
 
         $checks = QualityCheck::query()
             ->with(['project:id,name', 'phase:id,name', 'assignee:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when($type !== '', fn ($q) => $q->where('check_type', $type))
             ->when($projectId > 0, fn ($q) => $q->where('project_id', $projectId))
@@ -43,7 +45,7 @@ class QualityCheckController extends Controller
                 'check_type' => $type,
                 'project_id' => $projectId > 0 ? $projectId : '',
             ],
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'statuses' => QualityCheck::$statusLabels,
             'types' => QualityCheck::$typeLabels,
         ]);
@@ -51,7 +53,9 @@ class QualityCheckController extends Controller
 
     public function create(Request $request): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id($request->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -78,8 +82,9 @@ class QualityCheckController extends Controller
 
     public function store(StoreQualityCheckRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
         $data = $request->validated();
-        $data['tenant_id'] = 1;
+        $data['tenant_id'] = $tenantId;
         $data['completed_at'] = $data['status'] === 'passed' ? now() : null;
 
         QualityCheck::create($data);
@@ -89,7 +94,9 @@ class QualityCheckController extends Controller
 
     public function edit(QualityCheck $quality_check): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id(request()->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);

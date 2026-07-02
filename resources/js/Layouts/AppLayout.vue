@@ -119,6 +119,9 @@
                         <span :class="['transition-transform', sections.account ? 'rotate-0' : '-rotate-90']">▾</span>
                     </button>
                     <div v-show="sections.account" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
+                        <NavItem :href="routeOrFallback('account.users.index')" :disabled="routeMissing('account.users.index')" icon="👥" label="Utilizatori" />
+                        <NavItem :href="routeOrFallback('account.roles.index')" :disabled="routeMissing('account.roles.index')" icon="🛡️" label="Roluri si permisiuni" />
+                        <NavItem :href="routeOrFallback('account.audit.index')" :disabled="routeMissing('account.audit.index')" icon="🧾" label="Audit acces" />
                         <NavItem :href="routeOrFallback('profile.edit')" :disabled="routeMissing('profile.edit')" icon="👤" label="Profil" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" icon="🤝" label="Firme pilot" />
                         <NavItem :href="routeOrFallback('billing.index')" :disabled="routeMissing('billing.index')" icon="💳" label="Plan & Billing" />
@@ -219,7 +222,7 @@ const sectionRoutes = {
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],
     reporting: ['exports.index', 'analytics.index', 'stage-progress.index'],
-    account: ['profile.edit', 'pilot-invites.index', 'billing.index'],
+    account: ['account.users.index', 'account.roles.index', 'account.audit.index', 'profile.edit', 'pilot-invites.index', 'billing.index'],
 };
 
 const toggleSection = (name) => {

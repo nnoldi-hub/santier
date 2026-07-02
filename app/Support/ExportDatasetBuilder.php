@@ -43,9 +43,11 @@ class ExportDatasetBuilder
 
     private static function stageProgress(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = ProjectPhase::query()
             ->with(['project:id,name,tenant_id', 'contractor:id,name', 'parent:id,name'])
-            ->whereHas('project', fn ($q) => $q->where('tenant_id', 1));
+            ->whereHas('project', fn ($q) => $q->where('tenant_id', $tenantId));
 
         self::applyProjectFilter($query, $filters);
 
@@ -93,9 +95,11 @@ class ExportDatasetBuilder
 
     private static function stageReports(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = StageReport::query()
             ->with(['stage:id,project_id,name', 'stage.project:id,name,tenant_id', 'contractor:id,name', 'creator:id,name'])
-            ->whereHas('stage.project', fn ($q) => $q->where('tenant_id', 1));
+            ->whereHas('stage.project', fn ($q) => $q->where('tenant_id', $tenantId));
 
         self::applyDateRange($query, 'report_date', $filters);
 
@@ -119,9 +123,11 @@ class ExportDatasetBuilder
 
     private static function stageTasks(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = StageTask::query()
             ->with(['stage:id,project_id,name', 'stage.project:id,name,tenant_id', 'userAssignee:id,name', 'teamAssignee:id,name', 'contractorAssignee:id,name'])
-            ->whereHas('stage.project', fn ($q) => $q->where('tenant_id', 1));
+            ->whereHas('stage.project', fn ($q) => $q->where('tenant_id', $tenantId));
 
         self::applyDateRange($query, 'deadline', $filters);
 
@@ -153,8 +159,10 @@ class ExportDatasetBuilder
 
     private static function documents(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = Document::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->with(['project:id,name', 'stage:id,name', 'contractor:id,name']);
 
         self::applyDateRange($query, 'issued_at', $filters);
@@ -173,13 +181,15 @@ class ExportDatasetBuilder
 
     private static function equipment(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = StageEquipment::query()
             ->with([
                 'equipment:id,name,type,supplier_name,cost_per_hour,availability_status',
                 'phase:id,project_id,name,status',
                 'phase.project:id,name,tenant_id',
             ])
-            ->whereHas('phase.project', fn ($q) => $q->where('tenant_id', 1));
+            ->whereHas('phase.project', fn ($q) => $q->where('tenant_id', $tenantId));
 
         self::applyDateRange($query, 'usage_start', $filters);
         self::applyProjectFilter($query, $filters);
@@ -236,13 +246,15 @@ class ExportDatasetBuilder
 
     private static function wbs(array $filters): array
     {
+        $tenantId = TenantContext::id();
+
         $query = ProjectPhase::query()
             ->with([
                 'project:id,name',
                 'contractor:id,name',
                 'parent:id,name,parent_id',
             ])
-            ->whereHas('project', fn ($q) => $q->where('tenant_id', 1));
+            ->whereHas('project', fn ($q) => $q->where('tenant_id', $tenantId));
 
         self::applyDateRange($query, 'created_at', $filters);
         self::applyProjectFilter($query, $filters);
@@ -297,7 +309,9 @@ class ExportDatasetBuilder
 
     private static function projects(array $filters): array
     {
-        $query = Project::query()->with('client:id,name')->where('tenant_id', 1);
+        $tenantId = TenantContext::id();
+
+        $query = Project::query()->with('client:id,name')->where('tenant_id', $tenantId);
 
         self::applyDateRange($query, 'created_at', $filters);
         self::applyProjectFilter($query, $filters);
@@ -315,7 +329,9 @@ class ExportDatasetBuilder
 
     private static function quotes(array $filters): array
     {
-        $query = Quote::query()->with('project:id,name')->where('tenant_id', 1);
+        $tenantId = TenantContext::id();
+
+        $query = Quote::query()->with('project:id,name')->where('tenant_id', $tenantId);
 
         self::applyDateRange($query, 'created_at', $filters);
         self::applyProjectFilter($query, $filters);
@@ -333,7 +349,9 @@ class ExportDatasetBuilder
 
     private static function materials(array $filters): array
     {
-        $query = Material::query()->where('tenant_id', 1);
+        $tenantId = TenantContext::id();
+
+        $query = Material::query()->where('tenant_id', $tenantId);
 
         self::applyDateRange($query, 'created_at', $filters);
         self::applyTextFilter($query, ['name', 'code', 'supplier', 'category'], $filters);
@@ -391,7 +409,9 @@ class ExportDatasetBuilder
 
     private static function teams(array $filters): array
     {
-        $query = Team::query()->where('tenant_id', 1)
+        $tenantId = TenantContext::id();
+
+        $query = Team::query()->where('tenant_id', $tenantId)
             ->with([
                 'leader:id,name',
                 'members.user:id,name',
@@ -456,7 +476,9 @@ class ExportDatasetBuilder
 
     private static function tasks(array $filters): array
     {
-        $query = Task::query()->where('tenant_id', 1)
+        $tenantId = TenantContext::id();
+
+        $query = Task::query()->where('tenant_id', $tenantId)
             ->with(['project:id,name', 'phase:id,name', 'assignee:id,name']);
 
         self::applyDateRange($query, 'deadline', $filters);
@@ -483,7 +505,9 @@ class ExportDatasetBuilder
 
     private static function defects(array $filters): array
     {
-        $query = Defect::query()->where('tenant_id', 1)
+        $tenantId = TenantContext::id();
+
+        $query = Defect::query()->where('tenant_id', $tenantId)
             ->with(['project:id,name', 'phase:id,name', 'assignee:id,name']);
 
         self::applyDateRange($query, 'due_date', $filters);

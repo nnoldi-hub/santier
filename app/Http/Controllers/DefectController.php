@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDefectRequest;
 use App\Models\Defect;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,13 +16,14 @@ class DefectController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
         $priority = $request->string('priority')->toString();
         $projectId = $request->integer('project_id');
 
         $defects = Defect::query()
             ->with(['project:id,name', 'phase:id,name', 'reporter:id,name', 'assignee:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when($priority !== '', fn ($q) => $q->where('priority', $priority))
             ->when($projectId > 0, fn ($q) => $q->where('project_id', $projectId))
@@ -39,13 +41,15 @@ class DefectController extends Controller
                 'priority' => $priority,
                 'project_id' => $projectId > 0 ? $projectId : '',
             ],
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function create(Request $request): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id($request->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -70,8 +74,9 @@ class DefectController extends Controller
 
     public function store(StoreDefectRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
         $data = $request->validated();
-        $data['tenant_id'] = 1;
+        $data['tenant_id'] = $tenantId;
         $data['reported_by'] = $request->user()->id;
         $data['resolved_at'] = $data['status'] === 'resolved' ? now() : null;
 
@@ -82,7 +87,9 @@ class DefectController extends Controller
 
     public function edit(Defect $defect): Response
     {
-        $projects = Project::where('tenant_id', 1)
+        $tenantId = TenantContext::id(request()->user());
+
+        $projects = Project::where('tenant_id', $tenantId)
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);

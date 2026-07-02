@@ -8,14 +8,22 @@ use App\Models\Document;
 use App\Models\Equipment;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\ProjectRole;
+use App\Models\ProjectUserRole;
 use App\Models\Quote;
 use App\Models\QuoteTemplate;
 use App\Models\QualityCheck;
 use App\Models\StageTask;
 use App\Models\Team;
+use App\Models\TenantUser;
+use App\Models\User;
+use App\Notifications\ProjectRoleChangedNotification;
 use App\Http\Requests\StoreProjectRequest;
+use App\Support\AccessAudit;
 use App\Support\AnalyticsTracker;
+use App\Support\DemoScope;
 use App\Support\PricingPlan;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,10 +31,18 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Project::class, 'project');
+    }
+
     public function index(): Response
     {
-        $projects = Project::with('client')
-            ->where('tenant_id', 1)
+        $user = request()->user();
+        $tenantId = TenantContext::id();
+
+        $projects = DemoScope::applyProjectScope(Project::with('client'), $user)
+            ->where('tenant_id', $tenantId)
             ->latest()
             ->paginate(15);
 
@@ -35,12 +51,15 @@ class ProjectController extends Controller
 
     public function create(): Response
     {
-        $clients = Client::where('tenant_id', 1)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']);
+        $tenantId = TenantContext::id();
+        $clients = Client::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']);
         return Inertia::render('Projects/Create', ['clients' => $clients]);
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         if (!PricingPlan::canCreateProject($request->user())) {
             return back()
                 ->withInput()
@@ -48,12 +67,12 @@ class ProjectController extends Controller
         }
 
         $data = $request->validated();
-        $data['tenant_id'] = 1;
+        $data['tenant_id'] = $tenantId;
         $data['created_by'] = $request->user()->id;
         $project = Project::create($data);
 
         $userProjectCount = Project::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->where('created_by', $request->user()->id)
             ->count();
 
@@ -68,6 +87,7 @@ class ProjectController extends Controller
 
     public function show(Request $request, Project $project): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $window = $request->string('calendar_window')->toString();
         if (!in_array($window, ['today', '7d', '30d'], true)) {
             $window = 'today';
@@ -86,6 +106,8 @@ class ProjectController extends Controller
         $project->load([
             'client',
             'creator',
+            'projectRoleAssignments.user',
+            'projectRoleAssignments.projectRole',
             'phases.assignments.team',
             'phases.contractor',
             'phases.equipmentReservations.equipment',
@@ -94,6 +116,47 @@ class ProjectController extends Controller
             'defects.assignee',
             'defects.phase',
         ]);
+
+        $projectRoleOptions = ProjectRole::query()
+            ->where(function ($query) use ($tenantId) {
+                $query->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
+            })
+            ->whereIn('key', [ProjectRole::OWNER, ProjectRole::CONTRIBUTOR, ProjectRole::VIEWER])
+            ->orderByRaw("CASE key WHEN 'owner' THEN 1 WHEN 'contributor' THEN 2 WHEN 'viewer' THEN 3 ELSE 4 END")
+            ->get(['id', 'key', 'name'])
+            ->map(fn (ProjectRole $role) => [
+                'id' => $role->id,
+                'key' => $role->key,
+                'name' => $role->name,
+            ])
+            ->values();
+
+        $projectRoleAssignments = $project->projectRoleAssignments
+            ->map(fn (ProjectUserRole $assignment) => [
+                'id' => $assignment->id,
+                'user_id' => $assignment->user_id,
+                'user_name' => $assignment->user?->name,
+                'user_email' => $assignment->user?->email,
+                'role_key' => $assignment->projectRole?->key,
+                'role_name' => $assignment->projectRole?->name,
+            ])
+            ->values();
+
+        $projectMemberCandidates = TenantUser::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->with('user:id,name,email')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (TenantUser $membership) => [
+                'id' => $membership->user?->id,
+                'name' => $membership->user?->name,
+                'email' => $membership->user?->email,
+            ])
+            ->filter(fn (array $member) => !empty($member['id']))
+            ->values();
+
+        $canManageProjectRoles = $request->user()?->can('manageRoles', $project) ?? false;
 
         $todayStages = $project->phases
             ->filter(function (ProjectPhase $phase) use ($windowStartDate, $windowEndDate) {
@@ -268,9 +331,13 @@ class ProjectController extends Controller
         return Inertia::render('Projects/Show', [
             'project'    => $project,
             'typeLabels' => ProjectPhase::$typeLabels,
-            'teams' => Team::where('tenant_id', 1)->where('active', true)->orderBy('name')->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']),
-            'equipment' => Equipment::where('tenant_id', 1)->where('active', true)->orderBy('name')->get(['id', 'name', 'cost_per_hour', 'availability_status']),
+            'teams' => Team::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']),
+            'equipment' => Equipment::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'cost_per_hour', 'availability_status']),
+            'projectRoleOptions' => $projectRoleOptions,
+            'projectRoleAssignments' => $projectRoleAssignments,
+            'projectMemberCandidates' => $projectMemberCandidates,
+            'canManageProjectRoles' => $canManageProjectRoles,
             'todayCalendar' => [
                 'date' => $windowStart->isoFormat('D MMMM YYYY') . ($window === 'today' ? '' : ' - ' . $windowEnd->isoFormat('D MMMM YYYY')),
                 'window' => $window,
@@ -295,7 +362,8 @@ class ProjectController extends Controller
 
     public function edit(Project $project): Response
     {
-        $clients = Client::where('tenant_id', 1)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']);
+        $tenantId = TenantContext::id();
+        $clients = Client::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']);
         return Inertia::render('Projects/Edit', ['project' => $project, 'clients' => $clients]);
     }
 
@@ -324,5 +392,232 @@ class ProjectController extends Controller
     {
         $project->delete();
         return redirect()->route('projects.index')->with('success', 'Proiect sters!');
+    }
+
+    public function storeRole(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('manageRoles', $project);
+
+        $tenantId = TenantContext::id($request->user());
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'role_key' => ['required', 'in:owner,contributor,viewer'],
+        ]);
+
+        $member = User::query()->findOrFail((int) $data['user_id']);
+        abort_unless((int) $member->tenant_id === $tenantId, 422, 'Utilizatorul nu apartine tenantului curent.');
+        abort_unless(
+            TenantUser::query()
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', $member->id)
+                ->where('status', 'active')
+                ->exists(),
+            422,
+            'Utilizatorul nu este activ in tenantul curent.'
+        );
+
+        $projectRole = $this->resolveProjectRole($tenantId, (string) $data['role_key']);
+
+        $assignment = ProjectUserRole::query()->updateOrCreate(
+            [
+                'project_id' => $project->id,
+                'user_id' => $member->id,
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'project_role_id' => $projectRole->id,
+            ]
+        );
+
+        AccessAudit::log(
+            action: 'iam.project_role.assigned',
+            actor: $request->user(),
+            request: $request,
+            resourceType: 'project_user_role',
+            resourceId: (int) $assignment->id,
+            metadata: [
+                'project_id' => (int) $project->id,
+                'user_id' => (int) $member->id,
+                'role_key' => $projectRole->key,
+            ]
+        );
+
+        $this->notifyProjectRoleChange($member, $project, 'assigned', $projectRole->key, (string) $request->user()?->name);
+
+        return back()->with('success', 'Rolul pe proiect a fost acordat.');
+    }
+
+    public function storeRolesBulk(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('manageRoles', $project);
+
+        $tenantId = TenantContext::id($request->user());
+        $data = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['required', 'integer', 'exists:users,id'],
+            'role_key' => ['required', 'in:owner,contributor,viewer'],
+        ]);
+
+        $projectRole = $this->resolveProjectRole($tenantId, (string) $data['role_key']);
+        $actorName = (string) ($request->user()?->name ?? 'Sistem');
+        $processed = 0;
+
+        foreach ((array) $data['user_ids'] as $memberId) {
+            $member = User::query()->find((int) $memberId);
+            if (! $member) {
+                continue;
+            }
+
+            if ((int) $member->tenant_id !== $tenantId) {
+                continue;
+            }
+
+            $isActiveTenantMember = TenantUser::query()
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', $member->id)
+                ->where('status', 'active')
+                ->exists();
+
+            if (! $isActiveTenantMember) {
+                continue;
+            }
+
+            $assignment = ProjectUserRole::query()->updateOrCreate(
+                [
+                    'project_id' => $project->id,
+                    'user_id' => $member->id,
+                ],
+                [
+                    'tenant_id' => $tenantId,
+                    'project_role_id' => $projectRole->id,
+                ]
+            );
+
+            AccessAudit::log(
+                action: 'iam.project_role.assigned_bulk',
+                actor: $request->user(),
+                request: $request,
+                resourceType: 'project_user_role',
+                resourceId: (int) $assignment->id,
+                metadata: [
+                    'project_id' => (int) $project->id,
+                    'user_id' => (int) $member->id,
+                    'role_key' => $projectRole->key,
+                ]
+            );
+
+            $this->notifyProjectRoleChange($member, $project, 'assigned', $projectRole->key, $actorName);
+            $processed++;
+        }
+
+        return back()->with('success', 'Asignare bulk finalizata pentru ' . $processed . ' utilizatori.');
+    }
+
+    public function updateRole(Request $request, Project $project, ProjectUserRole $assignment): RedirectResponse
+    {
+        $this->authorize('manageRoles', $project);
+        abort_unless((int) $assignment->project_id === (int) $project->id, 404);
+
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $assignment->tenant_id === $tenantId, 404);
+
+        $data = $request->validate([
+            'role_key' => ['required', 'in:owner,contributor,viewer'],
+        ]);
+
+        $projectRole = $this->resolveProjectRole($tenantId, (string) $data['role_key']);
+        $assignment->update(['project_role_id' => $projectRole->id]);
+
+        AccessAudit::log(
+            action: 'iam.project_role.updated',
+            actor: $request->user(),
+            request: $request,
+            resourceType: 'project_user_role',
+            resourceId: (int) $assignment->id,
+            metadata: [
+                'project_id' => (int) $project->id,
+                'user_id' => (int) $assignment->user_id,
+                'role_key' => $projectRole->key,
+            ]
+        );
+
+        $this->notifyProjectRoleChange($assignment->user()->first(), $project, 'updated', $projectRole->key, (string) $request->user()?->name);
+
+        return back()->with('success', 'Rolul pe proiect a fost actualizat.');
+    }
+
+    public function destroyRole(Request $request, Project $project, ProjectUserRole $assignment): RedirectResponse
+    {
+        $this->authorize('manageRoles', $project);
+        abort_unless((int) $assignment->project_id === (int) $project->id, 404);
+
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $assignment->tenant_id === $tenantId, 404);
+
+        $userId = (int) $assignment->user_id;
+        $assignmentId = (int) $assignment->id;
+        $member = $assignment->user()->first();
+        $assignment->delete();
+
+        AccessAudit::log(
+            action: 'iam.project_role.revoked',
+            actor: $request->user(),
+            request: $request,
+            resourceType: 'project_user_role',
+            resourceId: $assignmentId,
+            metadata: [
+                'project_id' => (int) $project->id,
+                'user_id' => $userId,
+            ]
+        );
+
+        $this->notifyProjectRoleChange($member, $project, 'revoked', null, (string) $request->user()?->name);
+
+        return back()->with('success', 'Rolul pe proiect a fost revocat.');
+    }
+
+    private function notifyProjectRoleChange(?User $member, Project $project, string $event, ?string $roleKey, string $actorName): void
+    {
+        if (! $member) {
+            return;
+        }
+
+        $member->notify(new ProjectRoleChangedNotification(
+            project: $project,
+            event: $event,
+            roleKey: $roleKey,
+            actorName: $actorName,
+        ));
+    }
+
+    private function resolveProjectRole(int $tenantId, string $roleKey): ProjectRole
+    {
+        $tenantRole = ProjectRole::query()
+            ->where('tenant_id', $tenantId)
+            ->where('key', $roleKey)
+            ->first();
+
+        if ($tenantRole) {
+            return $tenantRole;
+        }
+
+        $globalRole = ProjectRole::query()
+            ->whereNull('tenant_id')
+            ->where('key', $roleKey)
+            ->first();
+
+        if ($globalRole) {
+            return $globalRole;
+        }
+
+        $defaultRole = collect(ProjectRole::defaults())->firstWhere('key', $roleKey);
+        abort_unless($defaultRole !== null, 422, 'Rol de proiect invalid.');
+
+        return ProjectRole::query()->create([
+            'tenant_id' => null,
+            'key' => $defaultRole['key'],
+            'name' => $defaultRole['name'],
+            'description' => $defaultRole['description'],
+        ]);
     }
 }

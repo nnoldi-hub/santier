@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMaterialRequest;
 use App\Models\Material;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,11 +14,12 @@ class MaterialController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $search = $request->string('q')->toString();
         $category = $request->string('category')->toString();
 
         $materials = Material::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
@@ -30,7 +32,7 @@ class MaterialController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $categories = Material::where('tenant_id', 1)
+        $categories = Material::where('tenant_id', $tenantId)
             ->whereNotNull('category')
             ->distinct()
             ->orderBy('category')
@@ -53,9 +55,11 @@ class MaterialController extends Controller
 
     public function store(StoreMaterialRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         Material::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('materials.index')->with('success', 'Material adaugat cu succes!');

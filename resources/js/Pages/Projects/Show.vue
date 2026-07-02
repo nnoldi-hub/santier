@@ -153,6 +153,89 @@
                     <div class="text-xs text-gray-400 mb-1">Descriere</div>
                     <p class="text-gray-600">{{ project.description }}</p>
                 </div>
+
+                <div class="border-t border-gray-100 pt-3 space-y-3">
+                    <div>
+                        <div class="text-xs text-gray-400 mb-1">Roluri dinamice pe proiect</div>
+                        <p class="text-xs text-gray-500">Owner / Contributor / Viewer</p>
+                    </div>
+
+                    <div v-if="projectRoleAssignments.length" class="space-y-2">
+                        <div v-for="assignment in projectRoleAssignments" :key="assignment.id" class="rounded-lg border border-gray-200 p-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-gray-700 truncate">{{ assignment.user_name }}</div>
+                                    <div class="text-[11px] text-gray-400 truncate">{{ assignment.user_email }}</div>
+                                </div>
+                                <span class="text-[11px] px-2 py-1 rounded-full border"
+                                    :class="assignment.role_key === 'owner' ? 'bg-red-50 text-red-700 border-red-200' : assignment.role_key === 'contributor' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'">
+                                    {{ assignment.role_name }}
+                                </span>
+                            </div>
+
+                            <div v-if="canManageProjectRoles" class="mt-2 flex items-center gap-2">
+                                <select
+                                    v-model="projectRoleDrafts[assignment.id]"
+                                    @change="updateProjectRole(assignment)"
+                                    class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                                >
+                                    <option v-for="role in projectRoleOptions" :key="role.key" :value="role.key">{{ role.name }}</option>
+                                </select>
+                                <button @click="removeProjectRole(assignment)" class="text-xs text-red-600 hover:text-red-800">Revoca</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Nicio asignare dinamica pe proiect.</div>
+
+                    <div v-if="canManageProjectRoles" class="rounded-lg border border-gray-200 p-3">
+                        <div class="text-xs font-medium text-gray-600 mb-2">Acorda rol pe proiect</div>
+                        <div class="space-y-2">
+                            <select v-model="projectRoleForm.user_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs">
+                                <option value="">— Selecteaza utilizator —</option>
+                                <option v-for="member in projectMemberCandidates" :key="member.id" :value="member.id">
+                                    {{ member.name }} ({{ member.email }})
+                                </option>
+                            </select>
+                            <select v-model="projectRoleForm.role_key" class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs">
+                                <option value="">— Selecteaza rol —</option>
+                                <option v-for="role in projectRoleOptions" :key="role.key" :value="role.key">{{ role.name }}</option>
+                            </select>
+                            <button
+                                @click="assignProjectRole"
+                                :disabled="projectRoleForm.processing || !projectRoleForm.user_id || !projectRoleForm.role_key"
+                                class="w-full bg-orange-500 text-white px-3 py-1.5 rounded text-xs hover:bg-orange-600 disabled:opacity-50"
+                            >
+                                {{ projectRoleForm.processing ? 'Se salveaza...' : 'Acorda rol' }}
+                            </button>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100">
+                            <div class="text-xs font-medium text-gray-600 mb-2">Acorda rol bulk</div>
+                            <div class="space-y-2">
+                                <select
+                                    v-model="projectRoleBulkForm.user_ids"
+                                    multiple
+                                    class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs min-h-[84px]"
+                                >
+                                    <option v-for="member in projectMemberCandidates" :key="`bulk-${member.id}`" :value="member.id">
+                                        {{ member.name }} ({{ member.email }})
+                                    </option>
+                                </select>
+                                <select v-model="projectRoleBulkForm.role_key" class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs">
+                                    <option value="">— Selecteaza rol —</option>
+                                    <option v-for="role in projectRoleOptions" :key="`bulk-role-${role.key}`" :value="role.key">{{ role.name }}</option>
+                                </select>
+                                <button
+                                    @click="assignProjectRoleBulk"
+                                    :disabled="projectRoleBulkForm.processing || !projectRoleBulkForm.role_key || (projectRoleBulkForm.user_ids || []).length === 0"
+                                    class="w-full bg-slate-700 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-800 disabled:opacity-50"
+                                >
+                                    {{ projectRoleBulkForm.processing ? 'Se aplica...' : 'Aplica rol pentru selectie' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Etape -->
@@ -736,6 +819,10 @@ const props = defineProps({
     teams:      { type: Array, default: () => [] },
     contractors:{ type: Array, default: () => [] },
     equipment:  { type: Array, default: () => [] },
+    projectRoleOptions: { type: Array, default: () => [] },
+    projectRoleAssignments: { type: Array, default: () => [] },
+    projectMemberCandidates: { type: Array, default: () => [] },
+    canManageProjectRoles: { type: Boolean, default: false },
     todayCalendar: { type: Object, default: () => ({ date: '', window: 'today', stages: [], tasks: [], equipment: [], subcontractors: [], documents: [], quality_checks: [] }) },
 });
 
@@ -819,6 +906,19 @@ const phaseForm = useForm({
 
 const assignmentDrafts = reactive({});
 const equipmentDrafts = reactive({});
+const projectRoleDrafts = reactive(
+    Object.fromEntries((props.projectRoleAssignments || []).map((assignment) => [assignment.id, assignment.role_key]))
+);
+
+const projectRoleForm = useForm({
+    user_id: '',
+    role_key: '',
+});
+
+const projectRoleBulkForm = useForm({
+    user_ids: [],
+    role_key: '',
+});
 
 function getAssignmentDraft(phaseId) {
     if (!assignmentDrafts[phaseId]) {
@@ -1240,6 +1340,46 @@ function addEquipmentReservation(phase) {
             };
         },
     });
+}
+
+function assignProjectRole() {
+    projectRoleForm.post(route('projects.roles.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            projectRoleForm.reset();
+        },
+    });
+}
+
+function updateProjectRole(assignment) {
+    const roleKey = projectRoleDrafts[assignment.id];
+    if (!roleKey) {
+        return;
+    }
+
+    router.patch(route('projects.roles.update', [props.project.id, assignment.id]), {
+        role_key: roleKey,
+    }, {
+        preserveScroll: true,
+    });
+}
+
+function assignProjectRoleBulk() {
+    projectRoleBulkForm.post(route('projects.roles.bulk.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            projectRoleBulkForm.reset();
+            projectRoleBulkForm.user_ids = [];
+        },
+    });
+}
+
+function removeProjectRole(assignment) {
+    if (confirm('Revoci rolul pe proiect pentru ' + (assignment.user_name || 'acest utilizator') + '?')) {
+        router.delete(route('projects.roles.destroy', [props.project.id, assignment.id]), {
+            preserveScroll: true,
+        });
+    }
 }
 
 function removeEquipmentReservation(phase, reservation) {

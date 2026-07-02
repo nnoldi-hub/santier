@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreContractorRequest;
 use App\Models\Contractor;
 use App\Models\ProjectPhase;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +15,8 @@ class ContractorController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         $calendarWindow = $request->string('calendar_window')->toString();
         if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
             $calendarWindow = 'today';
@@ -33,7 +36,7 @@ class ContractorController extends Controller
         $type = $request->string('type')->toString();
 
         $contractors = Contractor::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
@@ -57,6 +60,7 @@ class ContractorController extends Controller
             'types' => Contractor::$typeLabels,
             'todayCalendar' => ProjectPhase::query()
                 ->with(['project:id,name', 'contractor:id,name,type'])
+                ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->whereHas('contractor', fn ($query) => $query->whereIn('type', [Contractor::TYPE_SUBCONTRACTOR, Contractor::TYPE_PFA]))
                 ->where(function ($query) use ($windowStartDate, $windowEndDate) {
                     $query
@@ -101,9 +105,11 @@ class ContractorController extends Controller
 
     public function store(StoreContractorRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         Contractor::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('contractors.index')->with('success', 'Contractor adaugat cu succes!');

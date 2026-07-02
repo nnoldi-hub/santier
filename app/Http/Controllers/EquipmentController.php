@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreEquipmentRequest;
 use App\Models\Equipment;
 use App\Models\StageEquipment;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,8 @@ class EquipmentController extends Controller
 
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         $calendarWindow = $request->string('calendar_window')->toString();
         if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
             $calendarWindow = 'today';
@@ -39,7 +42,7 @@ class EquipmentController extends Controller
         $status = $request->string('availability_status')->toString();
 
         $equipment = Equipment::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
@@ -64,6 +67,7 @@ class EquipmentController extends Controller
             'availabilityStatuses' => Equipment::$availabilityLabels,
             'todayCalendar' => StageEquipment::query()
                 ->with(['equipment:id,name', 'phase:id,name,project_id', 'phase.project:id,name'])
+                ->whereHas('phase.project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->where(function ($query) use ($windowStartDate, $windowEndDate) {
                     $query
                         ->whereBetween('usage_start', [$windowStartDate, $windowEndDate])
@@ -103,9 +107,11 @@ class EquipmentController extends Controller
 
     public function store(StoreEquipmentRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         Equipment::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('equipment.index')->with('success', 'Utilaj adaugat cu succes!');

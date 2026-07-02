@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -27,6 +28,7 @@ class DocumentController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $filters = [
             'q' => $request->string('q')->toString(),
             'type' => $request->string('type')->toString(),
@@ -37,7 +39,7 @@ class DocumentController extends Controller
         ];
 
         $documents = Document::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
             ->with(['project:id,name', 'stage:id,name', 'contractor:id,name'])
             ->when($filters['q'] !== '', function ($query) use ($filters) {
@@ -56,7 +58,7 @@ class DocumentController extends Controller
             ->withQueryString();
 
         $baseSummary = Document::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user));
         $baseSummary
             ->when($filters['project_id'], fn ($query, $value) => $query->where('project_id', $value))
@@ -115,7 +117,7 @@ class DocumentController extends Controller
                 ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)
+            'contractors' => Contractor::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('phases.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -130,6 +132,7 @@ class DocumentController extends Controller
     public function create(): Response
     {
         $user = request()->user();
+        $tenantId = TenantContext::id($user);
 
         return Inertia::render('Documents/Create', [
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
@@ -137,7 +140,7 @@ class DocumentController extends Controller
                 ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)
+            'contractors' => Contractor::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('phases.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -148,11 +151,12 @@ class DocumentController extends Controller
 
     public function store(StoreDocumentRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
         $validated = $request->validated();
 
         $payload = [
             ...$validated,
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ];
 
         if ($request->hasFile('attachment')) {
@@ -171,6 +175,7 @@ class DocumentController extends Controller
     public function edit(Document $document): Response
     {
         $user = request()->user();
+        $tenantId = TenantContext::id($user);
 
         return Inertia::render('Documents/Edit', [
             'document' => $document,
@@ -179,7 +184,7 @@ class DocumentController extends Controller
                 ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)
+            'contractors' => Contractor::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('phases.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')
                 ->get(['id', 'name']),

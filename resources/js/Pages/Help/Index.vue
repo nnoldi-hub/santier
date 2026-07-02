@@ -80,6 +80,31 @@
                 </div>
             </section>
 
+            <section class="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50 p-6 sm:p-8 shadow-sm">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Ghiduri Focus</div>
+                        <h2 class="mt-2 text-2xl font-black text-slate-900">Ajutor pentru Deviz / Oferta si Configurare Documente</h2>
+                        <p class="mt-2 text-sm text-slate-600">Checklist practic pentru ce trebuie completat, verificat si trimis catre client.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid gap-4 lg:grid-cols-3">
+                    <div v-for="guide in focusGuides" :key="guide.title" class="rounded-2xl border border-amber-200 bg-white p-5">
+                        <h3 class="text-base font-bold text-slate-900">{{ guide.title }}</h3>
+                        <ul class="mt-3 space-y-2">
+                            <li v-for="item in guide.items" :key="item" class="flex gap-2 text-sm text-slate-700">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <span>{{ item }}</span>
+                            </li>
+                        </ul>
+                        <Link :href="guide.href" class="mt-4 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                            {{ guide.cta }}
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
             <section class="grid gap-4 xl:grid-cols-3">
                 <div v-for="example in practicalExamples" :key="example.title" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Scenariu practic</div>
@@ -148,6 +173,7 @@ defineProps({
     gettingStartedSteps: { type: Array, default: () => [] },
     moduleGuides: { type: Array, default: () => [] },
     practicalExamples: { type: Array, default: () => [] },
+    focusGuides: { type: Array, default: () => [] },
     faqs: { type: Array, default: () => [] },
 });
 

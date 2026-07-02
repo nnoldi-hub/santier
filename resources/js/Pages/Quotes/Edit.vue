@@ -6,7 +6,54 @@
                 <h2 class="text-xl font-semibold text-gray-800">Editeaza oferta</h2>
             </div>
 
+            <section class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Ajutor contextual</div>
+                        <div class="text-sm font-semibold text-amber-900">Checklist rapid inainte de salvare/trimitere</div>
+                    </div>
+                    <button type="button" @click="showQuoteHelp = !showQuoteHelp" class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                        {{ showQuoteHelp ? 'Ascunde ghid' : 'Arata ghid' }}
+                    </button>
+                </div>
+
+                <div v-if="showQuoteHelp" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div v-for="guide in quoteHelpGuides" :key="guide.title" class="rounded-lg border border-amber-200 bg-white p-3">
+                        <div class="text-sm font-semibold text-slate-900">{{ guide.title }}</div>
+                        <ul class="mt-2 space-y-1.5">
+                            <li v-for="item in guide.items" :key="item" class="flex gap-2 text-xs text-slate-700">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <span>{{ item }}</span>
+                            </li>
+                        </ul>
+                        <Link :href="guide.href" class="mt-3 inline-flex rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                            {{ guide.cta }}
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
             <form @submit.prevent="submit" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+                <section class="rounded-xl border border-sky-200 bg-sky-50 p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 class="text-sm font-semibold text-sky-900">Onboarding ofertare: progres completare</h3>
+                        <span class="text-xs font-semibold" :class="onboardingPercent === 100 ? 'text-emerald-700' : 'text-sky-800'">
+                            {{ onboardingCompletedCount }} / {{ onboardingChecks.length }}
+                        </span>
+                    </div>
+                    <div class="h-2 rounded-full bg-sky-100 overflow-hidden">
+                        <div class="h-full transition-all" :class="onboardingPercent === 100 ? 'bg-emerald-500' : 'bg-sky-500'" :style="{ width: `${onboardingPercent}%` }"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div v-for="check in onboardingChecks" :key="check.label" class="flex items-center gap-2 text-xs">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full" :class="check.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                                {{ check.done ? '✓' : '•' }}
+                            </span>
+                            <span :class="check.done ? 'text-emerald-800' : 'text-slate-700'">{{ check.label }}</span>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="rounded-xl border border-gray-200 p-4 space-y-4">
                     <h3 class="text-sm font-semibold text-gray-800">A. Informatii generale</h3>
 
@@ -280,13 +327,26 @@
 
                 <section class="rounded-xl border border-gray-200 p-4">
                     <h3 class="text-sm font-semibold text-gray-800 mb-3">I. Actiuni</h3>
+                    <div v-if="onboardingPercent < 100" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Oferta nu este complet pregatita pentru trimitere ({{ onboardingCompletedCount }}/{{ onboardingChecks.length }}).
+                        Lipsesc: {{ onboardingIncompleteLabels.join(', ') }}.
+                    </div>
                     <div class="flex flex-wrap gap-3 items-center justify-between">
                         <div class="flex flex-wrap gap-3">
                             <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition">
                                 {{ form.processing ? 'Se salveaza...' : 'Salveaza modificarile' }}
                             </button>
                             <a :href="route('quotes.pdf', quote.id)" target="_blank" class="border border-indigo-200 text-indigo-700 px-6 py-2 rounded-lg text-sm hover:bg-indigo-50">Export PDF</a>
-                            <button type="button" @click="sendToClient" class="border border-blue-200 text-blue-700 px-6 py-2 rounded-lg text-sm hover:bg-blue-50">Trimite clientului</button>
+                            <button
+                                type="button"
+                                @click="sendToClient"
+                                class="px-6 py-2 rounded-lg text-sm transition"
+                                :class="onboardingPercent === 100
+                                    ? 'border border-blue-200 text-blue-700 hover:bg-blue-50'
+                                    : 'border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100'"
+                            >
+                                Trimite clientului
+                            </button>
                             <button type="button" @click="convertToProject" class="border border-emerald-200 text-emerald-700 px-6 py-2 rounded-lg text-sm hover:bg-emerald-50">Conversie in proiect</button>
                             <button type="button" @click="saveAsTemplate" class="border border-violet-200 text-violet-700 px-6 py-2 rounded-lg text-sm hover:bg-violet-50">Salveaza ca sablon</button>
                             <Link :href="route('quotes.index')" class="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Anuleaza</Link>
@@ -300,7 +360,7 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -310,6 +370,41 @@ const props = defineProps({
     materials: { type: Array, default: () => [] },
     equipment: { type: Array, default: () => [] },
 });
+
+const showQuoteHelp = ref(true);
+
+const quoteHelpGuides = [
+    {
+        title: '1) Verificari de baza',
+        items: [
+            'Titlul, proiectul si statusul ofertei sunt corecte.',
+            'Data de valabilitate este actualizata.',
+            'Cantitatile smart sunt conforme cu masuratorile curente.',
+        ],
+        href: route('help.index'),
+        cta: 'Vezi ghid complet',
+    },
+    {
+        title: '2) Pret si marja',
+        items: [
+            'Compara cele doua scenarii: fara materiale vs plafonat.',
+            'Confirma marja minima pe etape si total.',
+            'Verifica indirectele/optiunile inainte de PDF.',
+        ],
+        href: route('quotes.index'),
+        cta: 'Vezi toate ofertele',
+    },
+    {
+        title: '3) Livrare catre client',
+        items: [
+            'Genereaza PDF si verifica brandingul documentului.',
+            'Dupa verificare, foloseste Trimite clientului.',
+            'Daca oferta este aprobata, converteste in proiect.',
+        ],
+        href: route('documents.branding.index'),
+        cta: 'Configurare documente',
+    },
+];
 
 const metadata = typeof props.quote?.meta === 'object' && props.quote?.meta !== null ? props.quote.meta : {};
 const persistedStages = Array.isArray(metadata.stages) ? metadata.stages : [];
@@ -486,6 +581,38 @@ const indirectAndOptionsRows = computed(() => {
 });
 
 const allItems = computed(() => [...flattenedStageItems.value, ...indirectAndOptionsRows.value]);
+
+const onboardingChecks = computed(() => {
+    const hasProject = String(form.project_id || '').trim() !== '';
+    const hasTitle = String(form.title || '').trim().length >= 6;
+    const hasOperationalItems = flattenedStageItems.value.length > 0;
+    const hasSmartInput = [
+        Number(smartInputs.walls_area || 0),
+        Number(smartInputs.floor_area || 0),
+        Number(smartInputs.tile_area || 0),
+        Number(smartInputs.outlets_count || 0),
+        Number(smartInputs.lights_count || 0),
+        Number(smartInputs.doors_count || 0),
+    ].some((value) => value > 0);
+    const hasMarginConfigured = Number(form.min_margin_pct || 0) > 0;
+    const hasMaterialStrategy = ['capped_allowance', 'client_supplied'].includes(String(quoteMeta.material_mode || ''));
+
+    return [
+        { label: 'Proiect selectat', done: hasProject },
+        { label: 'Titlu oferta completat', done: hasTitle },
+        { label: 'Articole adaugate in etape', done: hasOperationalItems },
+        { label: 'Cantitati smart introduse', done: hasSmartInput },
+        { label: 'Marja minima configurata', done: hasMarginConfigured },
+        { label: 'Strategie materiale aleasa', done: hasMaterialStrategy },
+    ];
+});
+
+const onboardingCompletedCount = computed(() => onboardingChecks.value.filter((check) => check.done).length);
+const onboardingPercent = computed(() => {
+    if (onboardingChecks.value.length === 0) return 0;
+    return Math.round((onboardingCompletedCount.value / onboardingChecks.value.length) * 100);
+});
+const onboardingIncompleteLabels = computed(() => onboardingChecks.value.filter((check) => !check.done).map((check) => check.label));
 
 const totalCost = computed(() => allItems.value.reduce((sum, item) => sum + lineCost(item), 0));
 const totalNetBeforeDiscount = computed(() => allItems.value.reduce((sum, item) => sum + lineSell(item), 0));
@@ -789,6 +916,13 @@ function remove() {
 }
 
 function sendToClient() {
+    if (onboardingPercent.value < 100) {
+        const warningMessage = `Oferta este incompleta (${onboardingCompletedCount.value}/${onboardingChecks.value.length}).\n\nLipsesc:\n- ${onboardingIncompleteLabels.value.join('\n- ')}\n\nVrei sa trimiti totusi clientului?`;
+        if (!confirm(warningMessage)) {
+            return;
+        }
+    }
+
     if (confirm(`Marchezi oferta "${props.quote.title}" ca trimisa clientului?`)) {
         router.patch(route('quotes.send', props.quote.id));
     }

@@ -6,6 +6,7 @@ use App\Models\Contractor;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
@@ -17,6 +18,7 @@ class WbsController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $search = $request->string('q')->toString();
         $status = $request->string('status')->toString();
         $projectId = $request->integer('project_id');
@@ -69,7 +71,7 @@ class WbsController extends Controller
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)
+            'contractors' => Contractor::where('tenant_id', $tenantId)
                 ->where('active', true)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('phases.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')

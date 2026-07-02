@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'plan' => \App\Http\Middleware\EnsurePlanFeature::class,
+            'permission' => \App\Http\Middleware\LegacyAwarePermissionMiddleware::class,
         ]);
 
         //

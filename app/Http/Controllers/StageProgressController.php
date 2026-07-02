@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Contractor;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,6 +16,7 @@ class StageProgressController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $filters = [
             'q' => $request->string('q')->toString(),
             'project_id' => $request->integer('project_id') > 0 ? $request->integer('project_id') : null,
@@ -59,7 +61,7 @@ class StageProgressController extends Controller
             'phases' => $phases,
             'filters' => $filters,
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', 1)
+            'contractors' => Contractor::where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->whereHas('phases.project', fn ($projectQuery) => DemoScope::applyProjectScope($projectQuery, $user)))
                 ->orderBy('name')
                 ->get(['id', 'name']),

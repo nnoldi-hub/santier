@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Support\DemoScope;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,7 @@ class MaterialInvoiceController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $filters = [
             'q' => $request->string('q')->toString(),
             'payment_status' => $request->string('payment_status')->toString(),
@@ -29,7 +31,7 @@ class MaterialInvoiceController extends Controller
         ];
 
         $invoices = MaterialInvoice::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
             ->with(['project:id,name', 'phase:id,name', 'material:id,name,unit'])
             ->when($filters['q'] !== '', function ($query) use ($filters) {
@@ -48,7 +50,7 @@ class MaterialInvoiceController extends Controller
             ->withQueryString();
 
         $summary = MaterialInvoice::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
             ->when($filters['project_id'], fn ($query, $value) => $query->where('project_id', $value))
             ->selectRaw('COUNT(*) as total_count')
@@ -72,6 +74,7 @@ class MaterialInvoiceController extends Controller
     public function create(Request $request): Response
     {
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
 
         $projects = DemoScope::applyProjectScope(Project::query(), $user)
             ->with(['phases:id,project_id,name'])
@@ -92,16 +95,18 @@ class MaterialInvoiceController extends Controller
                     'name' => $phase->name,
                 ])->values(),
             ]),
-            'materials' => Material::where('tenant_id', 1)->orderBy('name')->get(['id', 'name', 'unit']),
+            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'paymentStatuses' => MaterialInvoice::$paymentStatusLabels,
         ]);
     }
 
     public function store(StoreMaterialInvoiceRequest $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         MaterialInvoice::create([
             ...$request->validated(),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('material-invoices.index')->with('success', 'Factura materiale a fost creata.');
@@ -110,6 +115,7 @@ class MaterialInvoiceController extends Controller
     public function edit(MaterialInvoice $material_invoice): Response
     {
         $user = request()->user();
+        $tenantId = TenantContext::id($user);
 
         $projects = DemoScope::applyProjectScope(Project::query(), $user)
             ->with(['phases:id,project_id,name'])
@@ -128,7 +134,7 @@ class MaterialInvoiceController extends Controller
                     'name' => $phase->name,
                 ])->values(),
             ]),
-            'materials' => Material::where('tenant_id', 1)->orderBy('name')->get(['id', 'name', 'unit']),
+            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'paymentStatuses' => MaterialInvoice::$paymentStatusLabels,
         ]);
     }

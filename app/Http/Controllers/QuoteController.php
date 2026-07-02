@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\QuoteTemplate;
+use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response as HttpResponse;
@@ -29,12 +30,13 @@ class QuoteController extends Controller
 
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
         $projectId = $request->integer('project_id');
 
         $quotes = Quote::query()
             ->with(['project:id,name', 'creator:id,name'])
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when($projectId > 0, fn ($q) => $q->where('project_id', $projectId))
             ->latest('id')
@@ -43,7 +45,7 @@ class QuoteController extends Controller
 
         return Inertia::render('Quotes/Index', [
             'quotes' => $quotes,
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'filters' => [
                 'status' => $status,
                 'project_id' => $projectId > 0 ? $projectId : '',
@@ -53,6 +55,7 @@ class QuoteController extends Controller
 
     public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $catalog = $this->quoteCatalogData();
         $canonicalTemplates = collect(config('quote_templates.canonical', []))
             ->map(fn (array $template) => [
@@ -67,7 +70,7 @@ class QuoteController extends Controller
 
         $recommendedTemplates = QuoteTemplate::query()
             ->with('sourceProject:id,name,status')
-            ->recommended(1)
+            ->recommended($tenantId)
             ->limit(8)
             ->get()
             ->map(fn (QuoteTemplate $template) => [
@@ -82,7 +85,7 @@ class QuoteController extends Controller
             ->values();
 
         return Inertia::render('Quotes/Create', [
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'selectedProjectId' => $request->integer('project_id') ?: null,
             'materials' => $catalog['materials'],
             'equipment' => $catalog['equipment'],
@@ -106,7 +109,7 @@ class QuoteController extends Controller
     public function store(StoreQuoteRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $tenantId = 1;
+        $tenantId = TenantContext::id($request->user());
         $data['tenant_id'] = $tenantId;
         $data['created_by'] = $request->user()->id;
         $data['discount_pct'] = $data['discount_pct'] ?? 0;
@@ -177,12 +180,14 @@ class QuoteController extends Controller
 
     public function edit(Quote $quote): Response
     {
+        $this->ensureTenantAccess($quote);
+        $tenantId = TenantContext::id();
         $quote->loadMissing('items');
         $catalog = $this->quoteCatalogData();
 
         return Inertia::render('Quotes/Edit', [
             'quote' => $quote,
-            'projects' => Project::where('tenant_id', 1)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'materials' => $catalog['materials'],
             'equipment' => $catalog['equipment'],
         ]);
@@ -190,6 +195,7 @@ class QuoteController extends Controller
 
     public function update(StoreQuoteRequest $request, Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote, $request->user());
         $data = $request->validated();
         $data['discount_pct'] = $data['discount_pct'] ?? 0;
         $data['tva_pct'] = $data['tva_pct'] ?? 21;
@@ -239,6 +245,7 @@ class QuoteController extends Controller
 
     public function destroy(Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote);
         $quote->delete();
 
         return redirect()->route('quotes.index')->with('success', 'Oferta stearsa!');
@@ -246,6 +253,7 @@ class QuoteController extends Controller
 
     public function pdf(Quote $quote): HttpResponse
     {
+        $this->ensureTenantAccess($quote);
         $quote->loadMissing(['project:id,name', 'creator:id,name', 'items']);
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
@@ -270,6 +278,7 @@ class QuoteController extends Controller
 
     public function accept(Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote);
         $quote->update([
             'status' => 'accepted',
             'sent_at' => $quote->sent_at ?: now(),
@@ -281,6 +290,7 @@ class QuoteController extends Controller
 
     public function send(Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote);
         $quote->loadMissing(['project.client:id,name,email', 'project:id,name,client_id', 'creator:id,name', 'items']);
 
         $clientEmail = trim((string) ($quote->project?->client?->email ?? ''));
@@ -334,6 +344,7 @@ class QuoteController extends Controller
 
     public function saveAsTemplate(Request $request, Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote, $request->user());
         $quote->loadMissing(['project:id,name,status', 'items']);
 
         $templateName = trim((string) $request->input('name', ''));
@@ -348,6 +359,7 @@ class QuoteController extends Controller
 
     public function convertToProject(Quote $quote): RedirectResponse
     {
+        $this->ensureTenantAccess($quote);
         $meta = is_array($quote->meta) ? $quote->meta : [];
         $meta['converted_to_project'] = true;
         $meta['converted_to_project_at'] = now()->toDateTimeString();
@@ -380,18 +392,29 @@ class QuoteController extends Controller
 
     private function quoteCatalogData(): array
     {
+        $tenantId = TenantContext::id();
+
         return [
             'materials' => Material::query()
-                ->where('tenant_id', 1)
+                ->where('tenant_id', $tenantId)
                 ->where('active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'unit', 'unit_price']),
             'equipment' => Equipment::query()
-                ->where('tenant_id', 1)
+                ->where('tenant_id', $tenantId)
                 ->where('active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'cost_per_hour']),
         ];
+    }
+
+    private function ensureTenantAccess(Quote $quote, ?\App\Models\User $user = null): void
+    {
+        if (TenantContext::isSuperadmin($user)) {
+            return;
+        }
+
+        abort_unless((int) $quote->tenant_id === TenantContext::id($user), 404);
     }
 
     private function normalizeQuoteItems(array $rawItems, int $tenantId): array

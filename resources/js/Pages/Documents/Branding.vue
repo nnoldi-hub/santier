@@ -18,6 +18,39 @@
                 </div>
             </section>
 
+            <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Ajutor contextual</div>
+                        <div class="text-sm font-semibold text-amber-900">Checklist pentru documente cu aspect profesionist</div>
+                    </div>
+                    <button type="button" @click="showBrandingHelp = !showBrandingHelp" class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                        {{ showBrandingHelp ? 'Ascunde checklist' : 'Arata checklist' }}
+                    </button>
+                </div>
+
+                <div v-if="showBrandingHelp" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="rounded-lg border border-amber-200 bg-white p-3">
+                        <div class="text-sm font-semibold text-slate-900">Ce trebuie setat obligatoriu</div>
+                        <ul class="mt-2 space-y-1.5">
+                            <li v-for="item in brandingChecklist" :key="item" class="flex gap-2 text-xs text-slate-700">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <span>{{ item }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-white p-3">
+                        <div class="text-sm font-semibold text-slate-900">Recomandari pentru preview</div>
+                        <ul class="mt-2 space-y-1.5">
+                            <li v-for="item in previewRecommendations" :key="item" class="flex gap-2 text-xs text-slate-700">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                                <span>{{ item }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
             <section v-if="showPreview" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Preview</div>
                 <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -134,6 +167,21 @@ const props = defineProps({
 });
 
 const showPreview = ref(true);
+const showBrandingHelp = ref(true);
+
+const brandingChecklist = [
+    'Companie + emitent document completate.',
+    'Logo clar, pe fundal transparent daca este disponibil.',
+    'Culoare brand lizibila atat pe ecran, cat si in PDF.',
+    'Email suport si date de contact actualizate.',
+];
+
+const previewRecommendations = [
+    'Verifica antetul, emitentul si contactele in preview.',
+    'Salveaza, apoi genereaza un PDF real dintr-o oferta/document.',
+    'Daca logo-ul este prea mare, incarca o varianta compacta.',
+    'Evita culori foarte deschise pentru text si linii importante.',
+];
 
 const settingsForm = useForm({
     company_name: props.settings.company_name || '',

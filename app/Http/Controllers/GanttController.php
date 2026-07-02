@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,9 +13,10 @@ class GanttController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $projectId = $request->integer('project_id');
 
-        $projects = Project::where('tenant_id', 1)
+        $projects = Project::where('tenant_id', $tenantId)
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -26,7 +28,7 @@ class GanttController extends Controller
         $project = null;
 
         if ($projectId > 0) {
-            $project = Project::where('tenant_id', 1)->find($projectId, ['id', 'name', 'status', 'start_date', 'end_date']);
+            $project = Project::where('tenant_id', $tenantId)->find($projectId, ['id', 'name', 'status', 'start_date', 'end_date']);
 
             if ($project) {
                 $phases = ProjectPhase::where('project_id', $project->id)

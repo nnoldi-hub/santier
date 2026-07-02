@@ -44,7 +44,7 @@ class PricingPlan
         }
 
         $currentCount = Project::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', TenantContext::id($user))
             ->where('created_by', $user->id)
             ->count();
 

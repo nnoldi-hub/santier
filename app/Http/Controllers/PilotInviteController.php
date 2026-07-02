@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
 use App\Models\PilotInvite;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +14,7 @@ class PilotInviteController extends Controller
 {
     public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
         $customization = $request->string('customization')->toString();
         $sort = $request->string('sort')->toString();
@@ -23,7 +25,7 @@ class PilotInviteController extends Controller
         $selectedScopeLabel = $scopeLabels[$customization] ?? null;
 
         $invites = PilotInvite::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $tenantId)
             ->with('owner:id,name,email')
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($selectedScopeLabel, fn ($query) => $query->where('notes', 'like', '%Personalizare dorita: '.$selectedScopeLabel.'%'))
@@ -109,6 +111,7 @@ class PilotInviteController extends Controller
 
     private function persistInvite(StorePilotInviteRequest $request, ?int $ownerId): PilotInvite
     {
+        $tenantId = TenantContext::id($request->user());
         $validated = $request->validated();
 
         return PilotInvite::create([
@@ -118,7 +121,7 @@ class PilotInviteController extends Controller
             'contact_email' => $validated['contact_email'],
             'contact_phone' => $validated['contact_phone'] ?? null,
             'notes' => $this->buildSalesNotes($validated),
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
             'owner_id' => $ownerId,
             'status' => 'invited',
             'invited_at' => now(),
