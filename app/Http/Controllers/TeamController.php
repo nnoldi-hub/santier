@@ -19,14 +19,51 @@ class TeamController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
 
-        $teams = Team::where('tenant_id', $tenantId)
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,active,inactive'],
+            'specialty' => ['nullable', 'string', 'max:255'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $status = (string) ($filters['status'] ?? 'all');
+        $specialty = trim((string) ($filters['specialty'] ?? ''));
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $teamsQuery = Team::where('tenant_id', $tenantId)
             ->with(['leader:id,name', 'members.user:id,name'])
             ->withCount('members')
-            ->orderBy('name')
-            ->paginate(20);
+            ->orderBy('name');
+
+        if ($status === 'active') {
+            $teamsQuery->where('active', true);
+        } elseif ($status === 'inactive') {
+            $teamsQuery->where('active', false);
+        }
+
+        if ($specialty !== '') {
+            $teamsQuery->where('specialty', 'like', '%' . addcslashes($specialty, '%_') . '%');
+        }
+
+        if ($search !== '') {
+            $escapedSearch = addcslashes($search, '%_');
+            $teamsQuery->where(function ($query) use ($escapedSearch): void {
+                $query->where('name', 'like', '%' . $escapedSearch . '%')
+                    ->orWhere('notes', 'like', '%' . $escapedSearch . '%')
+                    ->orWhereHas('leader', function ($leaderQuery) use ($escapedSearch): void {
+                        $leaderQuery->where('name', 'like', '%' . $escapedSearch . '%');
+                    });
+            });
+        }
+
+        $teams = $teamsQuery->paginate(20)->withQueryString();
 
         return Inertia::render('Teams/Index', [
             'teams' => $teams,
+            'filters' => [
+                'status' => $status,
+                'specialty' => $specialty,
+                'search' => $search,
+            ],
         ]);
     }
 
