@@ -11,10 +11,6 @@
 
 ### Gauri functionale (fata de plan)
 - Lipsa modul Quotes/Devize (model, migration, UI, PDF)
-- Lipsa modul Echipe si alocari pe etape
-- Lipsa modul Task management real
-- Lipsa modul Defecte/Snag List
-- Lipsa dashboard KPI avansat (buget estimat vs real, delay tracking)
 - Lipsa notificari automate (evenimente + queue jobs)
 - Lipsa rapoarte zilnice de santier
 
@@ -124,3 +120,16 @@ Estimare: 0.5-1 zi
 - Se pot inregistra defecte si inchide cu status clar
 - Dashboard afiseaza KPI actionabili, nu doar placeholder
 - Exista minim 6-8 teste feature pe fluxurile noi
+
+## 5) Stare actualizata 2026-07-02
+Completat in cod si validat cu teste:
+- Task management minim viabil: listare, filtrare si schimbare status
+- Modul Echipe: listare filtrabila si alocari pe etape deja functionale
+- Modul Defecte/Snag List: listare filtrabila si schimbare status
+- Dashboard KPI avansat: etape intarziate, taskuri restante, defecte deschise, plan vs real
+- Administrare IAM din tenant: utilizatori, roluri custom si filtre pe liste
+
+Ramas deschis:
+- Quotes/Devize + PDF generator
+- Notificari automate pe reguli de executie
+- Rapoarte zilnice de santier
