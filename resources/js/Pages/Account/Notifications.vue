@@ -53,8 +53,11 @@
                             <tr v-for="item in notifications.data" :key="item.id" class="border-t border-gray-100 align-top">
                                 <td class="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                                        {{ item.data?.event || '-' }}
+                                    <span
+                                        class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                                        :class="eventBadgeClass(item.data?.event)"
+                                    >
+                                        {{ eventLabel(item.data?.event) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-700">
@@ -73,12 +76,13 @@
                                 <td class="px-4 py-3 text-xs">
                                     <div class="flex items-center gap-2">
                                         <Link
-                                            v-if="item.data?.project_id"
-                                            :href="route('projects.show', item.data.project_id)"
+                                            v-if="actionLink(item)"
+                                            :href="actionLink(item)"
                                             class="text-blue-600 hover:text-blue-700"
                                         >
-                                            Proiect
+                                            {{ actionLabel(item) }}
                                         </Link>
+                                        <span v-else class="text-gray-400">{{ actionLabel(item) }}</span>
                                         <button
                                             v-if="!item.read_at"
                                             type="button"
@@ -187,5 +191,53 @@ function formatDate(value) {
     }
 
     return parsed.toLocaleString('ro-RO');
+}
+
+function eventLabel(event) {
+    const labels = {
+        assigned: 'Rol acordat',
+        assigned_bulk: 'Rol acordat in masa',
+        updated: 'Rol actualizat',
+        revoked: 'Rol revocat',
+    };
+
+    return labels[event] || (event || '-');
+}
+
+function eventBadgeClass(event) {
+    const classes = {
+        assigned: 'bg-blue-100 text-blue-700',
+        assigned_bulk: 'bg-indigo-100 text-indigo-700',
+        updated: 'bg-amber-100 text-amber-700',
+        revoked: 'bg-rose-100 text-rose-700',
+    };
+
+    return classes[event] || 'bg-slate-100 text-slate-700';
+}
+
+function actionLabel(item) {
+    const event = item?.data?.event;
+
+    if (!item?.data?.project_id) {
+        return 'Fara actiune';
+    }
+
+    if (event === 'updated') {
+        return 'Verifica rolul';
+    }
+
+    if (event === 'revoked') {
+        return 'Istoric proiect';
+    }
+
+    return 'Deschide proiect';
+}
+
+function actionLink(item) {
+    if (!item?.data?.project_id) {
+        return null;
+    }
+
+    return route('projects.show', item.data.project_id);
 }
 </script>
