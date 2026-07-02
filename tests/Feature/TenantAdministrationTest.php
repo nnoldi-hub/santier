@@ -6,6 +6,7 @@ use App\Models\TenantUser;
 use App\Models\User;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -164,6 +165,36 @@ class TenantAdministrationTest extends TestCase
         ]);
     }
 
+    public function test_user_list_can_be_filtered_by_status_role_and_search(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $superadmin = $this->createSuperadmin('superadmin4@santier.local');
+        $dataEntryRole = Role::query()->where('name', 'data_entry')->firstOrFail();
+        $financeRole = Role::query()->where('name', 'finance')->firstOrFail();
+
+        $activeMember = $this->createTenantMember('ana.popescu@santier.local', 'Ana Popescu', 'Productie', 'active', $dataEntryRole);
+        $this->createTenantMember('ion.ionescu@santier.local', 'Ion Ionescu', 'Financiar', 'suspended', $financeRole);
+
+        $this->actingAs($superadmin)
+            ->get(route('account.users.index', [
+                'status' => 'active',
+                'role_id' => $dataEntryRole->id,
+                'search' => 'Ana',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Account/Users')
+                ->has('members', 1)
+                ->where('members.0.email', $activeMember->email)
+                ->where('filters', function ($filters) use ($dataEntryRole): bool {
+                    return $filters['status'] === 'active'
+                        && (int) $filters['role_id'] === (int) $dataEntryRole->id
+                        && $filters['search'] === 'Ana';
+                })
+            );
+    }
+
     private function createSuperadmin(string $email): User
     {
         $user = User::factory()->create([
@@ -178,5 +209,31 @@ class TenantAdministrationTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $user;
+    }
+
+    private function createTenantMember(string $email, string $name, string $department, string $status, Role $role): User
+    {
+        $member = User::query()->create([
+            'name' => $name,
+            'email' => $email,
+            'password' => bcrypt('password'),
+            'tenant_id' => 1,
+            'current_tenant_id' => 1,
+            'onboarding_step' => 3,
+            'onboarding_completed_at' => now(),
+        ]);
+
+        $member->syncRoles([$role]);
+
+        TenantUser::query()->create([
+            'tenant_id' => 1,
+            'user_id' => $member->id,
+            'department' => $department,
+            'status' => $status,
+            'invited_by' => $member->id,
+            'joined_at' => now(),
+        ]);
+
+        return $member;
     }
 }

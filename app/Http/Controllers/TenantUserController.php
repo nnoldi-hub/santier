@@ -25,11 +25,43 @@ class TenantUserController extends Controller
 
         $tenantId = TenantContext::id($user);
 
-        $memberships = TenantUser::query()
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,active,suspended'],
+            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $status = (string) ($filters['status'] ?? 'all');
+        $roleId = (int) ($filters['role_id'] ?? 0);
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $membershipsQuery = TenantUser::query()
             ->where('tenant_id', $tenantId)
             ->with(['user.roles'])
-            ->orderByDesc('id')
-            ->get()
+            ->orderByDesc('id');
+
+        if ($status !== 'all') {
+            $membershipsQuery->where('status', $status);
+        }
+
+        if ($roleId > 0) {
+            $membershipsQuery->whereHas('user.roles', function ($query) use ($roleId): void {
+                $query->where('roles.id', $roleId);
+            });
+        }
+
+        if ($search !== '') {
+            $escapedSearch = addcslashes($search, '%_');
+            $membershipsQuery->where(function ($query) use ($escapedSearch): void {
+                $query->where('department', 'like', '%' . $escapedSearch . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($escapedSearch): void {
+                        $userQuery->where('name', 'like', '%' . $escapedSearch . '%')
+                            ->orWhere('email', 'like', '%' . $escapedSearch . '%');
+                    });
+            });
+        }
+
+        $memberships = $membershipsQuery->get()
             ->map(function (TenantUser $membership) {
                 $member = $membership->user;
 
@@ -68,6 +100,11 @@ class TenantUserController extends Controller
         return Inertia::render('Account/Users', [
             'members' => $memberships,
             'roles' => $roles,
+            'filters' => [
+                'status' => $status,
+                'role_id' => $roleId > 0 ? $roleId : '',
+                'search' => $search,
+            ],
         ]);
     }
 
