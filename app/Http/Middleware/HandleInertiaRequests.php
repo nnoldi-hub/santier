@@ -39,6 +39,22 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'notifications' => [
+                'unreadCount' => $user ? $user->unreadNotifications()->count() : 0,
+                'items' => $user
+                    ? $user->unreadNotifications()
+                        ->latest()
+                        ->limit(8)
+                        ->get()
+                        ->map(fn ($notification) => [
+                            'id' => $notification->id,
+                            'type' => class_basename($notification->type),
+                            'created_at' => optional($notification->created_at)->toDateTimeString(),
+                            'data' => $notification->data,
+                        ])
+                        ->values()
+                    : [],
+            ],
             'platform' => [
                 'appName' => $platformSettings['app_name'] ?? config('app.name'),
                 'companyName' => $platformSettings['company_name'] ?? config('app.name'),

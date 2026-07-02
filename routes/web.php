@@ -35,6 +35,7 @@ use App\Http\Controllers\AccessAuditLogController;
 use App\Http\Controllers\DocumentBrandingController;
 use App\Http\Controllers\TenantRoleController;
 use App\Http\Controllers\TenantUserController;
+use App\Http\Controllers\NotificationController;
 use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
@@ -925,6 +926,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     Route::middleware(EnsureOnboardingCompleted::class)->group(function () {
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

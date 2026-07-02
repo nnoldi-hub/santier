@@ -165,9 +165,70 @@
                     <span class="text-amber-700">Scenariu evaluare activ</span>
                 </div>
                 <div class="ml-auto flex items-center gap-3">
-                    <button class="relative text-gray-400 hover:text-gray-600">
-                        <span class="text-xl">🔔</span>
-                    </button>
+                    <div class="relative">
+                        <button
+                            class="relative text-gray-500 hover:text-gray-700"
+                            @click="notificationsOpen = !notificationsOpen"
+                            type="button"
+                        >
+                            <span class="text-xl">🔔</span>
+                            <span
+                                v-if="unreadNotificationCount > 0"
+                                class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center"
+                            >
+                                {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                            </span>
+                        </button>
+
+                        <div
+                            v-if="notificationsOpen"
+                            class="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                        >
+                            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                <div class="text-sm font-semibold text-gray-700">Notificari</div>
+                                <button
+                                    v-if="unreadNotificationCount > 0"
+                                    class="text-xs text-orange-600 hover:text-orange-700"
+                                    @click="markAllNotificationsRead"
+                                    type="button"
+                                >
+                                    Marcheaza toate
+                                </button>
+                            </div>
+
+                            <div v-if="unreadNotifications.length === 0" class="px-4 py-6 text-sm text-gray-500 text-center">
+                                Nu ai notificari necitite.
+                            </div>
+
+                            <div v-else class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                                <div v-for="notification in unreadNotifications" :key="notification.id" class="px-4 py-3 hover:bg-gray-50">
+                                    <div class="text-xs text-gray-500 mb-1">{{ notificationTitle(notification) }}</div>
+                                    <div class="text-sm text-gray-700">
+                                        {{ notificationMessage(notification) }}
+                                    </div>
+                                    <div class="mt-2 flex items-center justify-between">
+                                        <Link
+                                            v-if="notificationProjectId(notification)"
+                                            :href="route('projects.show', notificationProjectId(notification))"
+                                            class="text-xs text-blue-600 hover:text-blue-700"
+                                            @click="notificationsOpen = false"
+                                        >
+                                            Deschide proiect
+                                        </Link>
+                                        <span v-else class="text-xs text-gray-400">{{ notificationTimestamp(notification) }}</span>
+
+                                        <button
+                                            class="text-xs text-gray-500 hover:text-gray-700"
+                                            @click="markNotificationRead(notification.id)"
+                                            type="button"
+                                        >
+                                            Marcheaza citita
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -190,7 +251,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import NavItem from '@/Components/NavItem.vue';
 
 defineProps({
@@ -199,6 +260,7 @@ defineProps({
 
 const page = usePage();
 const isMobileMenuOpen = ref(false);
+const notificationsOpen = ref(false);
 
 const SECTION_STATE_KEY = 'santier.sidebar.sections';
 const defaultSections = {
@@ -271,6 +333,48 @@ const userInitials = computed(() => {
 const isDemoMode = computed(() => page.props.demoMode?.enabled === true);
 const demoModeLabel = computed(() => page.props.demoMode?.label || 'Mod demo');
 const demoModeDescription = computed(() => page.props.demoMode?.description || 'Vezi doar datele din scenariul demo.');
+const unreadNotificationCount = computed(() => Number(page.props.notifications?.unreadCount || 0));
+const unreadNotifications = computed(() => page.props.notifications?.items || []);
+
+const notificationTitle = (notification) => {
+    const event = notification?.data?.event;
+    return event ? `Rol proiect: ${event}` : 'Notificare';
+};
+
+const notificationMessage = (notification) => {
+    const projectName = notification?.data?.project_name || 'Proiect';
+    const roleKey = notification?.data?.role_key || 'N/A';
+    const actorName = notification?.data?.actor_name || 'Sistem';
+
+    return `${projectName} · Rol: ${roleKey.toUpperCase()} · Operat de: ${actorName}`;
+};
+
+const notificationProjectId = (notification) => Number(notification?.data?.project_id || 0) || null;
+
+const notificationTimestamp = (notification) => {
+    const value = notification?.created_at;
+    if (!value) {
+        return '-';
+    }
+
+    return new Date(value).toLocaleString('ro-RO');
+};
+
+const markNotificationRead = (notificationId) => {
+    router.patch(route('notifications.read', notificationId), {}, {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['notifications', 'flash'],
+    });
+};
+
+const markAllNotificationsRead = () => {
+    router.patch(route('notifications.read-all'), {}, {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['notifications', 'flash'],
+    });
+};
 
 onMounted(() => {
     try {
@@ -302,6 +406,7 @@ watch(
     () => page.url,
     () => {
         isMobileMenuOpen.value = false;
+        notificationsOpen.value = false;
     },
 );
 </script>
