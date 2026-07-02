@@ -37,6 +37,30 @@
             </div>
         </div>
 
+        <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-800">Mini-calendar utilaje {{ calendarWindowLabel }}</h3>
+                <Link :href="route('equipment-calendar.index')" class="text-xs text-orange-500 hover:underline">Vezi calendar complet →</Link>
+            </div>
+
+            <div class="mb-3">
+                <select v-model="calendarWindow" @change="applyCalendarWindow" class="text-xs border border-gray-300 rounded-lg px-2 py-1 text-gray-600">
+                    <option value="today">Azi</option>
+                    <option value="7d">7 zile</option>
+                    <option value="30d">30 zile</option>
+                </select>
+            </div>
+
+            <div v-if="todayCalendar.length === 0" class="text-xs text-gray-400">Nu exista rezervari active in intervalul selectat.</div>
+            <div v-else class="space-y-2">
+                <div v-for="item in todayCalendar" :key="`today-eq-${item.id}`" class="text-xs border border-gray-200 rounded-lg p-2">
+                    <div class="font-medium text-gray-700">{{ item.equipment_name }} · qty {{ item.quantity }}</div>
+                    <div class="text-gray-500">{{ item.project_name || 'Fara proiect' }} · {{ item.stage_name || 'Fara etapa' }}</div>
+                    <div class="text-gray-400">{{ item.window }}</div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="equipment.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
             <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista utilaje</h3>
             <p class="text-gray-400 text-sm mb-6">Adauga primul utilaj pentru rezervari pe etape.</p>
@@ -71,7 +95,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -80,6 +104,7 @@ const props = defineProps({
     types: Object,
     availabilityStatuses: Object,
     filters: Object,
+    todayCalendar: { type: Array, default: () => [] },
 });
 
 const filterForm = reactive({
@@ -88,8 +113,16 @@ const filterForm = reactive({
     availability_status: props.filters?.availability_status || '',
 });
 
+const calendarWindow = ref(props.filters?.calendar_window || 'today');
+
+const calendarWindowLabel = computed(() => {
+    if (calendarWindow.value === '7d') return '7 zile';
+    if (calendarWindow.value === '30d') return '30 zile';
+    return 'azi';
+});
+
 function applyFilters() {
-    router.get(route('equipment.index'), { ...filterForm }, { preserveState: true, preserveScroll: true });
+    router.get(route('equipment.index'), { ...filterForm, calendar_window: calendarWindow.value }, { preserveState: true, preserveScroll: true });
 }
 
 function resetFilters() {
@@ -97,6 +130,10 @@ function resetFilters() {
     filterForm.type = '';
     filterForm.availability_status = '';
     applyFilters();
+}
+
+function applyCalendarWindow() {
+    router.get(route('equipment.index'), { ...filterForm, calendar_window: calendarWindow.value }, { preserveState: true, preserveScroll: true, only: ['todayCalendar', 'filters'] });
 }
 
 function typeLabel(type) {

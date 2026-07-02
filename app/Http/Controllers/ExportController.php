@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\EnterpriseWorkbookExport;
+use App\Models\AppSetting;
 use App\Jobs\RunExportSubscriptionJob;
 use App\Models\ExportLog;
 use App\Models\ExportSubscription;
@@ -30,6 +31,7 @@ class ExportController extends Controller
     public function index(): Response
     {
         $user = request()->user();
+        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         return Inertia::render('Exports/Index', [
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
@@ -53,10 +55,12 @@ class ExportController extends Controller
                 ->take(20)
                 ->get(['id', 'export_type', 'format', 'status', 'file_name', 'delivery_channel', 'delivery_target', 'created_at']),
             'branding' => [
-                'company_name' => config('exports.company_name'),
-                'company_email' => config('exports.company_email'),
-                'company_phone' => config('exports.company_phone'),
-                'brand_color' => config('exports.brand_color'),
+                'company_name' => $branding['company_name'] ?? config('exports.company_name'),
+                'company_email' => $branding['support_email'] ?? config('exports.company_email'),
+                'company_phone' => $branding['company_phone'] ?? config('exports.company_phone'),
+                'company_address' => $branding['company_address'] ?? '',
+                'document_logo_url' => $branding['document_logo_url'] ?? '',
+                'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
             ],
         ]);
     }
@@ -450,6 +454,7 @@ class ExportController extends Controller
     {
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
+        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         if (empty($types)) {
             $types = ['projects', 'quotes', 'materials', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
@@ -462,10 +467,12 @@ class ExportController extends Controller
         ]);
 
         return Excel::download(new EnterpriseWorkbookExport($types, $filters, [
-            'company_name' => config('exports.company_name'),
-            'company_email' => config('exports.company_email'),
-            'company_phone' => config('exports.company_phone'),
-            'brand_color' => config('exports.brand_color'),
+            'company_name' => $branding['company_name'] ?? config('exports.company_name'),
+            'company_email' => $branding['support_email'] ?? config('exports.company_email'),
+            'company_phone' => $branding['company_phone'] ?? config('exports.company_phone'),
+            'company_address' => $branding['company_address'] ?? '',
+            'document_logo_url' => $branding['document_logo_url'] ?? '',
+            'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
         ]), $fileName);
     }
 
@@ -473,6 +480,7 @@ class ExportController extends Controller
     {
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
+        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         if (empty($types)) {
             $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects'];
@@ -500,14 +508,18 @@ class ExportController extends Controller
         $pdf = Pdf::loadView('exports.managerial-pdf', [
             'title' => 'Raport managerial Santier',
             'branding' => [
-                'company_name' => config('exports.company_name'),
-                'company_email' => config('exports.company_email'),
-                'company_phone' => config('exports.company_phone'),
-                'brand_color' => config('exports.brand_color'),
+                'company_name' => $branding['company_name'] ?? config('exports.company_name'),
+                'company_email' => $branding['support_email'] ?? config('exports.company_email'),
+                'company_phone' => $branding['company_phone'] ?? config('exports.company_phone'),
+                'company_address' => $branding['company_address'] ?? '',
+                'document_logo_url' => $branding['document_logo_url'] ?? '',
+                'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
             ],
             'generatedAt' => now()->toDateTimeString(),
             'filters' => $filters,
             'sections' => $sections,
+        ])->setOptions([
+            'isRemoteEnabled' => true,
         ]);
 
         return $pdf->download($fileName);

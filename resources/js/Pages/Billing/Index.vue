@@ -18,10 +18,23 @@
                         <span v-if="key === currentPlan" class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">Activ</span>
                     </div>
 
+                    <div class="mt-3">
+                        <div class="text-3xl font-black text-gray-900">{{ formatPrice(plan.price) }}</div>
+                        <div class="text-xs text-gray-500">{{ plan.billing_period || 'luna' }}</div>
+                    </div>
+
+                    <p v-if="plan.description" class="mt-3 text-sm text-gray-600">
+                        {{ plan.description }}
+                    </p>
+
                     <div class="mt-3 text-sm text-gray-600">
                         <div>
                             Proiecte:
                             <span class="font-medium text-gray-900">{{ plan.project_limit === null ? 'Nelimitat' : plan.project_limit }}</span>
+                        </div>
+                        <div class="mt-2">
+                            Utilizatori:
+                            <span class="font-medium text-gray-900">{{ plan.users_limit === null ? 'Nelimitat' : plan.users_limit }}</span>
                         </div>
                         <div class="mt-2">Gantt: <span class="font-medium text-gray-900">{{ plan.features?.gantt ? 'Da' : 'Nu' }}</span></div>
                         <div>Export CSV: <span class="font-medium text-gray-900">{{ plan.features?.exports_csv ? 'Da' : 'Nu' }}</span></div>
@@ -57,6 +70,20 @@ const props = defineProps({
 const form = useForm({ plan: props.currentPlan });
 
 const currentPlanLabel = computed(() => props.plans?.[props.currentPlan]?.label || props.currentPlan);
+
+function formatPrice(price) {
+    const numericPrice = Number(price || 0);
+
+    if (numericPrice === 0) {
+        return '0 lei';
+    }
+
+    return new Intl.NumberFormat('ro-RO', {
+        style: 'currency',
+        currency: 'RON',
+        maximumFractionDigits: 0,
+    }).format(numericPrice);
+}
 
 function switchPlan(plan) {
     form.plan = plan;

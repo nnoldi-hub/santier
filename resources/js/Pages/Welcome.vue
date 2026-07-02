@@ -1,5 +1,5 @@
 ﻿<template>
-    <Head title="Santier - Management de santier" />
+    <Head :title="`${appName} - Management de santier`" />
 
     <div class="landing min-h-screen text-slate-800">
         <div class="noise-layer"></div>
@@ -10,7 +10,7 @@
                     <div class="w-9 h-9 rounded-lg bg-[var(--brand-orange)]/15 flex items-center justify-center text-lg">🏗️</div>
                     <div>
                         <div class="text-sm tracking-wide text-slate-500">Platforma SaaS</div>
-                        <div class="font-semibold text-slate-900">Santier</div>
+                        <div class="font-semibold text-slate-900">{{ appName }}</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-3">
@@ -26,7 +26,7 @@
                         :href="route('register')"
                         class="px-4 py-2 rounded-lg bg-[var(--brand-orange)] text-white text-sm font-semibold hover:brightness-95 transition"
                     >
-                        Trial 14 zile
+                        Trial {{ trialDays }} zile
                     </Link>
                 </div>
             </div>
@@ -48,7 +48,7 @@
                         </h1>
 
                         <p class="mt-5 text-lg text-slate-600 max-w-xl">
-                            Planifici proiecte, coordonezi echipe, inchizi defecte si livrezi rapoarte executive intr-o singura platforma.
+                            {{ appName }} te ajuta sa planifici proiecte, sa coordonezi echipe, sa inchizi defecte si sa livrezi rapoarte executive intr-o singura platforma.
                         </p>
 
                         <div class="mt-7 flex flex-wrap gap-3">
@@ -57,7 +57,7 @@
                                 :href="route('register')"
                                 class="px-6 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition"
                             >
-                                Incearca gratuit 14 zile
+                                Incearca gratuit {{ trialDays }} zile
                             </Link>
                             <Link
                                 v-if="canLogin"
@@ -153,22 +153,39 @@
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Preturi clare pentru fiecare etapa</h2>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div v-for="plan in plans" :key="plan.name" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
+                    <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
                         <div class="flex items-center justify-between">
                             <h3 class="font-bold text-lg">{{ plan.name }}</h3>
-                            <span v-if="plan.highlight" class="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">Recomandat</span>
+                            <span class="text-xs px-2 py-1 rounded" :class="plan.highlight ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'">{{ plan.badge }}</span>
                         </div>
-                        <div class="mt-2 text-3xl font-black text-slate-900">{{ plan.price }}</div>
+                        <div class="mt-2 text-3xl font-black text-slate-900">{{ formatPrice(plan.price) }}</div>
                         <div class="text-xs text-slate-500">{{ plan.period }}</div>
                         <ul class="mt-4 space-y-2 text-sm text-slate-600">
                             <li v-for="item in plan.items" :key="item">• {{ item }}</li>
                         </ul>
+                        <div class="mt-5">
+                            <a
+                                v-if="plan.key === 'enterprise'"
+                                href="#solicita-demo"
+                                class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition"
+                            >
+                                {{ plan.cta_label }}
+                            </a>
+                            <Link
+                                v-else-if="canRegister"
+                                :href="route('register')"
+                                class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition"
+                            >
+                                {{ plan.cta_label }}
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20 pb-20">
-                <div class="rounded-3xl border border-slate-200 bg-gradient-to-r from-white via-orange-50 to-blue-50 p-8 sm:p-10">
+            <section id="solicita-demo" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20 pb-20">
+                <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-6 items-stretch">
+                    <div class="rounded-3xl border border-slate-200 bg-gradient-to-r from-white via-orange-50 to-blue-50 p-8 sm:p-10">
                     <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Vrei sa vezi daca se potriveste firmei tale?</h2>
                     <p class="mt-2 text-slate-600 max-w-2xl">Pornesti in 10 minute cu wizard-ul de onboarding, un proiect demo si raport exportabil pentru management.</p>
                     <div class="mt-6 flex flex-wrap gap-3">
@@ -187,15 +204,70 @@
                             Intra in platforma
                         </Link>
                     </div>
+                    </div>
+
+                    <div class="rounded-3xl border border-slate-200 bg-white p-8 sm:p-10 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Solicita demo</div>
+                                <h3 class="mt-2 text-xl font-black text-slate-900">Trimite datele si te contactam</h3>
+                            </div>
+                            <div class="w-11 h-11 rounded-2xl bg-[var(--brand-orange)]/10 flex items-center justify-center text-xl">✉️</div>
+                        </div>
+
+                        <form class="mt-6 space-y-3" @submit.prevent="submitDemoRequest">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Companie</label>
+                                <input v-model="demoForm.company_name" type="text" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Nume companie" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Persoana de contact</label>
+                                <input v-model="demoForm.contact_name" type="text" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Nume si prenume" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+                                <input v-model="demoForm.contact_email" type="email" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="email@firma.ro" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Telefon</label>
+                                <input v-model="demoForm.contact_phone" type="text" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="07xx xxx xxx" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Numar utilizatori estimat</label>
+                                <input v-model="demoForm.estimated_users" type="number" min="1" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Ex: 25" required />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Tip personalizare dorita</label>
+                                <select v-model="demoForm.customization_scope" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" required>
+                                    <option value="" disabled>Selecteaza o optiune</option>
+                                    <option value="branding">Branding documente</option>
+                                    <option value="template">Template documente</option>
+                                    <option value="approvals">Flux aprobari</option>
+                                    <option value="white_label">White-label</option>
+                                    <option value="custom_domain">Domeniu propriu</option>
+                                    <option value="full_enterprise">Pachet enterprise complet</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Ce vrei sa vezi?</label>
+                                <textarea v-model="demoForm.notes" rows="3" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Ex: 5 proiecte, 2 echipe, raportare si calendar"></textarea>
+                            </div>
+                            <button :disabled="demoForm.processing" class="w-full rounded-xl bg-[var(--brand-blue)] px-4 py-3 text-white font-semibold hover:brightness-95 disabled:opacity-60 transition">
+                                {{ demoForm.processing ? 'Se trimite...' : 'Trimite solicitarea' }}
+                            </button>
+                            <p v-if="demoForm.recentlySuccessful" class="text-sm font-medium text-emerald-700">Solicitarea a fost trimisa. Revenim cu un raspuns.</p>
+                        </form>
+                    </div>
                 </div>
             </section>
         </main>
 
         <footer class="relative z-10 border-t border-slate-200 bg-white/70">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap gap-3 items-center justify-between text-sm text-slate-600">
-                <div>Santier SaaS - management proiecte constructii</div>
+                <div>{{ companyName }} SaaS - management proiecte constructii</div>
                 <div class="flex items-center gap-4">
-                    <span>Suport</span>
+                    <span v-if="supportEmail">Suport: {{ supportEmail }}</span>
+                    <span v-if="salesEmail">Vanzari: {{ salesEmail }}</span>
                     <span>Documentatie</span>
                     <span>GDPR</span>
                     <span>Termeni</span>
@@ -207,8 +279,15 @@
 
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 
 defineProps({
+    appName: { type: String, default: 'Santier' },
+    companyName: { type: String, default: 'Santier' },
+    trialDays: { type: Number, default: 14 },
+    supportEmail: { type: String, default: '' },
+    salesEmail: { type: String, default: '' },
+    plans: { type: Array, default: () => [] },
     canLogin: Boolean,
     canRegister: Boolean,
 });
@@ -231,33 +310,37 @@ const features = [
     { icon: '📊', title: 'Export enterprise', text: 'Workbook multi-sheet, PDF managerial, audit si subscriptions.' },
 ];
 
-const plans = [
-    {
-        name: 'Free',
-        price: '0 lei',
-        period: 'lunar',
-        items: ['1 proiect', '1 echipa', '10 taskuri/luna', 'Fara exporturi'],
-    },
-    {
-        name: 'Starter',
-        price: '149 lei',
-        period: 'lunar',
-        items: ['5 proiecte', 'Gantt inclus', 'Taskuri nelimitate', '3 utilizatori'],
-    },
-    {
-        name: 'Pro',
-        price: '349 lei',
-        period: 'lunar',
-        highlight: true,
-        items: ['Proiecte nelimitate', 'Export XLSX + PDF', 'Devize complete', '10 utilizatori'],
-    },
-    {
-        name: 'Enterprise',
-        price: '999 lei',
-        period: 'lunar',
-        items: ['Utilizatori nelimitati', 'SLA si suport', 'Audit calitate', 'Integrare API'],
-    },
-];
+function formatPrice(price) {
+    const numericPrice = Number(price || 0);
+
+    if (numericPrice === 0) {
+        return '0 lei';
+    }
+
+    return new Intl.NumberFormat('ro-RO', {
+        style: 'currency',
+        currency: 'RON',
+        maximumFractionDigits: 0,
+    }).format(numericPrice);
+}
+
+const demoForm = useForm({
+    company_name: '',
+    segment: 'renovari',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    estimated_users: '',
+    customization_scope: '',
+    notes: '',
+});
+
+function submitDemoRequest() {
+    demoForm.post(route('demo-request.store'), {
+        preserveScroll: true,
+        onSuccess: () => demoForm.reset('contact_name', 'contact_email', 'contact_phone', 'estimated_users', 'customization_scope', 'notes'),
+    });
+}
 </script>
 
 <style scoped>

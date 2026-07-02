@@ -12,11 +12,13 @@
         >
             <div class="h-16 flex items-center px-6 border-b border-gray-700">
                 <span class="text-2xl mr-2">🏗️</span>
-                <span class="text-xl font-bold text-orange-400">Santier</span>
+                <span class="text-xl font-bold text-orange-400">{{ platformAppName }}</span>
             </div>
 
             <nav class="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
                 <NavItem :href="routeOrFallback('dashboard')" :disabled="routeMissing('dashboard')" icon="📊" label="Dashboard" />
+                <NavItem :href="routeOrFallback('help.index')" :disabled="routeMissing('help.index')" icon="❓" label="Ajutor" />
+                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" icon="🛠️" label="Administrare" />
 
                 <div class="pt-3">
                     <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors" :class="sectionButtonClass('projects')" @click="toggleSection('projects')">
@@ -94,6 +96,7 @@
                     <div v-show="sections.documents" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
                         <NavItem :href="routeOrFallback('documents.index')" :disabled="routeMissing('documents.index')" icon="🗂️" label="Registru documente" />
                         <NavItem :href="routeOrFallback('procese-verbale.index')" :disabled="routeMissing('procese-verbale.index')" icon="📄" label="Procese verbale" />
+                        <NavItem v-if="canManageDocumentBranding" :href="routeOrFallback('documents.branding.index')" :disabled="routeMissing('documents.branding.index')" icon="🎨" label="Configurare documente" />
                         <NavItem :href="routeOrFallback('documente-subcontractori.index')" :disabled="routeMissing('documente-subcontractori.index')" icon="🤝" label="Documente subcontractori" />
                     </div>
                 </div>
@@ -214,7 +217,7 @@ const sectionRoutes = {
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index'],
     financial: ['quotes.index', 'documents.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
-    documents: ['documents.index', 'procese-verbale.index', 'documente-subcontractori.index'],
+    documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],
     reporting: ['exports.index', 'analytics.index', 'stage-progress.index'],
     account: ['profile.edit', 'pilot-invites.index', 'billing.index'],
 };
@@ -252,6 +255,10 @@ const hasRoute = (name) => {
 
 const routeOrFallback = (name) => (hasRoute(name) ? route(name) : '#');
 const routeMissing = (name) => !hasRoute(name);
+
+const platformAppName = computed(() => page.props.platform?.appName || 'Santier');
+const isPlatformAdmin = computed(() => Boolean(page.props.platform?.isAdmin));
+const canManageDocumentBranding = computed(() => ['starter', 'pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
 
 const userInitials = computed(() => {
     const name = page.props.auth?.user?.name || '';

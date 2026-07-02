@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Contractor;
 use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\DemoScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -233,5 +236,29 @@ class DocumentController extends Controller
             storage_path('app/private/' . $document->file_path),
             $document->file_name ?: basename($document->file_path)
         );
+    }
+
+    public function pdf(Document $document): HttpResponse
+    {
+        $this->authorize('view', $document);
+
+        $document->loadMissing([
+            'project:id,name,client_id,address,start_date,end_date',
+            'project.client:id,name',
+            'stage:id,name,start_date,end_date',
+            'contractor:id,name',
+        ]);
+        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+
+        $fileName = sprintf('%s-%d.pdf', str($document->title)->slug('-'), $document->id);
+
+        $pdf = Pdf::loadView('documents.pdf', [
+            'document' => $document,
+            'branding' => $branding,
+        ])->setPaper('a4')->setOptions([
+            'isRemoteEnabled' => true,
+        ]);
+
+        return $pdf->download($fileName);
     }
 }

@@ -7,6 +7,8 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111827; }
         .header { border-bottom: 2px solid {{ $branding['brand_color'] ?? '#f97316' }}; padding-bottom: 10px; margin-bottom: 14px; }
+        .brand-row { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+        .brand-logo { max-height: 48px; max-width: 170px; object-fit: contain; margin-bottom: 8px; }
         .title { font-size: 20px; margin: 0; }
         .meta { color: #6b7280; margin-top: 4px; }
         .section { margin-top: 18px; }
@@ -19,9 +21,21 @@
 </head>
 <body>
     <div class="header">
-        <h1 class="title">{{ $title }}</h1>
-        <div class="meta">Companie: {{ $branding['company_name'] ?? 'Santier' }} | Email: {{ $branding['company_email'] ?? '' }} | Telefon: {{ $branding['company_phone'] ?? '' }}</div>
-        <div class="meta">Generat la: {{ $generatedAt }}</div>
+        <div class="brand-row">
+            <div>
+                @if(!empty($branding['document_logo_url']))
+                    <img class="brand-logo" src="{{ $branding['document_logo_url'] }}" alt="{{ $branding['company_name'] ?? 'Santier' }} logo">
+                @endif
+                <h1 class="title">{{ $title }}</h1>
+                <div class="meta">Generat la: {{ $generatedAt }}</div>
+            </div>
+            <div class="meta" style="text-align:right;">
+                <div><strong>{{ $branding['company_name'] ?? 'Santier' }}</strong></div>
+                @if(!empty($branding['company_address']))<div>{{ $branding['company_address'] }}</div>@endif
+                @if(!empty($branding['company_email']))<div>Email: {{ $branding['company_email'] }}</div>@endif
+                @if(!empty($branding['company_phone']))<div>Telefon: {{ $branding['company_phone'] }}</div>@endif
+            </div>
+        </div>
         <div class="small">Filtre: {{ json_encode($filters, JSON_UNESCAPED_UNICODE) }}</div>
     </div>
 

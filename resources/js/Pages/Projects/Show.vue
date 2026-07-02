@@ -44,6 +44,91 @@
             </div>
         </div>
 
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="font-semibold text-gray-800">🗓️ Mini-calendar proiect</h3>
+                    <p class="text-xs text-gray-500 mt-1">Agenda operationala pentru {{ todayCalendar.date }}.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select
+                        :value="todayCalendar.window || 'today'"
+                        @change="changeCalendarWindow($event.target.value)"
+                        class="text-xs border border-gray-300 rounded-lg px-2 py-1 text-gray-600"
+                    >
+                        <option value="today">Azi</option>
+                        <option value="7d">7 zile</option>
+                        <option value="30d">30 zile</option>
+                    </select>
+                    <Link :href="route('dashboard')" class="text-xs text-orange-500 hover:underline">Calendar complet in Dashboard →</Link>
+                </div>
+            </div>
+
+            <div class="mb-3 rounded-lg border p-3" :class="riskCardClass(todayCalendar.risk?.level)">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-wider">Indicator AI</div>
+                        <div class="text-sm font-semibold">Risc intarziere: {{ todayCalendar.risk?.score ?? 0 }}%</div>
+                    </div>
+                    <div class="text-[11px]">
+                        blocaje: {{ todayCalendar.risk?.blocked_tasks ?? 0 }} ·
+                        etape risc: {{ todayCalendar.risk?.risky_stages ?? 0 }} ·
+                        utilaje indisponibile: {{ todayCalendar.risk?.unavailable_equipment ?? 0 }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 text-xs">
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Etape</div>
+                    <div v-if="todayCalendar.stages?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.stages" :key="`st-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-red-50" :class="itemRowClass('stage', item.criticality)">• {{ item.title }} ({{ item.status }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara etape azi.</div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Taskuri</div>
+                    <div v-if="todayCalendar.tasks?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.tasks" :key="`tk-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-red-50" :class="itemRowClass('task', item.criticality)">• {{ item.title }} ({{ item.status }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara taskuri azi.</div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Utilaje</div>
+                    <div v-if="todayCalendar.equipment?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.equipment" :key="`eq-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-blue-50" :class="itemRowClass('equipment', item.criticality)">• {{ item.title }} ({{ item.window }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara utilaje azi.</div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Subcontractori</div>
+                    <div v-if="todayCalendar.subcontractors?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.subcontractors" :key="`sub-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-purple-50" :class="itemRowClass('subcontractor', item.criticality)">• {{ item.title }} ({{ item.stage }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara subcontractori azi.</div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Documente</div>
+                    <div v-if="todayCalendar.documents?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.documents" :key="`doc-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-orange-50" :class="itemRowClass('document', item.criticality)">• {{ item.title }} ({{ fmtCur(item.amount) }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara documente azi.</div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="font-semibold text-gray-700 mb-1">Calitate</div>
+                    <div v-if="todayCalendar.quality_checks?.length" class="space-y-1">
+                        <a v-for="item in todayCalendar.quality_checks" :key="`qc-${item.id}`" :href="item.url" class="block rounded px-1.5 py-1 hover:bg-emerald-50" :class="itemRowClass('quality', item.criticality)">• {{ item.title }} ({{ item.time || '-' }})</a>
+                    </div>
+                    <div v-else class="text-gray-400">Fara verificari azi.</div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <!-- Detalii -->
             <div class="xl:col-span-1 bg-white rounded-xl border border-gray-200 p-6 space-y-4 h-fit">
@@ -136,7 +221,7 @@
 
                     <!-- Lista etape existente -->
                     <div v-else-if="project.phases.length > 0" class="space-y-2">
-                        <div v-for="phase in project.phases" :key="phase.id"
+                        <div v-for="phase in project.phases" :key="phase.id" :id="`phase-${phase.id}`"
                             class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 bg-gray-50">
                             <!-- Progress bar + info -->
                             <div class="flex-1 min-w-0">
@@ -651,6 +736,7 @@ const props = defineProps({
     teams:      { type: Array, default: () => [] },
     contractors:{ type: Array, default: () => [] },
     equipment:  { type: Array, default: () => [] },
+    todayCalendar: { type: Object, default: () => ({ date: '', window: 'today', stages: [], tasks: [], equipment: [], subcontractors: [], documents: [], quality_checks: [] }) },
 });
 
 const showAddPhase = ref(false);
@@ -1189,5 +1275,30 @@ function fmt(date) {
 
 function fmtCur(value) {
     return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON', maximumFractionDigits: 0 }).format(value);
+}
+
+function changeCalendarWindow(window) {
+    router.get(
+        route('projects.show', props.project.id),
+        { calendar_window: window },
+        { preserveState: true, preserveScroll: true, only: ['todayCalendar'] },
+    );
+}
+
+function riskCardClass(level) {
+    if (level === 'high') return 'bg-red-50 border-red-200 text-red-700';
+    if (level === 'medium') return 'bg-orange-50 border-orange-200 text-orange-700';
+    return 'bg-emerald-50 border-emerald-200 text-emerald-700';
+}
+
+function itemRowClass(category, criticality) {
+    if (criticality === 'high') return 'text-red-700 bg-red-50 border border-red-100';
+    if (criticality === 'medium') return 'text-orange-700 bg-orange-50 border border-orange-100';
+
+    if (category === 'equipment') return 'text-blue-700 bg-blue-50 border border-blue-100';
+    if (category === 'subcontractor') return 'text-purple-700 bg-purple-50 border border-purple-100';
+    if (category === 'document') return 'text-orange-700 bg-orange-50 border border-orange-100';
+    if (category === 'stage' || category === 'task') return 'text-red-700 bg-red-50 border border-red-100';
+    return 'text-emerald-700 bg-emerald-50 border border-emerald-100';
 }
 </script>

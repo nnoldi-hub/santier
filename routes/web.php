@@ -19,6 +19,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GanttController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\PilotInviteController;
 use App\Http\Controllers\OnboardingController;
@@ -30,6 +31,8 @@ use App\Http\Controllers\StageReportController;
 use App\Http\Controllers\StageTaskController;
 use App\Http\Controllers\StageProgressController;
 use App\Http\Controllers\ProjectAiToolsController;
+use App\Http\Controllers\DocumentBrandingController;
+use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
 use App\Support\DemoScope;
@@ -55,17 +58,82 @@ Route::get('/', function (Request $request) {
         'path' => '/',
     ]);
 
+    $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
+
     return Inertia::render('Welcome', [
+        'appName' => $platformSettings['app_name'] ?? config('app.name'),
+        'companyName' => $platformSettings['company_name'] ?? config('app.name'),
+        'trialDays' => (int) ($platformSettings['trial_days'] ?? 14),
+        'supportEmail' => $platformSettings['support_email'] ?? null,
+        'salesEmail' => $platformSettings['sales_email'] ?? null,
+        'plans' => collect(config('pricing.plans', []))->map(function (array $plan, string $key) {
+            return [
+                'key' => $key,
+                'name' => $plan['label'] ?? $key,
+                'price' => (int) ($plan['price'] ?? 0),
+                'period' => $plan['billing_period'] ?? 'luna',
+                'highlight' => $key === 'pro',
+                'badge' => match ($key) {
+                    'free' => 'Start rapid',
+                    'starter' => 'Brand de baza',
+                    'pro' => 'Recomandat',
+                    'enterprise' => 'White-label',
+                    default => 'Plan',
+                },
+                'cta_label' => match ($key) {
+                    'free' => 'Incearca demo',
+                    'starter' => 'Alege branding de baza',
+                    'pro' => 'Alege brand complet',
+                    'enterprise' => 'Cere oferta enterprise',
+                    default => 'Alege planul',
+                },
+                'items' => match ($key) {
+                    'free' => ['Brand standard', 'Acces demo', '1 proiect', 'Evaluare rapida'],
+                    'starter' => ['Logo si date firma', 'Branding de baza', '5 proiecte', '3 utilizatori'],
+                    'pro' => ['Logo + culori', 'Antet si footer', 'Template documente', '10 utilizatori'],
+                    'enterprise' => ['Mai multe sabloane', 'Aprobari', 'White-label', 'Domeniu propriu'],
+                    default => [],
+                },
+            ];
+        })->values(),
         'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+        'canRegister' => Route::has('register') && (bool) ($platformSettings['public_signup_enabled'] ?? true),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
 });
 
 Route::get('/dashboard', function () {
+    $dashboardRequest = request();
     $today = now()->toDateString();
-    $user = request()->user();
+    $user = $dashboardRequest->user();
+
+    $calendarWindow = $dashboardRequest->string('calendar_window')->toString();
+    if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
+        $calendarWindow = 'today';
+    }
+
+    $windowStart = now()->startOfDay();
+    $windowEnd = match ($calendarWindow) {
+        '7d' => now()->copy()->addDays(6)->endOfDay(),
+        '30d' => now()->copy()->addDays(29)->endOfDay(),
+        default => now()->copy()->endOfDay(),
+    };
+
+    $windowStartDate = $windowStart->toDateString();
+    $windowEndDate = $windowEnd->toDateString();
+
+    $availableCalendarCategories = ['stages', 'tasks', 'subcontractors', 'equipment', 'documents', 'quality_checks'];
+    $calendarCategories = collect(explode(',', $dashboardRequest->string('calendar_categories')->toString()))
+        ->map(fn ($item) => trim((string) $item))
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
+    $calendarCategories = array_values(array_intersect($availableCalendarCategories, $calendarCategories));
+    if ($calendarCategories === []) {
+        $calendarCategories = $availableCalendarCategories;
+    }
 
     return Inertia::render('Dashboard', [
         'stats' => [
@@ -145,21 +213,27 @@ Route::get('/dashboard', function () {
             ->orderByRaw("CASE WHEN priority = 'high' THEN 1 WHEN priority = 'medium' THEN 2 WHEN priority = 'low' THEN 3 ELSE 4 END")
             ->take(6)
             ->get(['id', 'project_id', 'title', 'status', 'priority', 'deadline']),
-        'todayCalendar' => (function () use ($today, $user) {
+        'todayCalendar' => (function () use ($today, $user, $calendarWindow, $calendarCategories, $windowStart, $windowEnd, $windowStartDate, $windowEndDate) {
             $stages = ProjectPhase::query()
                 ->with(['project:id,name'])
                 ->whereIn('status', ['pending', 'in_progress'])
-                ->where(function ($query) use ($today) {
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
                     $query
-                        ->whereDate('start_date', $today)
-                        ->orWhereDate('end_date', $today)
-                        ->orWhere(function ($inner) use ($today) {
+                        ->whereBetween('start_date', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('end_date', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
                             $inner
-                                ->whereNotNull('start_date')
-                                ->whereNotNull('end_date')
-                                ->whereDate('start_date', '<=', $today)
-                                ->whereDate('end_date', '>=', $today);
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $windowStartDate);
+                                });
                         });
+
+                            Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
+                                ->middleware('throttle:6,1')
+                                ->name('demo-request.store');
                 })
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->orderByRaw("CASE WHEN status = 'in_progress' THEN 1 ELSE 2 END")
@@ -176,12 +250,16 @@ Route::get('/dashboard', function () {
                     'risk' => $phase->status === 'pending'
                         && !empty($phase->start_date)
                         && Carbon::parse($phase->start_date)->lt(now()->startOfDay()),
+                    'criticality' => ($phase->status === 'pending'
+                        && !empty($phase->start_date)
+                        && Carbon::parse($phase->start_date)->lt(now()->startOfDay())) ? 'high' : 'normal',
+                    'url' => route('projects.show', ['project' => $phase->project_id]) . '#phase-' . $phase->id,
                 ])
                 ->values();
 
             $tasks = StageTask::query()
                 ->with(['stage:id,name,project_id', 'stage.project:id,name'])
-                ->whereDate('deadline', $today)
+                ->whereBetween('deadline', [$windowStart, $windowEnd])
                 ->whereIn('status', ['todo', 'in_progress', 'blocked'])
                 ->whereHas('stage.project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->orderByRaw("CASE WHEN status = 'blocked' THEN 1 WHEN status = 'in_progress' THEN 2 ELSE 3 END")
@@ -195,21 +273,25 @@ Route::get('/dashboard', function () {
                     'status' => $task->status,
                     'deadline' => optional($task->deadline)->format('Y-m-d H:i'),
                     'risk' => $task->status === 'blocked',
+                    'criticality' => $task->status === 'blocked' ? 'high' : ($task->status === 'in_progress' ? 'medium' : 'normal'),
+                    'url' => route('stage-tasks.edit', ['stage_task' => $task->id]),
                 ])
                 ->values();
 
             $equipment = StageEquipment::query()
                 ->with(['equipment:id,name', 'phase:id,name,project_id', 'phase.project:id,name'])
-                ->where(function ($query) use ($today) {
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
                     $query
-                        ->whereDate('usage_start', $today)
-                        ->orWhereDate('usage_end', $today)
-                        ->orWhere(function ($inner) use ($today) {
+                        ->whereBetween('usage_start', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('usage_end', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
                             $inner
-                                ->whereNotNull('usage_start')
-                                ->whereNotNull('usage_end')
-                                ->whereDate('usage_start', '<=', $today)
-                                ->whereDate('usage_end', '>=', $today);
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('usage_start')->orWhereDate('usage_start', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('usage_end')->orWhereDate('usage_end', '>=', $windowStartDate);
+                                });
                         });
                 })
                 ->whereHas('phase.project', fn ($q) => DemoScope::applyProjectScope($q, $user))
@@ -219,11 +301,18 @@ Route::get('/dashboard', function () {
                 ->map(fn (StageEquipment $reservation) => [
                     'id' => $reservation->id,
                     'title' => $reservation->equipment?->name,
+                    'equipment_id' => $reservation->equipment_id,
                     'project_name' => $reservation->phase?->project?->name,
                     'stage_name' => $reservation->phase?->name,
                     'time_range' => trim((optional($reservation->usage_start)->format('Y-m-d') ?? '-') . ' - ' . (optional($reservation->usage_end)->format('Y-m-d') ?? '-')),
                     'quantity' => (int) $reservation->quantity,
-                    'risk' => false,
+                    'risk' => ($reservation->equipment?->availability_status ?? 'available') !== 'available',
+                    'criticality' => (($reservation->equipment?->availability_status ?? 'available') !== 'available') ? 'high' : 'normal',
+                    'url' => route('equipment-calendar.index', [
+                        'equipment_id' => $reservation->equipment_id,
+                        'start_date' => $windowStartDate,
+                        'end_date' => $windowEndDate,
+                    ]),
                 ])
                 ->values();
 
@@ -231,16 +320,18 @@ Route::get('/dashboard', function () {
                 ->with(['project:id,name', 'contractor:id,name,type'])
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->whereHas('contractor', fn ($q) => $q->whereIn('type', ['subcontractor', 'pfa']))
-                ->where(function ($query) use ($today) {
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
                     $query
-                        ->whereDate('start_date', $today)
-                        ->orWhereDate('end_date', $today)
-                        ->orWhere(function ($inner) use ($today) {
+                        ->whereBetween('start_date', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('end_date', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
                             $inner
-                                ->whereNotNull('start_date')
-                                ->whereNotNull('end_date')
-                                ->whereDate('start_date', '<=', $today)
-                                ->whereDate('end_date', '>=', $today);
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $windowStartDate);
+                                });
                         });
                 })
                 ->orderBy('start_date')
@@ -249,6 +340,7 @@ Route::get('/dashboard', function () {
                 ->map(fn (ProjectPhase $phase) => [
                     'id' => $phase->id,
                     'title' => $phase->contractor?->name,
+                    'contractor_id' => $phase->contractor_id,
                     'project_name' => $phase->project?->name,
                     'stage_name' => $phase->name,
                     'status' => $phase->status,
@@ -256,13 +348,17 @@ Route::get('/dashboard', function () {
                     'risk' => $phase->status === 'pending'
                         && !empty($phase->start_date)
                         && Carbon::parse($phase->start_date)->lt(now()->startOfDay()),
+                    'criticality' => ($phase->status === 'pending'
+                        && !empty($phase->start_date)
+                        && Carbon::parse($phase->start_date)->lt(now()->startOfDay())) ? 'high' : 'normal',
+                    'url' => $phase->contractor_id ? route('contractors.edit', ['contractor' => $phase->contractor_id]) : route('contractors.index'),
                 ])
                 ->values();
 
             $documents = Document::query()
                 ->with(['project:id,name', 'stage:id,name'])
                 ->whereIn('payment_status', ['unpaid', 'partial'])
-                ->whereDate('issued_at', $today)
+                ->whereBetween('issued_at', [$windowStartDate, $windowEndDate])
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->orderByDesc('amount')
                 ->take(6)
@@ -276,13 +372,15 @@ Route::get('/dashboard', function () {
                     'issued_at' => optional($document->issued_at)->format('Y-m-d'),
                     'payment_status' => $document->payment_status,
                     'risk' => in_array($document->payment_status, ['unpaid', 'partial'], true),
+                    'criticality' => in_array($document->payment_status, ['unpaid', 'partial'], true) ? 'medium' : 'normal',
+                    'url' => route('documents.edit', ['document' => $document->id]),
                 ])
                 ->values();
 
             $quality = QualityCheck::query()
                 ->with(['project:id,name', 'phase:id,name'])
                 ->whereIn('status', ['pending', 'in_progress'])
-                ->whereDate('planned_at', $today)
+                ->whereBetween('planned_at', [$windowStart, $windowEnd])
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->orderBy('planned_at')
                 ->take(6)
@@ -295,7 +393,208 @@ Route::get('/dashboard', function () {
                     'status' => $check->status,
                     'planned_at' => optional($check->planned_at)->format('Y-m-d H:i'),
                     'risk' => $check->status === 'pending',
+                    'criticality' => $check->status === 'pending' ? 'medium' : 'normal',
+                    'url' => route('quality-checks.edit', ['quality_check' => $check->id]),
                 ])
+                ->values();
+
+            if (!in_array('stages', $calendarCategories, true)) {
+                $stages = collect();
+            }
+
+            if (!in_array('tasks', $calendarCategories, true)) {
+                $tasks = collect();
+            }
+
+            if (!in_array('equipment', $calendarCategories, true)) {
+                $equipment = collect();
+            }
+
+            if (!in_array('subcontractors', $calendarCategories, true)) {
+                $subcontractors = collect();
+            }
+
+            if (!in_array('documents', $calendarCategories, true)) {
+                $documents = collect();
+            }
+
+            if (!in_array('quality_checks', $calendarCategories, true)) {
+                $quality = collect();
+            }
+
+            $blockedByStage = StageTask::query()
+                ->whereIn('stage_id', $stages->pluck('id')->filter()->values())
+                ->where('status', 'blocked')
+                ->selectRaw('stage_id, COUNT(*) as blocked_count')
+                ->groupBy('stage_id')
+                ->pluck('blocked_count', 'stage_id');
+
+            $equipmentCoverageByStage = StageEquipment::query()
+                ->whereIn('stage_id', $stages->pluck('id')->filter()->values())
+                ->whereNotNull('usage_end')
+                ->selectRaw('stage_id, MAX(usage_end) as last_usage_end')
+                ->groupBy('stage_id')
+                ->pluck('last_usage_end', 'stage_id');
+
+            $stageDelayPredictions = $stages
+                ->map(function (array $stage) use ($blockedByStage, $equipmentCoverageByStage) {
+                    $score = 6;
+                    $reasons = [];
+                    $factors = [];
+
+                    $blockedCount = (int) ($blockedByStage[$stage['id']] ?? 0);
+                    if ($blockedCount > 0) {
+                        $factorScore = min(20, $blockedCount * 7);
+                        $score += $factorScore;
+                        $reasons[] = $blockedCount . ' taskuri blocate';
+                        $factors[] = [
+                            'label' => 'Taskuri blocate',
+                            'impact' => '+' . $factorScore,
+                            'detail' => $blockedCount . ' in etapa',
+                        ];
+                    }
+
+                    $phaseEnd = $stage['end_date'] ?? null;
+                    $equipmentEnd = $equipmentCoverageByStage[$stage['id']] ?? null;
+                    if ($phaseEnd && $equipmentEnd && Carbon::parse($equipmentEnd)->lt(Carbon::parse($phaseEnd))) {
+                        $score += 12;
+                        $reasons[] = 'utilaj rezervat doar pana la ' . Carbon::parse($equipmentEnd)->format('d.m');
+                        $factors[] = [
+                            'label' => 'Acoperire utilaje',
+                            'impact' => '+12',
+                            'detail' => 'rezervare pana la ' . Carbon::parse($equipmentEnd)->format('d.m'),
+                        ];
+                    }
+
+                    if (($stage['status'] ?? '') === 'pending' && !empty($stage['start_date']) && Carbon::parse($stage['start_date'])->lt(now()->startOfDay())) {
+                        $score += 10;
+                        $reasons[] = 'start intarziat';
+                        $factors[] = [
+                            'label' => 'Start etapa',
+                            'impact' => '+10',
+                            'detail' => 'data start depasita',
+                        ];
+                    }
+
+                    if ($factors === []) {
+                        $factors[] = [
+                            'label' => 'Semnal preventiv',
+                            'impact' => '+6',
+                            'detail' => 'fara incidente majore',
+                        ];
+                    }
+
+                    return [
+                        'id' => $stage['id'],
+                        'title' => $stage['title'],
+                        'project_name' => $stage['project_name'],
+                        'risk_pct' => min(95, $score),
+                        'reason' => $reasons !== [] ? implode('; ', $reasons) : 'monitorizare preventiva',
+                        'factors' => $factors,
+                        'url' => $stage['url'] ?? route('wbs.index'),
+                    ];
+                })
+                ->sortByDesc('risk_pct')
+                ->take(3)
+                ->values();
+
+            $stageCostById = Document::query()
+                ->whereIn('stage_id', $stages->pluck('id')->filter()->values())
+                ->selectRaw('stage_id, SUM(amount) as total_amount')
+                ->groupBy('stage_id')
+                ->pluck('total_amount', 'stage_id');
+
+            $avgStageCost = max(1, (float) collect($stageCostById)->avg());
+
+            $budgetPredictions = $stages
+                ->map(function (array $stage) use ($stageCostById, $avgStageCost) {
+                    $currentCost = (float) ($stageCostById[$stage['id']] ?? 0);
+                    if ($currentCost <= 0) {
+                        return null;
+                    }
+
+                    $ratio = $currentCost / $avgStageCost;
+                    $riskPct = (int) min(90, max(5, round(($ratio - 0.8) * 25)));
+
+                    $factors = [
+                        [
+                            'label' => 'Cost etapa vs medie',
+                            'impact' => number_format($ratio, 2) . 'x',
+                            'detail' => 'cost curent ' . number_format($currentCost, 0),
+                        ],
+                        [
+                            'label' => 'Formula risc',
+                            'impact' => $riskPct . '%',
+                            'detail' => 'bazata pe raport cost/medie',
+                        ],
+                    ];
+
+                    return [
+                        'id' => $stage['id'],
+                        'title' => $stage['title'],
+                        'project_name' => $stage['project_name'],
+                        'risk_pct' => $riskPct,
+                        'reason' => 'cost documentat peste media etapelor (materiale scumpe)',
+                        'factors' => $factors,
+                        'url' => $stage['url'] ?? route('wbs.index'),
+                    ];
+                })
+                ->filter()
+                ->sortByDesc('risk_pct')
+                ->take(3)
+                ->values();
+
+            $subcontractorLoadMap = ProjectPhase::query()
+                ->whereIn('contractor_id', $subcontractors->pluck('contractor_id')->filter()->values())
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
+                    $query
+                        ->whereBetween('start_date', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('end_date', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
+                            $inner
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $windowStartDate);
+                                });
+                        });
+                })
+                ->selectRaw('contractor_id, COUNT(*) as active_assignments')
+                ->groupBy('contractor_id')
+                ->pluck('active_assignments', 'contractor_id');
+
+            $subcontractorPredictions = $subcontractors
+                ->map(function (array $sub) use ($subcontractorLoadMap) {
+                    $parallelProjects = (int) ($subcontractorLoadMap[$sub['contractor_id']] ?? 0);
+                    $riskPct = (int) min(90, max(8, ($parallelProjects * 11)));
+
+                    $factors = [
+                        [
+                            'label' => 'Proiecte paralele',
+                            'impact' => (string) $parallelProjects,
+                            'detail' => 'alocari simultane active',
+                        ],
+                        [
+                            'label' => 'Formula risc',
+                            'impact' => $riskPct . '%',
+                            'detail' => '11% per proiect paralel',
+                        ],
+                    ];
+
+                    return [
+                        'id' => $sub['id'],
+                        'title' => $sub['title'],
+                        'project_name' => $sub['project_name'],
+                        'parallel_projects' => $parallelProjects,
+                        'risk_pct' => $riskPct,
+                        'reason' => $parallelProjects . ' proiecte paralele',
+                        'factors' => $factors,
+                        'url' => $sub['url'] ?? route('contractors.index'),
+                    ];
+                })
+                ->sortByDesc('risk_pct')
+                ->take(3)
                 ->values();
 
             $riskCount = collect([$stages, $tasks, $equipment, $subcontractors, $documents, $quality])
@@ -303,9 +602,35 @@ Route::get('/dashboard', function () {
                 ->filter(fn ($item) => (bool) ($item['risk'] ?? false))
                 ->count();
 
+            $stageRiskRate = $stages->count() > 0 ? $stages->where('criticality', 'high')->count() / $stages->count() : 0;
+            $taskRiskRate = $tasks->count() > 0 ? $tasks->where('criticality', 'high')->count() / $tasks->count() : 0;
+            $equipmentRiskRate = $equipment->count() > 0 ? $equipment->where('criticality', 'high')->count() / $equipment->count() : 0;
+            $subcontractorRiskRate = $subcontractors->count() > 0 ? $subcontractors->where('criticality', 'high')->count() / $subcontractors->count() : 0;
+            $documentRiskRate = $documents->count() > 0 ? $documents->where('criticality', 'medium')->count() / $documents->count() : 0;
+
+            $riskScore = (int) round((
+                ($stageRiskRate * 0.28)
+                + ($taskRiskRate * 0.24)
+                + ($equipmentRiskRate * 0.18)
+                + ($subcontractorRiskRate * 0.14)
+                + ($documentRiskRate * 0.16)
+            ) * 100);
+
+            $riskLevel = $riskScore >= 60 ? 'high' : ($riskScore >= 35 ? 'medium' : 'low');
+
+            $totalEvents = $stages->count() + $tasks->count() + $equipment->count() + $subcontractors->count() + $documents->count() + $quality->count();
+
+            $loadLevel = $totalEvents >= 8 ? 'critical' : ($totalEvents >= 4 ? 'normal' : 'light');
+
+            $loadLabel = $loadLevel === 'critical'
+                ? 'Zi critica'
+                : ($loadLevel === 'normal' ? 'Zi normala' : 'Zi lejera');
+
             return [
                 'date' => now()->isoFormat('D MMMM YYYY'),
-                'total_events' => $stages->count() + $tasks->count() + $equipment->count() + $subcontractors->count() + $documents->count() + $quality->count(),
+                'window' => $calendarWindow,
+                'categories' => $calendarCategories,
+                'total_events' => $totalEvents,
                 'risk_events' => $riskCount,
                 'stages' => $stages,
                 'tasks' => $tasks,
@@ -313,6 +638,24 @@ Route::get('/dashboard', function () {
                 'subcontractors' => $subcontractors,
                 'documents' => $documents,
                 'quality_checks' => $quality,
+                'load' => [
+                    'level' => $loadLevel,
+                    'label' => $loadLabel,
+                    'max' => 12,
+                    'value' => $totalEvents,
+                ],
+                'risk' => [
+                    'score' => $riskScore,
+                    'level' => $riskLevel,
+                    'blocked_tasks' => $tasks->where('status', 'blocked')->count(),
+                    'risky_stages' => $stages->where('criticality', 'high')->count(),
+                    'unpaid_documents' => $documents->whereIn('payment_status', ['unpaid', 'partial'])->count(),
+                    'predictive' => [
+                        'stage_delay' => $stageDelayPredictions,
+                        'budget_overrun' => $budgetPredictions,
+                        'subcontractor' => $subcontractorPredictions,
+                    ],
+                ],
             ];
         })(),
         'delayedPhases' => ProjectPhase::with(['project:id,name'])
@@ -362,6 +705,141 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified', EnsureOnboardingCompleted::class])->name('dashboard');
 
+Route::middleware('auth')->get('/help', function () {
+    return Inertia::render('Help/Index', [
+        'gettingStartedSteps' => [
+            [
+                'title' => '1. Deschide Dashboard-ul',
+                'text' => 'Aici vezi riscul zilei, incarcarea pe zi si ce trebuie actionat imediat.',
+                'href' => route('dashboard'),
+                'cta' => 'Mergi la Dashboard',
+            ],
+            [
+                'title' => '2. Adauga primul proiect',
+                'text' => 'Creeaza proiectul, apoi leaga clientul, etapele si bugetul initial.',
+                'href' => route('projects.create'),
+                'cta' => 'Creeaza proiect',
+            ],
+            [
+                'title' => '3. Planifica executia',
+                'text' => 'Completeaza WBS, taskuri, echipe si utilaje pentru a vedea calendarul real.',
+                'href' => route('wbs.index'),
+                'cta' => 'Deschide WBS',
+            ],
+            [
+                'title' => '4. Urmareste blocajele',
+                'text' => 'Defecte, documente, restante si riscuri apar in zona de atentie de pe Dashboard.',
+                'href' => route('defects.index'),
+                'cta' => 'Vezi defectele',
+            ],
+        ],
+        'moduleGuides' => [
+            [
+                'name' => 'Dashboard',
+                'summary' => 'Centrul zilnic de comanda: risc, incarcare, calendar operational si linkuri rapide.',
+                'route' => route('dashboard'),
+                'example' => 'Daca vezi risc mare la utilaje, intri direct pe proiectul sau calendarul utilajelor.',
+            ],
+            [
+                'name' => 'Proiecte + WBS',
+                'summary' => 'Structura proiectului, etape, progres si responsabilitati.',
+                'route' => route('projects.index'),
+                'example' => 'Pornesti cu proiectul, apoi spargi lucrarile in etape si sub-etape.',
+            ],
+            [
+                'name' => 'Planificare',
+                'summary' => 'Taskuri, Gantt, calendar de echipe si calendar de utilaje.',
+                'route' => route('tasks.index'),
+                'example' => 'Daca o echipa sta fara front de lucru, ajustezi taskurile si datele de start.',
+            ],
+            [
+                'name' => 'Resurse',
+                'summary' => 'Echipe interne, subcontractori, utilaje si materiale.',
+                'route' => route('teams.index'),
+                'example' => 'Verifici cine este alocat pe mai multe proiecte si unde apar supraincarcari.',
+            ],
+            [
+                'name' => 'Financiar',
+                'summary' => 'Oferte, documente, facturi materiale, cost tracking si situatii de lucrari.',
+                'route' => route('quotes.index'),
+                'example' => 'Daca ai cost mare pe o etapa, vezi imediat ce documente o imping peste medie.',
+            ],
+            [
+                'name' => 'Calitate',
+                'summary' => 'Defecte, verificari si rapoarte pentru inchiderea lucrarilor.',
+                'route' => route('defects.index'),
+                'example' => 'Defectele deschise raman in vedere pana sunt inchise si semnate.',
+            ],
+        ],
+        'practicalExamples' => [
+            [
+                'title' => 'Exemplu: lansezi un proiect nou',
+                'steps' => [
+                    'Creezi proiectul si legi clientul.',
+                    'Adaugi WBS-ul si imparti lucrarea in etape.',
+                    'Aloci echipe, subcontractori si utilaje.',
+                    'Urmaresti Dashboard-ul pentru risc si incarcare zilnica.',
+                ],
+                'links' => [
+                    ['label' => 'Proiect nou', 'href' => route('projects.create')],
+                    ['label' => 'WBS', 'href' => route('wbs.index')],
+                    ['label' => 'Echipe', 'href' => route('teams.index')],
+                ],
+            ],
+            [
+                'title' => 'Exemplu: planifici o zi aglomerata',
+                'steps' => [
+                    'Deschizi Dashboard-ul si verifici incarcarea pe zi.',
+                    'Filtrezi calendarul pe 7 sau 30 de zile daca ai mai multe alocari.',
+                    'Te uiti la riscurile predictive si deschizi detaliile factorilor.',
+                    'Mergi direct pe itemul cu problema folosind linkul din calendar.',
+                ],
+                'links' => [
+                    ['label' => 'Dashboard', 'href' => route('dashboard')],
+                    ['label' => 'Calendar utilaje', 'href' => route('equipment-calendar.index')],
+                    ['label' => 'Calendar echipe', 'href' => route('team-calendar.index')],
+                ],
+            ],
+            [
+                'title' => 'Exemplu: tratezi un defect',
+                'steps' => [
+                    'Inregistrezi defectul imediat ce apare.',
+                    'Il asignzi pe proiectul corect si ii pui prioritate.',
+                    'Il urmaresti pana cand este rezolvat si verificat.',
+                    'Daca sunt mai multe, folosesti pagina de defecte ca lista de actiune.',
+                ],
+                'links' => [
+                    ['label' => 'Defect nou', 'href' => route('defects.create')],
+                    ['label' => 'Lista defecte', 'href' => route('defects.index')],
+                    ['label' => 'Verificari', 'href' => route('quality-checks.index')],
+                ],
+            ],
+        ],
+        'faqs' => [
+            [
+                'question' => 'De unde incep daca nu am mai folosit aplicatia?',
+                'answer' => 'Incepe cu Dashboard-ul, apoi adauga un proiect, o etapa si o echipa. Dupa aceea vei vedea calendarul si riscurile.',
+            ],
+            [
+                'question' => 'Cum gasesc rapid ce este blocat azi?',
+                'answer' => 'Uita-te la cardul de risc din Dashboard, la incarcarea pe zi si la lista de atentie. Fiecare card are link direct.',
+            ],
+            [
+                'question' => 'Unde vad utilajele si echipele ocupate?',
+                'answer' => 'In calendarele dedicate sau in zona de resurse. De acolo poti sari direct pe elementul care trebuie ajustat.',
+            ],
+            [
+                'question' => 'Cum identific o problema financiara?',
+                'answer' => 'Deschide documentele, cost tracking si situatiile de lucrari. Daca exista supracost, este vizibil si in Dashboard.',
+            ],
+            [
+                'question' => 'Ce fac daca nu stiu unde se afla o functie?',
+                'answer' => 'Deschide Ajutor si urmareste sectiunea de module. Fiecare modul are un exemplu si un link spre pagina lui.',
+            ],
+        ],
+    ]);
+})->name('help.index');
+
 Route::middleware('auth')->group(function () {
     Route::get('onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
     Route::post('onboarding/step-1', [OnboardingController::class, 'storeStep1'])->name('onboarding.step1');
@@ -381,6 +859,10 @@ Route::middleware('auth')->group(function () {
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
         Route::patch('billing', [BillingController::class, 'update'])->name('billing.update');
 
+        Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
+        Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
+        Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
+
         // Proiecte & Clienti
         Route::resource('projects', ProjectController::class);
         Route::get('wbs', [WbsController::class, 'index'])->name('wbs.index');
@@ -394,10 +876,15 @@ Route::middleware('auth')->group(function () {
         Route::resource('contractors', ContractorController::class)->except('show');
         Route::resource('equipment', EquipmentController::class)->except('show');
         Route::resource('documents', DocumentController::class)->except('show');
+        Route::middleware('plan:document_branding')->group(function () {
+            Route::get('documente/configurare', [DocumentBrandingController::class, 'index'])->name('documents.branding.index');
+            Route::patch('documente/configurare', [DocumentBrandingController::class, 'update'])->name('documents.branding.update');
+        });
         Route::resource('stage-reports', StageReportController::class)->except('show');
         Route::get('situatii-de-lucrari', [StageReportController::class, 'index'])->name('situatii-lucrari.index');
         Route::resource('stage-tasks', StageTaskController::class)->except('show');
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+        Route::get('documents/{document}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
         Route::get('procese-verbale', [DocumentController::class, 'index'])->name('procese-verbale.index');
         Route::get('documente-subcontractori', [ContractorController::class, 'subcontractors'])->name('documente-subcontractori.index');
         Route::get('cost-tracking', [CostTrackingController::class, 'index'])->name('cost-tracking.index');
@@ -409,6 +896,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('quotes', QuoteController::class)->except('show');
         Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->name('quotes.pdf');
         Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
+        Route::patch('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
+        Route::post('quotes/{quote}/convert', [QuoteController::class, 'convertToProject'])->name('quotes.convert');
+        Route::post('quotes/{quote}/template', [QuoteController::class, 'saveAsTemplate'])->name('quotes.template.store');
         Route::resource('material-invoices', MaterialInvoiceController::class)->except('show');
 
         Route::middleware('plan:exports_csv')->group(function () {

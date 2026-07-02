@@ -176,6 +176,7 @@
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="text-sm font-medium text-gray-700">{{ formatCurrency(document.amount) }}</div>
                     <a v-if="document.file_path" :href="route('documents.download', document.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Fisier</a>
+                    <a :href="route('documents.pdf', document.id)" class="text-xs border border-orange-200 rounded px-2 py-1 text-orange-700 hover:bg-orange-50">PDF</a>
                     <Link :href="route('documents.edit', document.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Editeaza</Link>
                     <button @click="remove(document)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50">Sterge</button>
                 </div>

@@ -180,6 +180,112 @@ Legenda status:
 
 ## 12. Jurnal progres (cronologic)
 
+### 2026-07-01 - Checkpoint extensie mini-calendar operational
+- Etapa: extindere planning operational pe module active.
+- Dovezi:
+	- Mini-calendar integrat in pagina proiectului (`Projects/Show`) cu 6 fluxuri: etape, taskuri, utilaje, subcontractori, documente, calitate.
+	- Selector interval pentru mini-calendar proiect: `Azi`, `7 zile`, `30 zile` (query param `calendar_window`, refresh Inertia partial doar pentru `todayCalendar`).
+	- Mini-calendar utilaje integrat in `Equipment/Index` cu feed operational zilnic + link direct spre `equipment-calendar.index`.
+	- Mini-calendar subcontractori integrat in `Contractors/Index` cu feed operational zilnic + link spre `team-calendar.index`.
+	- Controller-ele `ProjectController`, `EquipmentController`, `ContractorController` livreaza acum payload dedicat `todayCalendar`.
+- Validare:
+	- `npm run build` -> passed.
+	- `ProjectAiToolsTest` -> 3/3 passed (67 assertions).
+	- `EquipmentCalendarTest`, `EquipmentManagementTest`, `ContractorsTest` -> 8/8 passed (46 assertions).
+- Ce ramane:
+	- Optional: extindere selector interval si in modulele `Equipment` si `Contractors` (momentan afisajul este pe agenda "azi").
+
+### 2026-07-01 - Checkpoint unificare intervale mini-calendar (complet)
+- Etapa: unificare UX si filtrare operationala pe toate modulele tinta.
+- Dovezi:
+	- `Equipment/Index` include selector interval `Azi / 7 zile / 30 zile` pentru mini-calendar.
+	- `Contractors/Index` include selector interval `Azi / 7 zile / 30 zile` pentru mini-calendar.
+	- `EquipmentController@index` si `ContractorController@index` filtreaza feed-ul mini-calendar pe `calendar_window` cu overlap real de interval.
+	- Filtrele existente (`q`, `type`, `availability_status`) raman compatibile cu noul query param `calendar_window`.
+- Validare:
+	- `npm run build` -> passed.
+	- `EquipmentCalendarTest`, `EquipmentManagementTest`, `ContractorsTest` -> 8/8 passed (46 assertions).
+- Ce ramane:
+	- N/A pentru obiectivul de integrare mini-calendar pe Proiect + Planificare + Utilaje + Subcontractori.
+
+### 2026-07-01 - Checkpoint enterprise mini-calendar (risc + critical + navigare)
+- Etapa: consolidare mini-calendar proiect la nivel enterprise.
+- Dovezi:
+	- Indicator AI nou in mini-calendar proiect: `Risc intarziere: X%`, calculat din 5 semnale operationale (etape risc, taskuri blocate, utilaje indisponibile, subcontractori supraincarcati, documente neplatite).
+	- Evidentiere critica pe itemi (severitate high/medium/normal) cu cod de culoare operational in UI:
+		- rosu pentru etape/taskuri cu risc,
+		- portocaliu pentru documente sensibile,
+		- albastru pentru utilaje,
+		- mov pentru subcontractori,
+		- verde pentru calitate.
+	- Itemii din mini-calendar proiect sunt acum clickabili si functioneaza ca hub de navigare:
+		- etapa -> ancora in pagina proiectului,
+		- task -> edit task de etapa,
+		- utilaj -> calendar utilaje filtrat pe interval/utilaj,
+		- subcontractor -> profil contractor,
+		- document -> edit document,
+		- calitate -> edit verificare calitate.
+- Validare:
+	- `npm run build` -> passed.
+	- `ProjectAiToolsTest`, `EquipmentCalendarTest`, `EquipmentManagementTest`, `ContractorsTest` -> 11/11 passed (113 assertions).
+- Ce ramane:
+	- Optional: tuning de formula AI de risc pe baza datelor istorice reale din productie.
+
+### 2026-07-01 - Checkpoint dashboard calendar AI (actualizare completa)
+- Etapa: aliniere Dashboard cu noul standard mini-calendar enterprise.
+- Dovezi:
+	- Calendarul din Dashboard include acum card AI "Risc intarziere azi: X%" cu nivel `low/medium/high`.
+	- Evenimentele din cele 6 categorii au severitate explicita (`criticality`) si stiluri unificate pe culori.
+	- Toate itemele din calendarul Dashboard sunt clickabile (navigare directa spre paginile relevante: proiect/etapa, task, calendar utilaje filtrat, contractor, document, verificare calitate).
+	- Payload-ul `todayCalendar` din `routes/web.php` livreaza acum metadata extinsa: `url`, `criticality`, `risk` agregat.
+- Validare:
+	- `npm run build` -> passed.
+	- `DashboardFinancialInsightsTest` -> 1/1 passed (26 assertions).
+- Ce ramane:
+	- Optional: expunerea transparentei scorului AI (tooltip cu ponderi) direct in cardul de risc.
+
+### 2026-07-01 - Checkpoint dashboard calendar AI predictiv (v2)
+- Etapa: extindere asistent executie cu predictii, filtre si semnal de incarcare.
+- Dovezi:
+	- Selector avansat `Azi / 7 zile / 30 zile` activ in Dashboard Calendar, cu refresh Inertia pe `todayCalendar`.
+	- Filtre pe categorii active: `Etape`, `Taskuri`, `Subcontractori`, `Utilaje`, `Documente`, `Calitate`.
+	- Indicator AI predictiv extins cu 3 fluxuri explicite:
+		- risc intarziere pe etape,
+		- risc depasire buget,
+		- risc subcontractor (proiecte paralele).
+	- Toate predictiile si itemii calendarului raman clickabile (hub operational de navigare).
+	- Indicator de incarcare pe zi introdus (`Zi lejera`, `Zi normala`, `Zi critica`) cu progress bar bazat pe numarul de evenimente.
+- Validare:
+	- `npm run build` -> passed.
+	- `DashboardFinancialInsightsTest` + `ProjectAiToolsTest` -> 4/4 passed (93 assertions).
+- Ce ramane:
+	- Optional: calibrare scoruri predictive cu istoric real si feedback din productie.
+
+### 2026-07-01 - Checkpoint explicabilitate risc (tooltip factori)
+- Etapa: transparenta AI pentru predictiile din Dashboard Calendar.
+- Dovezi:
+	- Predictiile `risc intarziere`, `risc depasire buget` si `risc subcontractor` includ acum breakdown pe factori (`label`, `impact`, `detail`) in payload.
+	- In UI, fiecare rand predictiv afiseaza indicator `detalii` cu tooltip pe hover care explica formula si contributiile.
+	- Operatorul poate vedea direct de ce un risc este 18%/22% fara investigatie suplimentara in alte module.
+- Validare:
+	- `npm run build` -> passed.
+	- `DashboardFinancialInsightsTest` -> 1/1 passed (26 assertions).
+- Ce ramane:
+	- Optional: transformarea tooltip-ului in popover rich (cu iconite si punctaj colorat).
+
+### 2026-07-01 - Checkpoint explicabilitate risc (popover rich)
+- Etapa: UX avansat pentru explicatiile predictive din Dashboard.
+- Dovezi:
+	- `detalii` nu mai este doar tooltip text; fiecare predicție deschide popover vizual cu lista de factori.
+	- Popover-ul afiseaza pe rand `label`, `impact`, `detail` pentru fiecare factor.
+	- Impactul factorilor este colorat automat (ex: `+` rosu, `%` portocaliu, `x` mov) pentru lectura rapida.
+	- Navigarea pe item-ul principal ramane activa; popover-ul este controlat separat prin butonul `detalii`.
+- Validare:
+	- `npm run build` -> passed.
+	- `DashboardFinancialInsightsTest` -> 1/1 passed (26 assertions).
+- Ce ramane:
+	- Optional: inchidere popover la click in afara + animatie fina la deschidere.
+
 ### 2026-07-01 - Checkpoint
 - Etapa inchisa: Faza 1 (WBS + Contractori).
 - Dovezi:

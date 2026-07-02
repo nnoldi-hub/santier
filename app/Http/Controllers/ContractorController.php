@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreContractorRequest;
 use App\Models\Contractor;
+use App\Models\ProjectPhase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +14,21 @@ class ContractorController extends Controller
 {
     public function index(Request $request): Response
     {
+        $calendarWindow = $request->string('calendar_window')->toString();
+        if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
+            $calendarWindow = 'today';
+        }
+
+        $windowStart = now()->startOfDay();
+        $windowEnd = match ($calendarWindow) {
+            '7d' => now()->copy()->addDays(6)->endOfDay(),
+            '30d' => now()->copy()->addDays(29)->endOfDay(),
+            default => now()->copy()->endOfDay(),
+        };
+
+        $windowStartDate = $windowStart->toDateString();
+        $windowEndDate = $windowEnd->toDateString();
+
         $search = $request->string('q')->toString();
         $type = $request->string('type')->toString();
 
@@ -36,8 +52,38 @@ class ContractorController extends Controller
             'filters' => [
                 'q' => $search,
                 'type' => $type,
+                'calendar_window' => $calendarWindow,
             ],
             'types' => Contractor::$typeLabels,
+            'todayCalendar' => ProjectPhase::query()
+                ->with(['project:id,name', 'contractor:id,name,type'])
+                ->whereHas('contractor', fn ($query) => $query->whereIn('type', [Contractor::TYPE_SUBCONTRACTOR, Contractor::TYPE_PFA]))
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
+                    $query
+                        ->whereBetween('start_date', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('end_date', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
+                            $inner
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $windowStartDate);
+                                });
+                        });
+                })
+                ->orderBy('start_date')
+                ->take(6)
+                ->get(['id', 'project_id', 'contractor_id', 'name', 'status', 'start_date', 'end_date'])
+                ->map(fn (ProjectPhase $phase) => [
+                    'id' => $phase->id,
+                    'contractor_name' => $phase->contractor?->name,
+                    'project_name' => $phase->project?->name,
+                    'stage_name' => $phase->name,
+                    'status' => $phase->status,
+                    'window' => trim((optional($phase->start_date)->format('d.m') ?? '-') . ' - ' . (optional($phase->end_date)->format('d.m') ?? '-')),
+                ])
+                ->values(),
         ]);
     }
 

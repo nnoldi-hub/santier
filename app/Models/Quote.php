@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Quote extends Model
 {
@@ -20,6 +21,7 @@ class Quote extends Model
         'discount_pct',
         'tva_pct',
         'notes',
+        'meta',
         'total_net',
         'total_tva',
         'total_gross',
@@ -34,6 +36,7 @@ class Quote extends Model
         'accepted_at' => 'datetime',
         'discount_pct' => 'decimal:2',
         'tva_pct' => 'decimal:2',
+        'meta' => 'array',
         'total_net' => 'decimal:2',
         'total_tva' => 'decimal:2',
         'total_gross' => 'decimal:2',
@@ -47,5 +50,10 @@ class Quote extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(QuoteItem::class)->orderBy('sort_order')->orderBy('id');
     }
 }

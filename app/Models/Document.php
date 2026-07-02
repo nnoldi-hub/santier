@@ -15,6 +15,8 @@ class Document extends Model
         'invoice' => 'Factura',
         'estimate' => 'Deviz',
         'offer' => 'Oferta',
+        'proc_verbal_receptie' => 'Proces verbal de receptie',
+        'proc_verbal_constatare' => 'Proces verbal de constatare',
     ];
 
     public static array $paymentStatusLabels = [
@@ -47,6 +49,16 @@ class Document extends Model
         'issued_at' => 'date',
         'file_size' => 'integer',
     ];
+
+    public function getTypeLabelAttribute(): string
+    {
+        return static::$typeLabels[$this->type] ?? (string) $this->type;
+    }
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        return static::$paymentStatusLabels[$this->payment_status] ?? (string) $this->payment_status;
+    }
 
     public function contractor(): BelongsTo
     {

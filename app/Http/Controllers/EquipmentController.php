@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreEquipmentRequest;
 use App\Models\Equipment;
+use App\Models\StageEquipment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,6 +19,21 @@ class EquipmentController extends Controller
 
     public function index(Request $request): Response
     {
+        $calendarWindow = $request->string('calendar_window')->toString();
+        if (!in_array($calendarWindow, ['today', '7d', '30d'], true)) {
+            $calendarWindow = 'today';
+        }
+
+        $windowStart = now()->startOfDay();
+        $windowEnd = match ($calendarWindow) {
+            '7d' => now()->copy()->addDays(6)->endOfDay(),
+            '30d' => now()->copy()->addDays(29)->endOfDay(),
+            default => now()->copy()->endOfDay(),
+        };
+
+        $windowStartDate = $windowStart->toDateString();
+        $windowEndDate = $windowEnd->toDateString();
+
         $search = $request->string('q')->toString();
         $type = $request->string('type')->toString();
         $status = $request->string('availability_status')->toString();
@@ -42,9 +58,38 @@ class EquipmentController extends Controller
                 'q' => $search,
                 'type' => $type,
                 'availability_status' => $status,
+                'calendar_window' => $calendarWindow,
             ],
             'types' => Equipment::$typeLabels,
             'availabilityStatuses' => Equipment::$availabilityLabels,
+            'todayCalendar' => StageEquipment::query()
+                ->with(['equipment:id,name', 'phase:id,name,project_id', 'phase.project:id,name'])
+                ->where(function ($query) use ($windowStartDate, $windowEndDate) {
+                    $query
+                        ->whereBetween('usage_start', [$windowStartDate, $windowEndDate])
+                        ->orWhereBetween('usage_end', [$windowStartDate, $windowEndDate])
+                        ->orWhere(function ($inner) use ($windowStartDate, $windowEndDate) {
+                            $inner
+                                ->where(function ($startQuery) use ($windowEndDate) {
+                                    $startQuery->whereNull('usage_start')->orWhereDate('usage_start', '<=', $windowEndDate);
+                                })
+                                ->where(function ($endQuery) use ($windowStartDate) {
+                                    $endQuery->whereNull('usage_end')->orWhereDate('usage_end', '>=', $windowStartDate);
+                                });
+                        });
+                })
+                ->orderBy('usage_start')
+                ->take(6)
+                ->get(['id', 'equipment_id', 'stage_id', 'quantity', 'usage_start', 'usage_end'])
+                ->map(fn (StageEquipment $reservation) => [
+                    'id' => $reservation->id,
+                    'equipment_name' => $reservation->equipment?->name,
+                    'project_name' => $reservation->phase?->project?->name,
+                    'stage_name' => $reservation->phase?->name,
+                    'quantity' => (int) $reservation->quantity,
+                    'window' => trim((optional($reservation->usage_start)->format('d.m') ?? '-') . ' - ' . (optional($reservation->usage_end)->format('d.m') ?? '-')),
+                ])
+                ->values(),
         ]);
     }
 
