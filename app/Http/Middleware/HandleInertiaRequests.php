@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\AppSetting;
 use App\Support\PricingPlan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -33,6 +34,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $notificationsEnabled = Schema::hasTable('notifications');
 
         return [
             ...parent::share($request),
@@ -40,9 +42,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'notifications' => [
-                'unreadCount' => $user ? $user->unreadNotifications()->count() : 0,
+                'unreadCount' => ($user && $notificationsEnabled) ? $user->unreadNotifications()->count() : 0,
                 'items' => $user
-                    ? $user->unreadNotifications()
+                    ? ($notificationsEnabled
+                        ? $user->unreadNotifications()
                         ->latest()
                         ->limit(8)
                         ->get()
@@ -53,6 +56,7 @@ class HandleInertiaRequests extends Middleware
                             'data' => $notification->data,
                         ])
                         ->values()
+                        : collect())
                     : [],
             ],
             'platform' => [
