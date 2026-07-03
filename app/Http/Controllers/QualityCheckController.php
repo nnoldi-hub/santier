@@ -194,7 +194,7 @@ class QualityCheckController extends Controller
             'aiInsight' => $aiInsight,
         ])->setPaper('a4');
 
-        return $pdf->download(sprintf('raport-calitate-%d.pdf', $quality_check->id));
+        return $pdf->stream(sprintf('raport-calitate-%d.pdf', $quality_check->id));
     }
 
     private function normalizeChecklist(array $checklist): array

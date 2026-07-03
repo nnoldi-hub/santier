@@ -86,7 +86,7 @@
                         <option value="passed">Conform</option>
                         <option value="failed">Neconform</option>
                     </select>
-                    <Link :href="route('quality-checks.pdf', check.id)" class="text-xs border border-indigo-300 rounded px-2 py-1 text-indigo-700 hover:bg-indigo-50">PDF</Link>
+                    <a :href="route('quality-checks.pdf', check.id)" target="_blank" rel="noopener" class="text-xs border border-indigo-300 rounded px-2 py-1 text-indigo-700 hover:bg-indigo-50">PDF</a>
                     <Link :href="route('quality-checks.edit', check.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Editeaza</Link>
                     <button @click="remove(check)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50">Sterge</button>
                 </div>
