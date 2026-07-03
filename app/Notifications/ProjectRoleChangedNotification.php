@@ -53,7 +53,8 @@ class ProjectRoleChangedNotification extends Notification
         $roleLabel = $this->roleKey !== null ? strtoupper($this->roleKey) : 'N/A';
 
         return (new MailMessage)
-            ->subject('Rol pe proiect ' . $eventLabel)
+            ->subject('Invitatie Modulia - Șantierul devine clar')
+            ->line('Ai fost invitat in Modulia, platforma moderna pentru management de santier.')
             ->line('Rolul tau pe proiect a fost ' . $eventLabel . '.')
             ->line('Proiect: ' . $this->project->name)
             ->line('Rol: ' . $roleLabel)

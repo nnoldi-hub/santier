@@ -61,9 +61,11 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-700">
-                                    <div class="font-medium text-gray-800">{{ item.data?.project_name || 'Notificare' }}</div>
-                                    <div>Rol: {{ (item.data?.role_key || 'N/A').toUpperCase() }}</div>
-                                    <div>Operat de: {{ item.data?.actor_name || 'Sistem' }}</div>
+                                    <div class="font-medium text-gray-800">{{ item.data?.title || item.data?.project_name || 'Notificare' }}</div>
+                                    <div>{{ item.data?.message || 'Detalii disponibile in notificare.' }}</div>
+                                    <div v-if="item.data?.project_name" class="text-gray-500">Proiect: {{ item.data.project_name }}</div>
+                                    <div v-if="item.data?.role_key" class="text-gray-500">Rol: {{ (item.data?.role_key || 'N/A').toUpperCase() }}</div>
+                                    <div v-if="item.data?.actor_name" class="text-gray-500">Operat de: {{ item.data.actor_name }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-xs">
                                     <span
@@ -199,6 +201,9 @@ function eventLabel(event) {
         assigned_bulk: 'Rol acordat in masa',
         updated: 'Rol actualizat',
         revoked: 'Rol revocat',
+        task_overdue: 'Task restant',
+        phase_overdue: 'Etapa intarziata',
+        defect_overdue: 'Defect critic',
     };
 
     return labels[event] || (event || '-');
@@ -210,6 +215,9 @@ function eventBadgeClass(event) {
         assigned_bulk: 'bg-indigo-100 text-indigo-700',
         updated: 'bg-amber-100 text-amber-700',
         revoked: 'bg-rose-100 text-rose-700',
+        task_overdue: 'bg-amber-100 text-amber-700',
+        phase_overdue: 'bg-red-100 text-red-700',
+        defect_overdue: 'bg-purple-100 text-purple-700',
     };
 
     return classes[event] || 'bg-slate-100 text-slate-700';
@@ -220,6 +228,18 @@ function actionLabel(item) {
 
     if (!item?.data?.project_id) {
         return 'Fara actiune';
+    }
+
+    if (event === 'task_overdue') {
+        return 'Editeaza task';
+    }
+
+    if (event === 'phase_overdue') {
+        return 'Verifica proiectul';
+    }
+
+    if (event === 'defect_overdue') {
+        return 'Editeaza defectul';
     }
 
     if (event === 'updated') {
@@ -234,6 +254,10 @@ function actionLabel(item) {
 }
 
 function actionLink(item) {
+    if (item?.data?.url) {
+        return item.data.url;
+    }
+
     if (!item?.data?.project_id) {
         return null;
     }

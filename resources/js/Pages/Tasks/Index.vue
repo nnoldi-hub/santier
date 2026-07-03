@@ -11,7 +11,7 @@
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs text-gray-600 mb-1">Status</label>
                     <select v-model="filterForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -27,6 +27,14 @@
                     <select v-model="filterForm.project_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                         <option value="">Toate proiectele</option>
                         <option v-for="project in projects" :key="project.id" :value="String(project.id)">{{ project.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Filtru avansat</label>
+                    <select v-model="filterForm.special_filter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">Fara filtru</option>
+                        <option value="critical">Critice</option>
+                        <option value="blocked">Blocate</option>
                     </select>
                 </div>
                 <div class="flex items-end gap-2">
@@ -60,6 +68,17 @@
                     </p>
                     <p v-if="task.description" class="text-sm text-gray-600 mt-2 line-clamp-2">{{ task.description }}</p>
                     <p v-if="task.deadline" class="text-xs text-gray-500 mt-2">Deadline: {{ formatDate(task.deadline) }}</p>
+                    <div v-if="Array.isArray(task.materials) && task.materials.length" class="mt-2 text-xs text-gray-600">
+                        Materiale: {{ task.materials.map((item) => `${Number(item.pivot?.quantity || 0).toFixed(2)} ${item.pivot?.unit_override || item.unit || ''} ${item.name}`).join(' · ') }}
+                    </div>
+                    <div v-if="Array.isArray(task.checklist) && task.checklist.length" class="mt-3">
+                        <div class="text-xs text-gray-500 mb-1">
+                            Checklist intern: {{ checklistDone(task) }}/{{ task.checklist.length }}
+                        </div>
+                        <div class="w-40 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                            <div class="h-full bg-emerald-500" :style="{ width: `${checklistProgress(task)}%` }"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
@@ -91,6 +110,7 @@ const props = defineProps({
 const filterForm = reactive({
     status: props.filters?.status || '',
     project_id: props.filters?.project_id ? String(props.filters.project_id) : '',
+    special_filter: props.filters?.special_filter || '',
 });
 
 function applyFilters() {
@@ -100,6 +120,7 @@ function applyFilters() {
 function resetFilters() {
     filterForm.status = '';
     filterForm.project_id = '';
+    filterForm.special_filter = '';
     applyFilters();
 }
 
@@ -149,5 +170,15 @@ function priorityClass(priority) {
         medium: 'bg-orange-100 text-orange-700',
         high: 'bg-red-100 text-red-700',
     }[priority] || 'bg-gray-100 text-gray-700';
+}
+
+function checklistDone(task) {
+    if (!Array.isArray(task.checklist)) return 0;
+    return task.checklist.filter((item) => item?.done).length;
+}
+
+function checklistProgress(task) {
+    if (!Array.isArray(task.checklist) || task.checklist.length === 0) return 0;
+    return Math.round((checklistDone(task) / task.checklist.length) * 100);
 }
 </script>

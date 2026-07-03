@@ -1,5 +1,5 @@
 <div style="font-family: Arial, sans-serif; color: #111827;">
-    <h2 style="margin-bottom: 8px;">Oferta pentru proiectul {{ $quote->project?->name ?? 'N/A' }}</h2>
+    <h2 style="margin-bottom: 8px;">Oferta Modulia pentru proiectul {{ $quote->project?->name ?? 'N/A' }}</h2>
 
     <p style="margin: 0 0 12px;">
         @if(!empty($recipientName))
@@ -20,6 +20,7 @@
         <li>Valabila pana la: {{ optional($quote->valid_until)->format('d.m.Y') ?? 'Nespecificat' }}</li>
     </ul>
 
-    <p style="margin: 0 0 8px;">Pentru clarificari, reveniti la acest email.</p>
-    <p style="margin: 0; color: #6b7280;">Mesaj trimis automat din platforma Santier.</p>
+    <p style="margin: 0 0 8px;">Ai fost invitat in Modulia, platforma moderna pentru management de santier.</p>
+    <p style="margin: 0 0 8px;">Activeaza contul si vezi clar tot ce se intampla in proiectele tale.</p>
+    <p style="margin: 0; color: #6b7280;">Modulia - Șantierul devine clar. · modulia.ro</p>
 </div>

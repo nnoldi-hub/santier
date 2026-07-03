@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Task extends Model
 {
@@ -21,11 +22,13 @@ class Task extends Model
         'status',
         'priority',
         'deadline',
+        'checklist',
         'completed_at',
     ];
 
     protected $casts = [
         'deadline' => 'datetime',
+        'checklist' => 'array',
         'completed_at' => 'datetime',
     ];
 
@@ -47,5 +50,12 @@ class Task extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function materials(): BelongsToMany
+    {
+        return $this->belongsToMany(Material::class, 'task_material')
+            ->withPivot(['quantity', 'unit_override', 'unit_price'])
+            ->withTimestamps();
     }
 }

@@ -60,7 +60,19 @@ class NotificationCenterController extends Controller
                 'event' => $event,
                 'search' => $search,
             ],
-            'eventOptions' => ['assigned', 'assigned_bulk', 'updated', 'revoked'],
+            'eventOptions' => [
+                'assigned',
+                'assigned_bulk',
+                'updated',
+                'revoked',
+                'task_overdue',
+                'phase_overdue',
+                'defect_overdue',
+                'team_overloaded',
+                'equipment_parallel',
+                'material_low_stock',
+                'subcontractor_parallel',
+            ],
         ]);
     }
 }

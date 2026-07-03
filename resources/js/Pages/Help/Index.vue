@@ -1,6 +1,52 @@
 <template>
     <AppLayout title="Ajutor">
         <div class="space-y-6">
+            <section class="rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm">
+                <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-center">
+                    <div>
+                        <div class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                            Recomandare premium 2.0
+                        </div>
+                        <h2 class="mt-3 text-2xl sm:text-3xl font-black text-slate-900">Cum functioneaza Modulia in 1 minut</h2>
+                        <p class="mt-2 text-sm sm:text-base text-slate-600">Video scurt (30-45 sec) pentru onboarding rapid: proiect, taskuri, cost tracking si raportare.</p>
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            <a
+                                href="https://modulia.ro/help"
+                                target="_blank"
+                                rel="noopener"
+                                class="inline-flex items-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Vezi video onboarding
+                            </a>
+                            <a
+                                href="https://modulia.ro/help"
+                                target="_blank"
+                                rel="noopener"
+                                class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                                Deschide documentatia externa
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-slate-100 shadow-xl">
+                        <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Preview Video</div>
+                        <div class="mt-3 rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 to-slate-950 p-4">
+                            <div class="text-sm font-semibold">Modulia in 1 minut</div>
+                            <p class="mt-1 text-xs text-slate-300">30-45 sec • onboarding pentru utilizatori noi</p>
+                            <a
+                                href="https://modulia.ro/help"
+                                target="_blank"
+                                rel="noopener"
+                                class="mt-4 inline-flex rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-600"
+                            >
+                                Play tutorial
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-50 via-white to-blue-50"></div>
                 <div class="relative p-6 sm:p-8 lg:p-10 grid lg:grid-cols-[1.4fr_0.9fr] gap-8 items-center">
@@ -123,6 +169,58 @@
                 </div>
             </section>
 
+            <section class="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-6 sm:p-8 shadow-sm">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Ghiduri interactive</div>
+                        <h2 class="mt-2 text-2xl font-black text-slate-900">Checklist operational cu bife</h2>
+                        <p class="mt-2 text-sm text-slate-600">Bifeaza pasii pe masura ce configurezi aplicatia. Progresul se actualizeaza instant.</p>
+                    </div>
+                    <div class="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700">
+                        {{ checklistDoneCount }} / {{ checklistItems.length }} completat
+                    </div>
+                </div>
+
+                <div class="mt-5 grid gap-3 lg:grid-cols-2">
+                    <label
+                        v-for="item in checklistItems"
+                        :key="item.id"
+                        class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 cursor-pointer"
+                    >
+                        <input v-model="item.done" type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900" :class="item.done ? 'line-through text-slate-500' : ''">{{ item.title }}</div>
+                            <p class="mt-1 text-xs text-slate-600">{{ item.description }}</p>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <section class="rounded-3xl border border-indigo-200 bg-white p-6 sm:p-8 shadow-sm">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Mini-tutoriale integrate</div>
+                        <h2 class="mt-2 text-2xl font-black text-slate-900">Arata-mi cum fac rapid</h2>
+                        <p class="mt-2 text-sm text-slate-600">Tutoriale scurte pentru actiunile cele mai frecvente in Modulia.</p>
+                    </div>
+                    <a href="https://modulia.ro/help" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        modulia.ro/help
+                    </a>
+                </div>
+
+                <div class="mt-6 grid gap-4 lg:grid-cols-3">
+                    <div v-for="tutorial in miniTutorials" :key="tutorial.title" class="rounded-2xl border border-slate-200 p-5">
+                        <div class="text-sm font-bold text-slate-900">{{ tutorial.title }}</div>
+                        <p class="mt-2 text-sm text-slate-600">{{ tutorial.text }}</p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <Link :href="tutorial.href" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+                                {{ tutorial.cta }}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                 <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Cum folosesti bine platforma</div>
@@ -139,8 +237,16 @@
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-500">Intrebari frecvente</div>
                     <h2 class="mt-2 text-2xl font-black text-slate-900">Cand te blochezi, cauta aici</h2>
                     <p class="mt-2 text-sm text-slate-600">Raspunsuri scurte la cele mai comune situatii de inceput.</p>
+                    <div class="mt-4">
+                        <input
+                            v-model="faqQuery"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 focus:border-orange-400 focus:ring-orange-400"
+                            placeholder="Cauta in FAQ (ex: proiect, oferta, raport, roluri...)"
+                        />
+                    </div>
                     <div class="mt-5 space-y-3">
-                        <div v-for="(faq, index) in faqs" :key="faq.question" class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        <div v-for="(faq, index) in filteredFaqs" :key="faq.question" class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                             <button
                                 type="button"
                                 class="w-full flex items-start justify-between gap-4 p-4 text-left hover:bg-slate-50 transition"
@@ -157,6 +263,9 @@
                                 <p class="text-sm text-slate-600">{{ faq.answer }}</p>
                             </div>
                         </div>
+                        <div v-if="filteredFaqs.length === 0" class="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+                            Nu am gasit rezultate pentru cautarea ta. Incearca alt cuvant cheie sau deschide documentatia externa.
+                        </div>
                     </div>
                 </div>
             </section>
@@ -167,9 +276,9 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     gettingStartedSteps: { type: Array, default: () => [] },
     moduleGuides: { type: Array, default: () => [] },
     practicalExamples: { type: Array, default: () => [] },
@@ -204,6 +313,69 @@ const bestPractices = [
 ];
 
 const openFaqIndex = ref(0);
+const faqQuery = ref('');
+
+const filteredFaqs = computed(() => {
+    const query = faqQuery.value.trim().toLowerCase();
+    if (query === '') {
+        return props.faqs;
+    }
+
+    return props.faqs.filter((faq) => (
+        String(faq.question || '').toLowerCase().includes(query)
+        || String(faq.answer || '').toLowerCase().includes(query)
+    ));
+});
+
+const checklistItems = ref([
+    {
+        id: 'setup-company',
+        title: 'Configureaza datele companiei si brandingul documentelor',
+        description: 'Completeaza date firma, logo, culori si semnaturi pentru PDF-uri.',
+        done: false,
+    },
+    {
+        id: 'create-project',
+        title: 'Creeaza primul proiect si structura WBS',
+        description: 'Adauga etape, taskuri si responsabili pentru executie controlata.',
+        done: false,
+    },
+    {
+        id: 'invite-team',
+        title: 'Invita echipa si seteaza roluri/permisiuni',
+        description: 'Asigura accesul corect pentru admin, manager, subcontractori si client.',
+        done: false,
+    },
+    {
+        id: 'track-costs',
+        title: 'Activeaza cost tracking si rapoarte',
+        description: 'Urmareste costuri reale, status financiar si exporturi manageriale.',
+        done: false,
+    },
+]);
+
+const checklistDoneCount = computed(() => checklistItems.value.filter((item) => item.done).length);
+
+const miniTutorials = [
+    {
+        title: 'Arata-mi cum creez un proiect',
+        text: 'Start rapid pentru proiect nou cu client, buget, deadline si status initial.',
+        href: route('projects.create'),
+        cta: 'Deschide wizard proiect',
+    },
+    {
+        title: 'Arata-mi cum fac o oferta',
+        text: 'Flux simplu de ofertare: articole, valori, export PDF si trimitere.',
+        href: route('quotes.create'),
+        cta: 'Creeaza oferta',
+    },
+    {
+        title: 'Arata-mi cum configurez documentele',
+        text: 'Seteaza template-uri, branding si elemente obligatorii pentru documente.',
+        href: route('documents.branding.index'),
+        cta: 'Configureaza documente',
+    },
+];
 
 function toggleFaq(index) {
     openFaqIndex.value = openFaqIndex.value === index ? null : index;

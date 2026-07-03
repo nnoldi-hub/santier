@@ -25,7 +25,7 @@ class QuoteSentMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Oferta ' . $this->quote->title,
+            subject: 'Modulia - Șantierul devine clar - Oferta ' . $this->quote->title,
         );
     }
 

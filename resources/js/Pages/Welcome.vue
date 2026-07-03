@@ -1,23 +1,21 @@
 ﻿<template>
-    <Head :title="`${appName} - Management de santier`" />
+    <Head title="MODULIA - Management de santier" />
 
     <div class="landing min-h-screen text-slate-800">
         <div class="noise-layer"></div>
 
         <header class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 relative z-10">
-            <div class="bg-white/75 backdrop-blur border border-slate-200 rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-[var(--brand-orange)]/15 flex items-center justify-center text-lg">🏗️</div>
-                    <div>
-                        <div class="text-sm tracking-wide text-slate-500">Platforma SaaS</div>
-                        <div class="font-semibold text-slate-900">{{ appName }}</div>
+            <div class="bg-[#1E1E1E]/95 border border-slate-700 rounded-2xl px-4 sm:px-8 py-4 flex items-center justify-between shadow-xl">
+                <div class="header-logo">
+                    <div class="logo-crop logo-crop--header">
+                        <img src="/brand/logo_modulia.png" alt="Modulia" class="logo-crop__img" />
                     </div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-3">
                     <Link
                         v-if="canLogin"
                         :href="route('login')"
-                        class="px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium hover:bg-slate-50 transition"
+                        class="px-4 py-2 rounded-lg border border-slate-500 text-sm font-medium text-slate-100 hover:bg-slate-800 transition"
                     >
                         Login
                     </Link>
@@ -36,6 +34,12 @@
             <section class="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16">
                 <div class="grid lg:grid-cols-2 gap-10 items-center">
                     <div>
+                        <div class="hero-logo mb-6">
+                            <div class="logo-crop logo-crop--hero">
+                                <img src="/brand/logo_modulia.png" alt="Modulia" class="logo-crop__img" />
+                            </div>
+                        </div>
+
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-slate-200 text-xs font-semibold text-slate-600 mb-5">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             Lansare pilot activa
@@ -48,7 +52,7 @@
                         </h1>
 
                         <p class="mt-5 text-lg text-slate-600 max-w-xl">
-                            {{ appName }} te ajuta sa planifici proiecte, sa coordonezi echipe, sa inchizi defecte si sa livrezi rapoarte executive intr-o singura platforma.
+                            Cu Modulia, proiectele tale devin clare, ordonate si usor de controlat.
                         </p>
 
                         <div class="mt-7 flex flex-wrap gap-3">
@@ -57,14 +61,14 @@
                                 :href="route('register')"
                                 class="px-6 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition"
                             >
-                                Incearca gratuit {{ trialDays }} zile
+                                Încearcă Modulia
                             </Link>
                             <Link
                                 v-if="canLogin"
                                 :href="route('login')"
                                 class="px-6 py-3 rounded-xl bg-white border border-slate-300 font-semibold hover:bg-slate-50 transition"
                             >
-                                Vezi demo live
+                                Solicită demo
                             </Link>
                         </div>
 
@@ -90,7 +94,7 @@
                             <div class="flex items-center justify-between mb-4">
                                 <div>
                                     <div class="text-xs uppercase tracking-wide text-slate-500">Demo live</div>
-                                    <div class="font-semibold">Santier Control Panel</div>
+                                    <div class="font-semibold">Modulia Control Panel</div>
                                 </div>
                                 <div class="text-xs px-2 py-1 rounded-md bg-emerald-100 text-emerald-700">Online</div>
                             </div>
@@ -140,7 +144,8 @@
             </section>
 
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
-                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Suita Santier intr-un singur flux</h2>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Module esentiale MODULIA</h2>
+                <p class="mt-2 text-slate-600">Ofertare inteligenta, WBS, taskuri, documente, financiar, AI si control enterprise intr-o singura platforma.</p>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="feature in features" :key="feature.title" class="feature-card rounded-2xl p-5 text-white">
                         <div class="text-2xl">{{ feature.icon }}</div>
@@ -264,13 +269,14 @@
 
         <footer class="relative z-10 border-t border-slate-200 bg-white/70">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap gap-3 items-center justify-between text-sm text-slate-600">
-                <div>{{ companyName }} SaaS - management proiecte constructii</div>
+                <div class="flex items-center gap-2">
+                    <img src="/brand/logo_modulia.png" alt="Modulia" class="h-6 w-6 object-contain" />
+                    <span>Modulia - Șantierul devine clar.</span>
+                </div>
                 <div class="flex items-center gap-4">
-                    <span v-if="supportEmail">Suport: {{ supportEmail }}</span>
-                    <span v-if="salesEmail">Vanzari: {{ salesEmail }}</span>
-                    <span>Documentatie</span>
-                    <span>GDPR</span>
-                    <span>Termeni</span>
+                    <a href="https://modulia.ro" target="_blank" rel="noopener" class="text-[var(--brand-blue)] hover:underline">modulia.ro</a>
+                    <a :href="`mailto:${supportEmail || 'suport@modulia.ro'}`" class="text-[var(--brand-blue)] hover:underline">Suport</a>
+                    <span>© 2026 Modulia</span>
                 </div>
             </div>
         </footer>
@@ -282,8 +288,8 @@ import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 
 defineProps({
-    appName: { type: String, default: 'Santier' },
-    companyName: { type: String, default: 'Santier' },
+    appName: { type: String, default: 'Modulia' },
+    companyName: { type: String, default: 'Modulia' },
     trialDays: { type: Number, default: 14 },
     supportEmail: { type: String, default: '' },
     salesEmail: { type: String, default: '' },
@@ -302,12 +308,14 @@ const painPoints = [
 ];
 
 const features = [
-    { icon: '📅', title: 'Gantt modern', text: 'Vizibilitate pe etape, dependente, progres si riscuri operative.' },
-    { icon: '✅', title: 'Taskuri cu responsabil', text: 'Flux clar: creare, asignare, prioritate, deadline si inchidere.' },
-    { icon: '👷', title: 'Echipe si resurse', text: 'Organizezi echipe, specialitati si alocari pe faze de proiect.' },
-    { icon: '📦', title: 'Materiale', text: 'Catalog unificat cu coduri, furnizori si control de costuri.' },
-    { icon: '📋', title: 'Oferte si devize', text: 'Calcule rapide si comparatie versiuni pentru decizii comerciale.' },
-    { icon: '📊', title: 'Export enterprise', text: 'Workbook multi-sheet, PDF managerial, audit si subscriptions.' },
+    { icon: '🧠', title: 'Ofertare inteligenta', text: 'Generezi oferte in cateva minute, cu sabloane inteligente, costuri reale si timeline automat. Modulia invata din ofertele tale si devine tot mai precisa.' },
+    { icon: '🧱', title: 'Proiecte & WBS', text: 'Structura clara pe etape, taskuri si progres. Totul modular, exact ca brandul Modulia.' },
+    { icon: '✅', title: 'Taskuri & Progres', text: 'Vezi ce se intampla pe santier in timp real. Actualizari, poze, rapoarte, responsabilitati - totul intr-un singur loc.' },
+    { icon: '🗓️', title: 'Calendar & Planificare', text: 'Planificare vizuala, clara, fara haos. Stii mereu cine, ce si cand lucreaza.' },
+    { icon: '📁', title: 'Documente', text: 'Documente ordonate, aprobari, versiuni, exporturi. Totul masurabil si usor de gasit.' },
+    { icon: '💸', title: 'Financiar & Cost Tracking', text: 'Costuri reale, materiale, manopera, profit, devize. Totul transparent si masurabil.' },
+    { icon: '🤖', title: 'AI Tools', text: 'AI care te ajuta sa generezi oferte, sa analizezi proiecte si sa vezi riscurile din timp. Modern, rapid, inteligent.' },
+    { icon: '🛡️', title: 'Roluri & Permisiuni Enterprise', text: 'Control complet asupra accesului. Superadmin, Admin firma, roluri custom, permisiuni granulare.' },
 ];
 
 function formatPrice(price) {
@@ -344,16 +352,18 @@ function submitDemoRequest() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&family=Poppins:wght@500;600;700&display=swap');
 
 .landing {
-    --brand-orange: #f57c00;
-    --brand-blue: #1565c0;
-    font-family: 'Space Grotesk', sans-serif;
+    --brand-orange: #FF7A00;
+    --brand-blue: #0057FF;
+    --brand-dark: #2E2E2E;
+    --brand-light: #F2F2F2;
+    font-family: 'Inter', sans-serif;
     background:
-        radial-gradient(80rem 40rem at 95% -10%, rgba(21, 101, 192, 0.18), transparent 65%),
-        radial-gradient(70rem 35rem at -5% 5%, rgba(245, 124, 0, 0.2), transparent 60%),
-        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+        radial-gradient(80rem 40rem at 95% -10%, rgba(0, 87, 255, 0.18), transparent 65%),
+        radial-gradient(70rem 35rem at -5% 5%, rgba(255, 122, 0, 0.2), transparent 60%),
+        linear-gradient(180deg, #f8fafc 0%, var(--brand-light) 100%);
 }
 
 .noise-layer {
@@ -372,7 +382,47 @@ h3 {
 }
 
 .feature-card {
-    background: linear-gradient(140deg, #0f172a 0%, #1e3a8a 55%, #0f766e 100%);
+    background: linear-gradient(140deg, #2E2E2E 0%, #0057FF 55%, #FF7A00 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-crop {
+    overflow: hidden;
+    border-radius: 14px;
+}
+
+.logo-crop__img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.logo-crop--header {
+    height: 72px;
+    width: 420px;
+}
+
+.logo-crop--hero {
+    height: 160px;
+    width: 620px;
+}
+
+@media (max-width: 640px) {
+    .logo-crop--header {
+        height: 64px;
+        width: 300px;
+    }
+
+    .logo-crop--hero {
+        height: 130px;
+        width: 420px;
+    }
 }
 </style>

@@ -24,7 +24,7 @@ class ScheduledExportMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Export automat: ' . $this->subscriptionName,
+            subject: 'Modulia - Șantierul devine clar - Export automat: ' . $this->subscriptionName,
         );
     }
 

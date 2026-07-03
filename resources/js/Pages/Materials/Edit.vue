@@ -36,6 +36,19 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Stoc curent</label>
+                        <input v-model="form.stock_quantity" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors.stock_quantity" class="text-red-500 text-xs mt-1">{{ form.errors.stock_quantity }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prag minim stoc</label>
+                        <input v-model="form.min_stock_quantity" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors.min_stock_quantity" class="text-red-500 text-xs mt-1">{{ form.errors.min_stock_quantity }}</p>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Furnizor</label>
                     <input v-model="form.supplier" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -85,6 +98,8 @@ const form = useForm({
     category: props.material.category || '',
     unit: props.material.unit || 'buc',
     unit_price: props.material.unit_price || 0,
+    stock_quantity: props.material.stock_quantity,
+    min_stock_quantity: props.material.min_stock_quantity,
     supplier: props.material.supplier || '',
     active: !!props.material.active,
     notes: props.material.notes || '',

@@ -2,7 +2,8 @@
     <h2 style="margin: 0 0 10px; color: #0f172a;">Salut, {{ $user->name }}!</h2>
 
     @if($campaignKey === 'welcome')
-        <p style="margin: 0 0 12px;">Bine ai venit in <strong>Santier</strong>. Ai activat perioada de trial si poti folosi fluxurile complete pentru proiecte, taskuri, defecte si raportare.</p>
+        <p style="margin: 0 0 12px;">Ai fost invitat in <strong>Modulia</strong>, platforma moderna pentru management de santier.</p>
+        <p style="margin: 0 0 12px;">Activeaza contul si vezi clar tot ce se intampla in proiectele tale.</p>
         <ul style="margin: 0 0 14px; padding-left: 18px;">
             <li>Finalizeaza onboarding-ul in 3 pasi.</li>
             <li>Creeaza primul proiect.</li>
@@ -28,4 +29,5 @@
     @endif
 
     <p style="margin: 0;">Poti gestiona planul direct din sectiunea <strong>Plan si Billing</strong> in aplicatie.</p>
+    <p style="margin: 8px 0 0; color: #6b7280;">Modulia - Șantierul devine clar. · modulia.ro</p>
 </div>

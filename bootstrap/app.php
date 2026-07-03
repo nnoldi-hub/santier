@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Console\Commands\RunScheduledExportsCommand::class,
         \App\Console\Commands\SendTrialLifecycleEmailsCommand::class,
         \App\Console\Commands\RefreshPublicDemoCommand::class,
+        \App\Console\Commands\SendOperationalRemindersCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [

@@ -7,12 +7,17 @@
         />
 
         <aside
-            class="w-64 bg-gray-900 text-white flex flex-col fixed inset-y-0 z-50 transition-transform duration-200 ease-out"
+            class="w-64 bg-[#1E1E1E] text-white flex flex-col fixed inset-y-0 z-50 transition-transform duration-200 ease-out"
             :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
         >
-            <div class="h-16 flex items-center px-6 border-b border-gray-700">
-                <span class="text-2xl mr-2">🏗️</span>
-                <span class="text-xl font-bold text-orange-400">{{ platformAppName }}</span>
+            <div class="h-24 flex items-center px-4 border-b border-gray-700 gap-3">
+                <div class="modulia-logo-crop" aria-label="Modulia">
+                    <img src="/brand/logo_modulia.png" alt="Modulia" class="modulia-logo-crop__img" />
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-extrabold tracking-wide text-white truncate">{{ platformAppName }}</div>
+                    <div class="text-[11px] text-gray-300 truncate">Șantierul devine clar.</div>
+                </div>
             </div>
 
             <nav class="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
@@ -46,6 +51,7 @@
                         <NavItem :href="routeOrFallback('stage-tasks.index')" :disabled="routeMissing('stage-tasks.index')" icon="🧱" label="Taskuri pe etapa" />
                         <NavItem :href="routeOrFallback('team-calendar.index')" :disabled="routeMissing('team-calendar.index')" icon="🗓️" label="Calendar echipe" />
                         <NavItem :href="routeOrFallback('equipment-calendar.index')" :disabled="routeMissing('equipment-calendar.index')" icon="🛠️" label="Calendar utilaje" />
+                        <NavItem :href="routeOrFallback('resource-calendar.index')" :disabled="routeMissing('resource-calendar.index')" icon="🧭" label="Calendar resurse" />
                     </div>
                 </div>
 
@@ -157,6 +163,9 @@
                     ☰
                 </button>
                 <h1 class="text-lg font-semibold text-gray-800">{{ title }}</h1>
+                <div class="ml-4 hidden lg:flex items-center rounded-full bg-[#0057FF]/10 px-3 py-1 text-xs font-semibold text-[#0057FF]">
+                    Claritate in fiecare proiect.
+                </div>
                 <div
                     v-if="isDemoMode"
                     class="ml-4 hidden md:flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-800"
@@ -219,12 +228,12 @@
                                     </div>
                                     <div class="mt-2 flex items-center justify-between">
                                         <Link
-                                            v-if="notificationProjectId(notification)"
-                                            :href="route('projects.show', notificationProjectId(notification))"
+                                            v-if="notificationLink(notification)"
+                                            :href="notificationLink(notification)"
                                             class="text-xs text-blue-600 hover:text-blue-700"
                                             @click="notificationsOpen = false"
                                         >
-                                            Deschide proiect
+                                            Deschide
                                         </Link>
                                         <span v-else class="text-xs text-gray-400">{{ notificationTimestamp(notification) }}</span>
 
@@ -256,6 +265,19 @@
                 </div>
                 <slot />
             </main>
+
+            <footer class="border-t border-gray-200 bg-white/90 px-6 py-4">
+                <div class="flex flex-col gap-2 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+                    <div class="flex items-center gap-2">
+                        <img src="/brand/logo_modulia.png" alt="Modulia" class="h-6 w-6 object-contain" />
+                        <span>Modulia - Șantierul devine clar.</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a href="https://modulia.ro" target="_blank" rel="noopener" class="text-[#0057FF] hover:underline">modulia.ro</a>
+                        <a href="mailto:suport@modulia.ro" class="text-[#0057FF] hover:underline">Suport</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 </template>
@@ -289,7 +311,7 @@ const sections = reactive({ ...defaultSections });
 
 const sectionRoutes = {
     projects: ['projects.index', 'wbs.index', 'contractors.index', 'equipment.index', 'documents.index', 'stage-reports.index'],
-    planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index'],
+    planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index'],
     financial: ['quotes.index', 'documents.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
@@ -332,7 +354,7 @@ const hasRoute = (name) => {
 const routeOrFallback = (name) => (hasRoute(name) ? route(name) : '#');
 const routeMissing = (name) => !hasRoute(name);
 
-const platformAppName = computed(() => page.props.platform?.appName || 'Santier');
+const platformAppName = computed(() => page.props.platform?.appName || 'Modulia');
 const isPlatformAdmin = computed(() => Boolean(page.props.platform?.isAdmin));
 const canManageDocumentBranding = computed(() => ['starter', 'pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
 
@@ -348,11 +370,19 @@ const unreadNotificationCount = computed(() => Number(page.props.notifications?.
 const unreadNotifications = computed(() => page.props.notifications?.items || []);
 
 const notificationTitle = (notification) => {
+    if (notification?.data?.title) {
+        return notification.data.title;
+    }
+
     const event = notification?.data?.event;
-    return event ? `Rol proiect: ${event}` : 'Notificare';
+    return event ? `Eveniment: ${event}` : 'Notificare';
 };
 
 const notificationMessage = (notification) => {
+    if (notification?.data?.message) {
+        return notification.data.message;
+    }
+
     const projectName = notification?.data?.project_name || 'Proiect';
     const roleKey = notification?.data?.role_key || 'N/A';
     const actorName = notification?.data?.actor_name || 'Sistem';
@@ -361,6 +391,8 @@ const notificationMessage = (notification) => {
 };
 
 const notificationProjectId = (notification) => Number(notification?.data?.project_id || 0) || null;
+
+const notificationLink = (notification) => notification?.data?.url || (notificationProjectId(notification) ? route('projects.show', notificationProjectId(notification)) : null);
 
 const notificationTimestamp = (notification) => {
     const value = notification?.created_at;
@@ -421,3 +453,20 @@ watch(
     },
 );
 </script>
+
+<style scoped>
+.modulia-logo-crop {
+    height: 64px;
+    width: 280px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.modulia-logo-crop__img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+</style>

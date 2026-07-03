@@ -1,5 +1,11 @@
 <template>
     <AppLayout title="Dashboard">
+        <div class="mb-5 flex items-center justify-end">
+            <span class="rounded-full bg-[#0057FF]/10 px-3 py-1 text-xs font-semibold tracking-wide text-[#0057FF]">
+                Claritate in fiecare proiect.
+            </span>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
             <StatCard icon="🏠" label="Proiecte active" :value="stats.activeProjects" color="blue" />
             <StatCard icon="👷" label="Echipe alocate" :value="stats.teams" color="green" />
@@ -22,6 +28,124 @@
                 <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Progres mediu</div>
                 <div class="text-2xl font-semibold text-gray-800">{{ stats.avgProgress }}%</div>
                 <div class="text-xs text-gray-500 mt-1">pe etape active</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-base font-semibold text-gray-800">Dashboard resurse</h2>
+                    <p class="text-sm text-gray-500 mt-1">Overview rapid pentru echipe, subcontractori, utilaje si materiale.</p>
+                </div>
+                <Link :href="route('resource-calendar.index')" class="text-xs text-orange-500 hover:underline">Calendar combinat echipe + utilaje →</Link>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-amber-700">Echipe supraincarcate</div>
+                    <div class="text-2xl font-semibold text-amber-900 mt-1">{{ stats.overloadedTeamsCount || 0 }}</div>
+                </div>
+                <div class="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-purple-700">Subcontractori in paralel</div>
+                    <div class="text-2xl font-semibold text-purple-900 mt-1">{{ stats.parallelSubcontractorsCount || 0 }}</div>
+                </div>
+                <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-red-700">Utilaje indisponibile</div>
+                    <div class="text-2xl font-semibold text-red-900 mt-1">{{ stats.unavailableEquipmentCount || 0 }}</div>
+                </div>
+                <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-orange-700">Materiale cu stoc scazut</div>
+                    <div class="text-2xl font-semibold text-orange-900 mt-1">{{ stats.lowStockMaterialsCount || 0 }}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div class="rounded-lg border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Echipe supraincarcate</div>
+                    <div v-if="resourceDashboard.overloadedTeams?.length" class="space-y-1.5">
+                        <div v-for="item in resourceDashboard.overloadedTeams" :key="`rt-${item.team_id}`" class="text-xs rounded border border-amber-100 bg-amber-50 px-2.5 py-2 text-amber-900">
+                            {{ item.name }} · necesar {{ item.workers_needed }} / alocati {{ item.workers_assigned }} · {{ item.parallel_assignments }} alocari
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Nicio echipa supraincarcata azi.</div>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Subcontractori in paralel</div>
+                    <div v-if="resourceDashboard.parallelSubcontractors?.length" class="space-y-1.5">
+                        <div v-for="item in resourceDashboard.parallelSubcontractors" :key="`rs-${item.contractor_id}`" class="text-xs rounded border border-purple-100 bg-purple-50 px-2.5 py-2 text-purple-900">
+                            {{ item.name }} · {{ item.parallel_projects }} proiecte · {{ item.parallel_phases }} etape
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Niciun subcontractor in paralel azi.</div>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Utilaje indisponibile</div>
+                    <div v-if="resourceDashboard.unavailableEquipment?.length" class="space-y-1.5">
+                        <div v-for="item in resourceDashboard.unavailableEquipment" :key="`re-${item.id}`" class="text-xs rounded border border-red-100 bg-red-50 px-2.5 py-2 text-red-900">
+                            {{ item.name }} · {{ item.availability_status }}
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Toate utilajele active sunt disponibile.</div>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800 mb-2">Materiale cu stoc scazut</div>
+                    <div v-if="resourceDashboard.lowStockMaterials?.length" class="space-y-1.5">
+                        <div v-for="item in resourceDashboard.lowStockMaterials" :key="`rm-${item.id}`" class="text-xs rounded border border-orange-100 bg-orange-50 px-2.5 py-2 text-orange-900">
+                            {{ item.name }} · stoc {{ Number(item.stock_quantity || 0).toFixed(2) }} / minim {{ Number(item.min_stock_quantity || 0).toFixed(2) }} {{ item.unit }}
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-400">Niciun material sub pragul minim.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 class="text-base font-semibold text-gray-800 mb-4">Costuri resurse in timp real</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-blue-700">Cost utilaje / zi</div>
+                    <div class="text-2xl font-semibold text-blue-900 mt-1">{{ fmtCur(realtimeCosts.equipment_daily_cost || 0) }}</div>
+                </div>
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-emerald-700">Cost echipe / zi</div>
+                    <div class="text-2xl font-semibold text-emerald-900 mt-1">{{ fmtCur(realtimeCosts.team_daily_cost || 0) }}</div>
+                </div>
+                <div class="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                    <div class="text-xs uppercase tracking-wider text-purple-700">Cost subcontractori / etape</div>
+                    <div class="text-2xl font-semibold text-purple-900 mt-1">{{ fmtCur(stats.subcontractorDailyCost || 0) }}</div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-gray-200 p-4">
+                <div class="text-sm font-semibold text-gray-800 mb-2">Top etape dupa cost subcontractori</div>
+                <div v-if="realtimeCosts.subcontractor_cost_by_phase?.length" class="space-y-1.5">
+                    <div v-for="item in realtimeCosts.subcontractor_cost_by_phase" :key="`scp-${item.stage_id}`" class="text-xs rounded border border-gray-100 px-2.5 py-2 text-gray-700">
+                        {{ item.project_name || '-' }} · {{ item.stage_name }} · {{ fmtCur(item.total_cost || 0) }}
+                    </div>
+                </div>
+                <div v-else class="text-xs text-gray-400">Nu exista costuri de subcontractori pe etape inca.</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 class="text-base font-semibold text-gray-800 mb-3">Alerte automate</h2>
+            <div v-if="resourceAlerts.length === 0" class="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                Nu exista alerte noi generate automat pentru ziua curenta.
+            </div>
+            <div v-else class="space-y-2">
+                <Link
+                    v-for="alert in resourceAlerts"
+                    :key="`${alert.event}-${alert.entity_id}`"
+                    :href="alert.url"
+                    class="block rounded-lg border px-3 py-2 text-sm"
+                    :class="alert.severity === 'high' ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'"
+                >
+                    <div class="font-semibold">{{ alert.title }}</div>
+                    <div class="text-xs mt-0.5">{{ alert.message }}</div>
+                </Link>
             </div>
         </div>
 
@@ -437,7 +561,10 @@ import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 
 const props = defineProps({
-    stats:          { type: Object, default: () => ({ activeProjects: 0, teams: 0, quotes: 0, defects: 0, overdueTasks: 0, delayedPhases: 0, avgProgress: 0, estimatedEquipmentCost: 0, documentsUnpaidCount: 0, documentsUnpaidAmount: 0, documentsOverdueInvoices: 0, stageTasksOpen: 0 }) },
+    stats:          { type: Object, default: () => ({ activeProjects: 0, teams: 0, quotes: 0, defects: 0, overdueTasks: 0, delayedPhases: 0, avgProgress: 0, estimatedEquipmentCost: 0, documentsUnpaidCount: 0, documentsUnpaidAmount: 0, documentsOverdueInvoices: 0, stageTasksOpen: 0, overloadedTeamsCount: 0, parallelSubcontractorsCount: 0, unavailableEquipmentCount: 0, lowStockMaterialsCount: 0, equipmentDailyCost: 0, teamDailyCost: 0, subcontractorDailyCost: 0 }) },
+    resourceDashboard: { type: Object, default: () => ({ overloadedTeams: [], parallelSubcontractors: [], unavailableEquipment: [], lowStockMaterials: [] }) },
+    realtimeCosts: { type: Object, default: () => ({ equipment_daily_cost: 0, team_daily_cost: 0, subcontractor_cost_by_phase: [] }) },
+    resourceAlerts: { type: Array, default: () => [] },
     recentProjects: { type: Array,  default: () => [] },
     todayTasks:     { type: Array,  default: () => [] },
     todayCalendar:  { type: Object, default: () => ({ date: '', window: 'today', categories: ['stages', 'tasks', 'subcontractors', 'equipment', 'documents', 'quality_checks'], total_events: 0, risk_events: 0, stages: [], tasks: [], equipment: [], subcontractors: [], documents: [], quality_checks: [], load: { level: 'light', label: 'Zi lejera', max: 12, value: 0 }, risk: { score: 0, level: 'low', blocked_tasks: 0, risky_stages: 0, unpaid_documents: 0, predictive: { stage_delay: [], budget_overrun: [], subcontractor: [] } } }) },

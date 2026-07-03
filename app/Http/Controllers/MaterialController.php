@@ -50,7 +50,12 @@ class MaterialController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Materials/Create');
+        return Inertia::render('Materials/Create', [
+            'defaults' => [
+                'stock_quantity' => null,
+                'min_stock_quantity' => null,
+            ],
+        ]);
     }
 
     public function store(StoreMaterialRequest $request): RedirectResponse

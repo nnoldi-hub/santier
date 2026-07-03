@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Http\Requests\StorePhaseRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class ProjectPhaseController extends Controller
 {
@@ -39,5 +40,22 @@ class ProjectPhaseController extends Controller
             'progress_pct' => request()->validate(['progress_pct' => ['required', 'integer', 'min:0', 'max:100']])['progress_pct'],
         ]);
         return back();
+    }
+
+    public function updateTimeline(Request $request, Project $project, ProjectPhase $phase): RedirectResponse
+    {
+        abort_unless((int) $phase->project_id === (int) $project->id, 404);
+
+        $validated = $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $phase->update([
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+        ]);
+
+        return back()->with('success', 'Timeline etapa actualizat.');
     }
 }

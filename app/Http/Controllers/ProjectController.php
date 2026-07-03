@@ -122,7 +122,7 @@ class ProjectController extends Controller
                 $query->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
             })
             ->whereIn('key', [ProjectRole::OWNER, ProjectRole::CONTRIBUTOR, ProjectRole::VIEWER])
-            ->orderByRaw("CASE key WHEN 'owner' THEN 1 WHEN 'contributor' THEN 2 WHEN 'viewer' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE `key` WHEN 'owner' THEN 1 WHEN 'contributor' THEN 2 WHEN 'viewer' THEN 3 ELSE 4 END")
             ->get(['id', 'key', 'name'])
             ->map(fn (ProjectRole $role) => [
                 'id' => $role->id,

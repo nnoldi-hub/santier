@@ -120,7 +120,7 @@ Estimare: 0.5-1 zi
 - Dashboard afiseaza KPI actionabili, nu doar placeholder
 - Exista minim 6-8 teste feature pe fluxurile noi
 
-## 5) Stare actualizata 2026-07-02
+## 5) Stare actualizata 2026-07-03
 Completat in cod si validat cu teste:
 - Task management minim viabil: listare, filtrare si schimbare status
 - Quotes/Devize: listare filtrabila, PDF, acceptare si conversie din AI flow
@@ -128,8 +128,7 @@ Completat in cod si validat cu teste:
 - Modul Defecte/Snag List: listare filtrabila si schimbare status
 - Dashboard KPI avansat: etape intarziate, taskuri restante, defecte deschise, plan vs real
 - Administrare IAM din tenant: utilizatori, roluri custom si filtre pe liste
+- Notificari automate de executie: taskuri restante, etape intarziate si defecte critice, cu scheduler si badge in UI
 
 Ramas deschis:
-- Quotes/Devize + PDF generator
-- Notificari automate pe reguli de executie
 - Rapoarte zilnice de santier

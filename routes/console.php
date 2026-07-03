@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('exports:run-scheduled')->everyMinute();
 Schedule::command('emails:send-trial-lifecycle')->dailyAt('09:00');
 Schedule::command('demo:refresh')->dailyAt('03:00');
+Schedule::command('notifications:send-operational-reminders')->dailyAt('08:00');

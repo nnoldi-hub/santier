@@ -22,11 +22,11 @@ class TrialLifecycleMail extends Mailable
     public function envelope(): Envelope
     {
         $subject = match ($this->campaignKey) {
-            'welcome' => 'Bine ai venit in Santier',
-            'trial_day_3' => 'Santier - 3 zile de trial: optimizeaza primul proiect',
-            'trial_day_10' => 'Santier - 10 zile de trial: pregateste decizia de upgrade',
-            'upgrade_prompt' => 'Santier - Trial-ul expira curand, continua fara intreruperi',
-            default => 'Santier - Notificare trial',
+            'welcome' => 'Invitatie Modulia - Șantierul devine clar',
+            'trial_day_3' => 'Modulia - 3 zile de trial: optimizeaza primul proiect',
+            'trial_day_10' => 'Modulia - 10 zile de trial: pregateste decizia de upgrade',
+            'upgrade_prompt' => 'Modulia - Trial-ul expira curand, continua fara intreruperi',
+            default => 'Modulia - Notificare trial',
         };
 
         return new Envelope(subject: $subject);

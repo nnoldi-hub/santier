@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\ProjectPhase;
+use App\Models\Material;
 use App\Models\Task;
 use App\Models\User;
 use Database\Seeders\IamSeeder;
@@ -64,6 +66,110 @@ class TasksFilterTest extends TestCase
         $this->assertNotNull($task->fresh()->completed_at);
     }
 
+    public function test_task_list_can_be_filtered_by_critical_and_blocked(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $user = $this->createTenantUser('tasks.advanced@santier.local');
+        $project = $this->createProject($user, 'Proiect Avansat');
+        $blockedPhase = $this->createPhase($project, 'Etapa blocata', 'blocked');
+
+        $criticalTask = $this->createTask($user, $project, 'Task critic', 'in_progress', 'high');
+        $criticalTask->update(['deadline' => now()->addDay()->toDateTimeString()]);
+
+        $blockedTask = $this->createTask($user, $project, 'Task blocat', 'in_progress', 'medium');
+        $blockedTask->update(['phase_id' => $blockedPhase->id]);
+
+        $this->actingAs($user)
+            ->get(route('tasks.index', ['special_filter' => 'critical']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Tasks/Index')
+                ->has('tasks.data', 1)
+                ->where('tasks.data.0.id', $criticalTask->id)
+            );
+
+        $this->actingAs($user)
+            ->get(route('tasks.index', ['special_filter' => 'blocked']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Tasks/Index')
+                ->has('tasks.data', 1)
+                ->where('tasks.data.0.id', $blockedTask->id)
+            );
+    }
+
+    public function test_task_checklist_is_persisted_on_create(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $user = $this->createTenantUser('tasks.checklist@santier.local');
+        $project = $this->createProject($user, 'Proiect Checklist');
+
+        $this->actingAs($user)
+            ->post(route('tasks.store'), [
+                'project_id' => $project->id,
+                'title' => 'Task cu checklist',
+                'description' => 'Detalii',
+                'status' => 'todo',
+                'priority' => 'medium',
+                'checklist' => [
+                    ['text' => 'Pas 1', 'done' => false],
+                    ['text' => 'Pas 2', 'done' => true],
+                ],
+            ])
+            ->assertRedirect(route('tasks.index'));
+
+        $task = Task::query()->where('title', 'Task cu checklist')->first();
+
+        $this->assertNotNull($task);
+        $this->assertSame([
+            ['text' => 'Pas 1', 'done' => false],
+            ['text' => 'Pas 2', 'done' => true],
+        ], $task->checklist);
+    }
+
+    public function test_task_materials_are_persisted_on_create(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $user = $this->createTenantUser('tasks.materials@santier.local');
+        $project = $this->createProject($user, 'Proiect Consum');
+        $material = Material::create([
+            'tenant_id' => 1,
+            'name' => 'Glet finisaj',
+            'unit' => 'sac',
+            'unit_price' => 35,
+            'active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('tasks.store'), [
+                'project_id' => $project->id,
+                'title' => 'Task consum materiale',
+                'description' => 'Detalii',
+                'status' => 'todo',
+                'priority' => 'medium',
+                'task_materials' => [
+                    [
+                        'material_id' => $material->id,
+                        'quantity' => 3,
+                        'unit_override' => 'sac',
+                        'unit_price' => 37.5,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('tasks.index'));
+
+        $task = Task::query()->where('title', 'Task consum materiale')->first();
+        $this->assertNotNull($task);
+
+        $this->assertDatabaseHas('task_material', [
+            'task_id' => $task->id,
+            'material_id' => $material->id,
+        ]);
+    }
+
     private function createTenantUser(string $email): User
     {
         return User::factory()->create([
@@ -96,6 +202,17 @@ class TasksFilterTest extends TestCase
             'status' => $status,
             'priority' => $priority,
             'deadline' => now()->addDays(2)->toDateTimeString(),
+        ]);
+    }
+
+    private function createPhase(Project $project, string $name, string $status): ProjectPhase
+    {
+        return ProjectPhase::create([
+            'project_id' => $project->id,
+            'name' => $name,
+            'type' => 'custom',
+            'status' => $status,
+            'progress_pct' => 0,
         ]);
     }
 }

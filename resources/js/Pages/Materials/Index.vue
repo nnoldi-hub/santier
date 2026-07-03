@@ -47,12 +47,16 @@
                         <span :class="material.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'" class="text-xs px-2 py-0.5 rounded-full">
                             {{ material.active ? 'Activ' : 'Inactiv' }}
                         </span>
+                        <span v-if="isLowStock(material)" class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                            Stoc scazut
+                        </span>
                     </div>
                     <div class="text-xs text-gray-500">
                         <span v-if="material.code">Cod: {{ material.code }} · </span>
                         <span>{{ material.category || 'Fara categorie' }}</span>
                         <span> · {{ material.unit }}</span>
                         <span v-if="material.supplier"> · {{ material.supplier }}</span>
+                        <span v-if="material.stock_quantity !== null && material.stock_quantity !== undefined"> · stoc {{ Number(material.stock_quantity).toFixed(2) }} / min {{ Number(material.min_stock_quantity || 0).toFixed(2) }}</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -99,5 +103,12 @@ function remove(material) {
 
 function formatCurrency(value) {
     return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON', maximumFractionDigits: 2 }).format(value);
+}
+
+function isLowStock(material) {
+    if (material.stock_quantity === null || material.stock_quantity === undefined) return false;
+    if (material.min_stock_quantity === null || material.min_stock_quantity === undefined) return false;
+
+    return Number(material.stock_quantity) <= Number(material.min_stock_quantity);
 }
 </script>
