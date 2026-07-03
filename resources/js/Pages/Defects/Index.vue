@@ -70,6 +70,7 @@
                     <p v-if="defect.location" class="text-xs text-gray-500 mt-1">Locatie: {{ defect.location }}</p>
                     <p v-if="defect.description" class="text-sm text-gray-600 mt-2 line-clamp-2">{{ defect.description }}</p>
                     <p v-if="defect.due_date" class="text-xs text-gray-500 mt-2">Deadline remediere: {{ formatDate(defect.due_date) }}</p>
+                    <img v-if="defect.photo_url" :src="defect.photo_url" alt="Foto defect" class="mt-2 rounded-lg border border-gray-200 max-h-32 object-cover" />
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">

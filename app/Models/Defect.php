@@ -19,6 +19,8 @@ class Defect extends Model
         'title',
         'description',
         'location',
+        'photo_path',
+        'photo_name',
         'status',
         'priority',
         'due_date',

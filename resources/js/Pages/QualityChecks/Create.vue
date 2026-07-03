@@ -46,6 +46,12 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-600 mb-1">Tip receptie *</label>
+                        <select v-model="form.reception_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option v-for="(label, key) in receptionTypes" :key="key" :value="key">{{ label }}</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-600 mb-1">Status *</label>
                         <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                             <option v-for="(label, key) in statuses" :key="key" :value="key">{{ label }}</option>
@@ -62,6 +68,22 @@
                     <div class="md:col-span-2">
                         <label class="block text-xs text-gray-600 mb-1">Note</label>
                         <textarea v-model="form.notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs text-gray-600">Checklist verificare</label>
+                            <button type="button" @click="addChecklistItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Item</button>
+                        </div>
+                        <div v-if="form.checklist.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
+                            Pentru verificari complexe adauga itemi de checklist.
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div v-for="(item, index) in form.checklist" :key="`qc-item-${index}`" class="flex items-center gap-2">
+                                <input v-model="item.done" type="checkbox" class="rounded border-gray-300" />
+                                <input v-model="item.text" type="text" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" :placeholder="`Item ${index + 1}`" />
+                                <button type="button" @click="removeChecklistItem(index)">Sterge</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -88,6 +110,7 @@ const props = defineProps({
     phasesByProject: Object,
     statuses: Object,
     types: Object,
+    receptionTypes: Object,
 });
 
 const form = useForm({
@@ -96,7 +119,9 @@ const form = useForm({
     assigned_to: '',
     title: '',
     description: '',
+    checklist: [],
     check_type: 'execution',
+    reception_type: 'partial',
     status: 'pending',
     planned_at: '',
     notes: '',
@@ -109,5 +134,14 @@ const availablePhases = computed(() => {
 
 function submit() {
     form.post(route('quality-checks.store'));
+}
+
+function addChecklistItem() {
+    if (form.checklist.length >= 40) return;
+    form.checklist.push({ text: '', done: false });
+}
+
+function removeChecklistItem(index) {
+    form.checklist.splice(index, 1);
 }
 </script>

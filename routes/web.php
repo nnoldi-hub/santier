@@ -14,6 +14,7 @@ use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\EquipmentCalendarController;
+use App\Http\Controllers\ResourceCalendarController;
 use App\Http\Controllers\CostTrackingController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GanttController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\TenantRoleController;
 use App\Http\Controllers\TenantUserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationCenterController;
+use App\Notifications\OperationalReminderNotification;
 use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
@@ -44,7 +46,11 @@ use App\Support\DemoScope;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use App\Models\Defect;
+use App\Models\Contractor;
 use App\Models\Document;
+use App\Models\Equipment;
+use App\Models\Material;
+use App\Models\PhaseTeamAssignment;
 use App\Models\Quote;
 use App\Models\Project;
 use App\Models\ProjectPhase;
@@ -54,8 +60,10 @@ use App\Models\StageEquipment;
 use App\Models\StageTask;
 use App\Models\Task;
 use App\Models\Team;
+use App\Models\TeamMember;
 use Carbon\Carbon;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -109,6 +117,10 @@ Route::get('/', function (Request $request) {
     ]);
 });
 
+Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
+    ->middleware('throttle:6,1')
+    ->name('demo-request.store');
+
 Route::get('/dashboard', function () {
     $dashboardRequest = request();
     $today = now()->toDateString();
@@ -140,6 +152,277 @@ Route::get('/dashboard', function () {
     $calendarCategories = array_values(array_intersect($availableCalendarCategories, $calendarCategories));
     if ($calendarCategories === []) {
         $calendarCategories = $availableCalendarCategories;
+    }
+
+    $activeTeamAssignmentsToday = PhaseTeamAssignment::query()
+        ->with(['team:id,name', 'phase:id,project_id,name', 'phase.project:id,name'])
+        ->whereHas('phase.project', fn ($query) => DemoScope::applyProjectScope($query, $user))
+        ->where(function ($query) use ($today) {
+            $query
+                ->whereBetween('start_date', [$today, $today])
+                ->orWhereBetween('end_date', [$today, $today])
+                ->orWhere(function ($inner) use ($today) {
+                    $inner
+                        ->where(function ($startQuery) use ($today) {
+                            $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $today);
+                        })
+                        ->where(function ($endQuery) use ($today) {
+                            $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                        });
+                });
+        })
+        ->get();
+
+    $overloadedTeams = $activeTeamAssignmentsToday
+        ->groupBy('team_id')
+        ->map(function ($rows) {
+            $first = $rows->first();
+            $needed = (int) $rows->sum('workers_needed');
+            $assigned = (int) $rows->sum('workers_assigned');
+            $parallel = $rows->count();
+
+            return [
+                'team_id' => (int) ($first->team_id ?? 0),
+                'name' => $first?->team?->name ?? 'Echipa',
+                'workers_needed' => $needed,
+                'workers_assigned' => $assigned,
+                'parallel_assignments' => $parallel,
+                'is_overloaded' => $assigned > $needed || $parallel > 1,
+            ];
+        })
+        ->filter(fn ($item) => $item['is_overloaded'])
+        ->sortByDesc('parallel_assignments')
+        ->values();
+
+    $subcontractorPhasesToday = ProjectPhase::query()
+        ->with(['contractor:id,name,type', 'project:id,name'])
+        ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
+        ->whereHas('contractor', fn ($query) => $query->whereIn('type', [Contractor::TYPE_SUBCONTRACTOR, Contractor::TYPE_PFA]))
+        ->where(function ($query) use ($today) {
+            $query
+                ->whereBetween('start_date', [$today, $today])
+                ->orWhereBetween('end_date', [$today, $today])
+                ->orWhere(function ($inner) use ($today) {
+                    $inner
+                        ->where(function ($startQuery) use ($today) {
+                            $startQuery->whereNull('start_date')->orWhereDate('start_date', '<=', $today);
+                        })
+                        ->where(function ($endQuery) use ($today) {
+                            $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                        });
+                });
+        })
+        ->get(['id', 'project_id', 'name', 'contractor_id', 'start_date', 'end_date']);
+
+    $parallelSubcontractors = $subcontractorPhasesToday
+        ->groupBy('contractor_id')
+        ->map(function ($rows) {
+            $first = $rows->first();
+
+            return [
+                'contractor_id' => (int) ($first->contractor_id ?? 0),
+                'name' => $first?->contractor?->name ?? 'Subcontractor',
+                'parallel_projects' => $rows->pluck('project_id')->unique()->count(),
+                'parallel_phases' => $rows->count(),
+            ];
+        })
+        ->filter(fn ($item) => $item['parallel_projects'] > 1 || $item['parallel_phases'] > 1)
+        ->sortByDesc('parallel_projects')
+        ->values();
+
+    $unavailableEquipment = Equipment::query()
+        ->where('tenant_id', $tenantId)
+        ->where('active', true)
+        ->whereIn('availability_status', ['maintenance', 'unavailable'])
+        ->orderBy('name')
+        ->get(['id', 'name', 'availability_status']);
+
+    $equipmentParallelReservations = StageEquipment::query()
+        ->with(['equipment:id,name', 'phase.project:id,name'])
+        ->whereHas('phase.project', fn ($query) => DemoScope::applyProjectScope($query, $user))
+        ->where(function ($query) use ($today) {
+            $query
+                ->whereBetween('usage_start', [$today, $today])
+                ->orWhereBetween('usage_end', [$today, $today])
+                ->orWhere(function ($inner) use ($today) {
+                    $inner
+                        ->where(function ($startQuery) use ($today) {
+                            $startQuery->whereNull('usage_start')->orWhereDate('usage_start', '<=', $today);
+                        })
+                        ->where(function ($endQuery) use ($today) {
+                            $endQuery->whereNull('usage_end')->orWhereDate('usage_end', '>=', $today);
+                        });
+                });
+        })
+        ->get()
+        ->groupBy('equipment_id')
+        ->map(function ($rows) {
+            $first = $rows->first();
+
+            return [
+                'equipment_id' => (int) ($first->equipment_id ?? 0),
+                'name' => $first?->equipment?->name ?? 'Utilaj',
+                'parallel_reservations' => $rows->count(),
+            ];
+        })
+        ->filter(fn ($item) => $item['parallel_reservations'] > 1)
+        ->sortByDesc('parallel_reservations')
+        ->values();
+
+    $materialsStockColumnsAvailable = Schema::hasColumns('materials', ['stock_quantity', 'min_stock_quantity']);
+    $lowStockMaterials = collect();
+
+    if ($materialsStockColumnsAvailable) {
+        $lowStockMaterials = Material::query()
+            ->where('tenant_id', $tenantId)
+            ->where('active', true)
+            ->whereNotNull('stock_quantity')
+            ->whereNotNull('min_stock_quantity')
+            ->whereRaw('stock_quantity <= min_stock_quantity')
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit', 'stock_quantity', 'min_stock_quantity']);
+    }
+
+    $teamHourlyRates = TeamMember::query()
+        ->selectRaw('team_id, AVG(hourly_rate) as avg_rate')
+        ->whereNotNull('hourly_rate')
+        ->groupBy('team_id')
+        ->pluck('avg_rate', 'team_id');
+
+    $equipmentDailyCost = (float) StageEquipment::query()
+        ->whereHas('phase.project', fn ($query) => DemoScope::applyProjectScope($query, $user))
+        ->where(function ($query) use ($today) {
+            $query
+                ->whereBetween('usage_start', [$today, $today])
+                ->orWhereBetween('usage_end', [$today, $today])
+                ->orWhere(function ($inner) use ($today) {
+                    $inner
+                        ->where(function ($startQuery) use ($today) {
+                            $startQuery->whereNull('usage_start')->orWhereDate('usage_start', '<=', $today);
+                        })
+                        ->where(function ($endQuery) use ($today) {
+                            $endQuery->whereNull('usage_end')->orWhereDate('usage_end', '>=', $today);
+                        });
+                });
+        })
+        ->with('equipment:id,cost_per_hour')
+        ->get()
+        ->sum(function (StageEquipment $reservation) {
+            return (float) ($reservation->equipment?->cost_per_hour ?? 0)
+                * max(1, (int) $reservation->quantity)
+                * 8;
+        });
+
+    $teamDailyCost = (float) $activeTeamAssignmentsToday->sum(function (PhaseTeamAssignment $assignment) use ($teamHourlyRates) {
+        $workersAssigned = max(1, (int) ($assignment->workers_assigned ?: $assignment->workers_needed));
+        $avgRate = (float) ($teamHourlyRates[$assignment->team_id] ?? 85);
+
+        return $workersAssigned * $avgRate * 8;
+    });
+
+    $subcontractorCostByPhase = Document::query()
+        ->with(['stage:id,name,project_id', 'stage.project:id,name', 'contractor:id,name,type'])
+        ->whereHas('project', fn ($query) => DemoScope::applyProjectScope($query, $user))
+        ->whereHas('contractor', fn ($query) => $query->whereIn('type', [Contractor::TYPE_SUBCONTRACTOR, Contractor::TYPE_PFA]))
+        ->whereNotNull('stage_id')
+        ->get(['id', 'stage_id', 'contractor_id', 'amount'])
+        ->groupBy('stage_id')
+        ->map(function ($rows) {
+            $first = $rows->first();
+
+            return [
+                'stage_id' => (int) ($first->stage_id ?? 0),
+                'stage_name' => $first?->stage?->name ?? 'Etapa',
+                'project_name' => $first?->stage?->project?->name ?? null,
+                'contractors' => $rows
+                    ->map(fn (Document $document) => $document->contractor?->name)
+                    ->filter()
+                    ->unique()
+                    ->values(),
+                'total_cost' => (float) $rows->sum('amount'),
+            ];
+        })
+        ->sortByDesc('total_cost')
+        ->values();
+
+    $resourceAlerts = collect();
+
+    foreach ($overloadedTeams->take(3) as $teamAlert) {
+        $resourceAlerts->push([
+            'event' => 'team_overloaded',
+            'title' => 'Echipa supraincarcata',
+            'message' => sprintf('Echipa %s este supraincarcata azi.', $teamAlert['name']),
+            'entity_type' => 'team',
+            'entity_id' => $teamAlert['team_id'],
+            'project_id' => null,
+            'project_name' => null,
+            'url' => route('team-calendar.index', ['start_date' => $today, 'end_date' => $today, 'team_id' => $teamAlert['team_id']]),
+            'severity' => 'high',
+        ]);
+    }
+
+    foreach ($equipmentParallelReservations->take(3) as $equipmentAlert) {
+        $resourceAlerts->push([
+            'event' => 'equipment_parallel',
+            'title' => 'Utilaj rezervat in paralel',
+            'message' => sprintf('%s este rezervat in paralel.', $equipmentAlert['name']),
+            'entity_type' => 'equipment',
+            'entity_id' => $equipmentAlert['equipment_id'],
+            'project_id' => null,
+            'project_name' => null,
+            'url' => route('equipment-calendar.index', ['start_date' => $today, 'end_date' => $today, 'equipment_id' => $equipmentAlert['equipment_id']]),
+            'severity' => 'high',
+        ]);
+    }
+
+    foreach ($lowStockMaterials->take(3) as $materialAlert) {
+        $resourceAlerts->push([
+            'event' => 'material_low_stock',
+            'title' => 'Material cu stoc scazut',
+            'message' => sprintf('%s are stoc sub pragul minim.', $materialAlert->name),
+            'entity_type' => 'material',
+            'entity_id' => $materialAlert->id,
+            'project_id' => null,
+            'project_name' => null,
+            'url' => route('materials.index'),
+            'severity' => 'medium',
+        ]);
+    }
+
+    foreach ($parallelSubcontractors->take(3) as $subcontractorAlert) {
+        $resourceAlerts->push([
+            'event' => 'subcontractor_parallel',
+            'title' => 'Subcontractor in paralel',
+            'message' => sprintf('%s ruleaza simultan pe mai multe proiecte.', $subcontractorAlert['name']),
+            'entity_type' => 'contractor',
+            'entity_id' => $subcontractorAlert['contractor_id'],
+            'project_id' => null,
+            'project_name' => null,
+            'url' => route('contractors.index'),
+            'severity' => 'medium',
+        ]);
+    }
+
+    foreach ($resourceAlerts as $alert) {
+        $alreadySent = $user->notifications()
+            ->where('created_at', '>=', now()->startOfDay())
+            ->where('data', 'like', '%"event":"' . $alert['event'] . '"%')
+            ->where('data', 'like', '%"entity_id":' . (int) $alert['entity_id'] . '%')
+            ->exists();
+
+        if (! $alreadySent) {
+            $user->notify(new OperationalReminderNotification(
+                $alert['event'],
+                $alert['title'],
+                $alert['message'],
+                $alert['entity_type'],
+                (int) $alert['entity_id'],
+                $alert['project_id'],
+                $alert['project_name'],
+                $alert['url'],
+                $alert['severity'],
+            ));
+        }
     }
 
     return Inertia::render('Dashboard', [
@@ -207,7 +490,26 @@ Route::get('/dashboard', function () {
                 ->whereIn('status', ['todo', 'in_progress', 'blocked'])
                 ->whereHas('stage.project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->count(),
+            'overloadedTeamsCount' => $overloadedTeams->count(),
+            'parallelSubcontractorsCount' => $parallelSubcontractors->count(),
+            'unavailableEquipmentCount' => $unavailableEquipment->count(),
+            'lowStockMaterialsCount' => $lowStockMaterials->count(),
+            'equipmentDailyCost' => $equipmentDailyCost,
+            'teamDailyCost' => $teamDailyCost,
+            'subcontractorDailyCost' => (float) $subcontractorCostByPhase->sum('total_cost'),
         ],
+        'resourceDashboard' => [
+            'overloadedTeams' => $overloadedTeams->take(5)->values(),
+            'parallelSubcontractors' => $parallelSubcontractors->take(5)->values(),
+            'unavailableEquipment' => $unavailableEquipment->take(5)->values(),
+            'lowStockMaterials' => $lowStockMaterials->take(5)->values(),
+        ],
+        'realtimeCosts' => [
+            'equipment_daily_cost' => $equipmentDailyCost,
+            'team_daily_cost' => $teamDailyCost,
+            'subcontractor_cost_by_phase' => $subcontractorCostByPhase->take(6)->values(),
+        ],
+        'resourceAlerts' => $resourceAlerts->values(),
         'recentProjects' => DemoScope::applyProjectScope(Project::query()->with('client'), $user)
             ->latest()
             ->take(5)
@@ -237,10 +539,6 @@ Route::get('/dashboard', function () {
                                     $endQuery->whereNull('end_date')->orWhereDate('end_date', '>=', $windowStartDate);
                                 });
                         });
-
-                            Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
-                                ->middleware('throttle:6,1')
-                                ->name('demo-request.store');
                 })
                 ->whereHas('project', fn ($q) => DemoScope::applyProjectScope($q, $user))
                 ->orderByRaw("CASE WHEN status = 'in_progress' THEN 1 ELSE 2 END")
@@ -970,6 +1268,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('teams', TeamController::class);
         Route::get('team-calendar', [TeamCalendarController::class, 'index'])->name('team-calendar.index');
         Route::get('equipment-calendar', [EquipmentCalendarController::class, 'index'])->name('equipment-calendar.index');
+        Route::get('resource-calendar', [ResourceCalendarController::class, 'index'])->name('resource-calendar.index');
         Route::resource('contractors', ContractorController::class)->except('show');
         Route::resource('equipment', EquipmentController::class)->except('show');
         Route::resource('documents', DocumentController::class)->except('show');
@@ -988,6 +1287,7 @@ Route::middleware('auth')->group(function () {
         Route::get('stage-progress', [StageProgressController::class, 'index'])->name('stage-progress.index');
         Route::resource('defects', DefectController::class)->except('show');
         Route::resource('quality-checks', QualityCheckController::class)->except('show');
+        Route::get('quality-checks/{quality_check}/pdf', [QualityCheckController::class, 'pdf'])->name('quality-checks.pdf');
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
         Route::resource('quotes', QuoteController::class)->except('show')
@@ -1037,6 +1337,7 @@ Route::middleware('auth')->group(function () {
         // Etape proiect (nested sub projects)
         Route::post('projects/{project}/phases', [ProjectPhaseController::class, 'store'])->name('phases.store');
         Route::put('projects/{project}/phases/{phase}', [ProjectPhaseController::class, 'update'])->name('phases.update');
+        Route::patch('projects/{project}/phases/{phase}/timeline', [ProjectPhaseController::class, 'updateTimeline'])->name('phases.timeline.update');
         Route::delete('projects/{project}/phases/{phase}', [ProjectPhaseController::class, 'destroy'])->name('phases.destroy');
         Route::patch('projects/{project}/phases/{phase}/progress', [ProjectPhaseController::class, 'updateProgress'])->name('phases.progress');
         Route::post('projects/{project}/phases/{phase}/assignments', [PhaseTeamAssignmentController::class, 'store'])->name('phase-assignments.store');

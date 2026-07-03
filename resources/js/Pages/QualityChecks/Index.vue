@@ -10,6 +10,15 @@
             </Link>
         </div>
 
+        <div v-if="aiInsights?.length" class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+            <div class="text-sm font-semibold text-indigo-900 mb-2">Insight AI</div>
+            <div class="space-y-1">
+                <Link v-for="(insight, index) in aiInsights" :key="`ai-${index}`" :href="insight.url" class="block text-xs text-indigo-800 hover:underline">
+                    {{ insight.project_name || '-' }} · {{ insight.phase_name }}: {{ insight.message }}
+                </Link>
+            </div>
+        </div>
+
         <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
@@ -64,6 +73,10 @@
                     </p>
                     <p v-if="check.description" class="text-sm text-gray-600 mt-2 line-clamp-2">{{ check.description }}</p>
                     <p v-if="check.planned_at" class="text-xs text-gray-500 mt-2">Planificat: {{ formatDate(check.planned_at) }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Tip receptie: {{ receptionTypeLabel(check.reception_type) }}</p>
+                    <p v-if="Array.isArray(check.checklist) && check.checklist.length" class="text-xs text-gray-500 mt-1">
+                        Checklist: {{ check.checklist.filter((item) => item?.done).length }}/{{ check.checklist.length }} bifate
+                    </p>
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
@@ -73,6 +86,7 @@
                         <option value="passed">Conform</option>
                         <option value="failed">Neconform</option>
                     </select>
+                    <Link :href="route('quality-checks.pdf', check.id)" class="text-xs border border-indigo-300 rounded px-2 py-1 text-indigo-700 hover:bg-indigo-50">PDF</Link>
                     <Link :href="route('quality-checks.edit', check.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Editeaza</Link>
                     <button @click="remove(check)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50">Sterge</button>
                 </div>
@@ -92,6 +106,8 @@ const props = defineProps({
     filters: Object,
     statuses: Object,
     types: Object,
+    receptionTypes: Object,
+    aiInsights: Array,
 });
 
 const filterForm = reactive({
@@ -131,6 +147,10 @@ function statusLabel(status) {
 
 function typeLabel(type) {
     return props.types?.[type] || type;
+}
+
+function receptionTypeLabel(type) {
+    return props.receptionTypes?.[type] || type || 'partial';
 }
 
 function statusClass(status) {

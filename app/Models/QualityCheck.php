@@ -24,6 +24,11 @@ class QualityCheck extends Model
         'handover' => 'Predare',
     ];
 
+    public static array $receptionTypeLabels = [
+        'partial' => 'Receptie partiala',
+        'final' => 'Receptie finala',
+    ];
+
     protected $fillable = [
         'tenant_id',
         'project_id',
@@ -31,7 +36,9 @@ class QualityCheck extends Model
         'assigned_to',
         'title',
         'description',
+        'checklist',
         'check_type',
+        'reception_type',
         'status',
         'planned_at',
         'completed_at',
@@ -39,6 +46,7 @@ class QualityCheck extends Model
     ];
 
     protected $casts = [
+        'checklist' => 'array',
         'planned_at' => 'datetime',
         'completed_at' => 'datetime',
     ];

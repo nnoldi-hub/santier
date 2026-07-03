@@ -9,6 +9,7 @@ use App\Models\ProjectPhase;
 use App\Models\StageTask;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\QualityCheckAutoStatus;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,6 +98,7 @@ class StageTaskController extends Controller
         }
 
         StageTask::create($payload);
+        QualityCheckAutoStatus::applyForPhase((int) ($payload['stage_id'] ?? 0));
 
         return redirect()->route('stage-tasks.index')->with('success', 'Taskul de etapa a fost creat.');
     }
@@ -129,13 +131,16 @@ class StageTaskController extends Controller
         }
 
         $stage_task->update($payload);
+        QualityCheckAutoStatus::applyForPhase((int) ($stage_task->stage_id ?? 0));
 
         return redirect()->route('stage-tasks.index')->with('success', 'Taskul de etapa a fost actualizat.');
     }
 
     public function destroy(StageTask $stage_task): RedirectResponse
     {
+        $stageId = (int) $stage_task->stage_id;
         $stage_task->delete();
+        QualityCheckAutoStatus::applyForPhase($stageId);
 
         return redirect()->route('stage-tasks.index')->with('success', 'Taskul de etapa a fost sters.');
     }

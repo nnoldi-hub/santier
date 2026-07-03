@@ -74,6 +74,13 @@
                     <textarea v-model="form.description" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Detalii defect si context..."></textarea>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Foto defect (telefon)</label>
+                    <input type="file" accept="image/*" capture="environment" @change="onPhotoSelected" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <p v-if="form.errors.photo" class="text-red-500 text-xs mt-1">{{ form.errors.photo }}</p>
+                    <img v-if="photoPreview" :src="photoPreview" alt="Preview defect" class="mt-2 rounded-lg border border-gray-200 max-h-52 object-cover" />
+                </div>
+
                 <div class="flex gap-3 pt-2">
                     <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition">
                         {{ form.processing ? 'Se salveaza...' : 'Creeaza defect' }}
@@ -88,7 +95,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -109,7 +116,10 @@ const form = useForm({
     status: 'open',
     priority: 'medium',
     due_date: '',
+    photo: null,
 });
+
+const photoPreview = ref(null);
 
 const selectedPhases = computed(() => {
     if (!form.project_id) return [];
@@ -121,6 +131,12 @@ function onProjectChange() {
 }
 
 function submit() {
-    form.post(route('defects.store'));
+    form.post(route('defects.store'), { forceFormData: true });
+}
+
+function onPhotoSelected(event) {
+    const file = event.target.files?.[0] || null;
+    form.photo = file;
+    photoPreview.value = file ? URL.createObjectURL(file) : null;
 }
 </script>

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +33,26 @@ class DefectController extends Controller
             ->orderBy('due_date')
             ->latest('id')
             ->paginate(20)
+            ->through(fn (Defect $defect) => [
+                'id' => $defect->id,
+                'project_id' => $defect->project_id,
+                'phase_id' => $defect->phase_id,
+                'assigned_to' => $defect->assigned_to,
+                'title' => $defect->title,
+                'description' => $defect->description,
+                'location' => $defect->location,
+                'status' => $defect->status,
+                'priority' => $defect->priority,
+                'due_date' => optional($defect->due_date)?->toDateString(),
+                'resolved_at' => optional($defect->resolved_at)?->toDateTimeString(),
+                'photo_path' => $defect->photo_path,
+                'photo_name' => $defect->photo_name,
+                'photo_url' => $defect->photo_path ? Storage::url($defect->photo_path) : null,
+                'project' => $defect->project,
+                'phase' => $defect->phase,
+                'assignee' => $defect->assignee,
+                'reporter' => $defect->reporter,
+            ])
             ->withQueryString();
 
         return Inertia::render('Defects/Index', [
@@ -76,9 +97,16 @@ class DefectController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         $data = $request->validated();
+        unset($data['photo']);
         $data['tenant_id'] = $tenantId;
         $data['reported_by'] = $request->user()->id;
         $data['resolved_at'] = $data['status'] === 'resolved' ? now() : null;
+
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $data['photo_path'] = $file->store('defects', 'public');
+            $data['photo_name'] = $file->getClientOriginalName();
+        }
 
         Defect::create($data);
 
@@ -95,7 +123,10 @@ class DefectController extends Controller
             ->get(['id', 'name']);
 
         return Inertia::render('Defects/Edit', [
-            'defect' => $defect,
+            'defect' => [
+                ...$defect->toArray(),
+                'photo_url' => $defect->photo_path ? Storage::url($defect->photo_path) : null,
+            ],
             'projects' => $projects->map(fn ($project) => [
                 'id' => $project->id,
                 'name' => $project->name,
@@ -113,9 +144,20 @@ class DefectController extends Controller
     public function update(StoreDefectRequest $request, Defect $defect): RedirectResponse
     {
         $data = $request->validated();
+        unset($data['photo']);
         $data['resolved_at'] = $data['status'] === 'resolved'
             ? ($defect->resolved_at ?? now())
             : null;
+
+        if ($request->hasFile('photo')) {
+            if ($defect->photo_path) {
+                Storage::disk('public')->delete($defect->photo_path);
+            }
+
+            $file = $request->file('photo');
+            $data['photo_path'] = $file->store('defects', 'public');
+            $data['photo_name'] = $file->getClientOriginalName();
+        }
 
         $defect->update($data);
 
@@ -124,6 +166,10 @@ class DefectController extends Controller
 
     public function destroy(Defect $defect): RedirectResponse
     {
+        if ($defect->photo_path) {
+            Storage::disk('public')->delete($defect->photo_path);
+        }
+
         $defect->delete();
 
         return redirect()->route('defects.index')->with('success', 'Defect sters!');
