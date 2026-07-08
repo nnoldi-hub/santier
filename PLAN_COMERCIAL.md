@@ -195,3 +195,38 @@ Instalarea la client ramane:
 - Clientul isi gestioneaza propriii utilizatori, iar noi gestionam platforma si billing-ul.
 - Onboarding-ul si supportul sunt parte din produs.
 - Profitul cel mai stabil vine din recurent + onboarding fee + add-on-uri, nu din vanzare unica.
+
+## 13) Plan conversie post-lansare (executie pas cu pas)
+
+Obiectiv: crestere rata de conversie din trafic in solicitari demo calificate.
+
+### Faza 1 (24-48h)
+- [x] Landing: adaugat video scurt in Hero (20-30 sec) cu CTA spre demo.
+- [x] Landing: sectiune "Cum functioneaza Modulia" in 3 pasi clari.
+- [x] Landing: sectiune "Pentru cine este Modulia" (4 segmente principale).
+- [x] Landing: sectiune "De ce Modulia" + CTA pentru brosura.
+- [x] Landing: testimoniale pilot (placeholder validabil comercial).
+- [x] Setat tracking minim pentru funnel: vizita -> click CTA -> formular demo trimis.
+
+### Faza 2 (48-72h)
+- [ ] Material comercial: finalizare brosura PDF (one-pager) cu beneficii + pachete + CTA.
+- [ ] Creatie 2 variante video (A/B): focus operational vs focus management.
+- [ ] Refinare copy pe CTA-uri: "Solicita demo" vs "Vezi demo live".
+- [ ] Formular demo: adaugare camp "rol" si "tip proiect" pentru calificare lead.
+- [ ] Adaugare dovada sociala extinsa: logo-uri clienti pilot + rezultate masurabile.
+
+### Faza 3 (3-5 zile)
+- [ ] Campanii Meta Ads: 2 seturi audienta (antreprenor general / renovari).
+- [ ] Email flow automat:
+	- email 1: confirmare solicitare demo (instant);
+	- email 2: beneficii + studiu de caz (T+1 zi);
+	- email 3: reminder programare demo (T+3 zile).
+- [ ] Pachet demo account pregatit: proiect demo, date reale, raport PDF, checklist de prezentare.
+- [ ] Script comercial de demo: 20 min standard + 10 min Q&A.
+- [ ] Dashboard KPI conversie: CTR CTA, rata completare formular, demo-show rate, trial-to-paid.
+
+### KPI tinta (primele 30 zile)
+- crestere CTR pe CTA principal cu minim +20%;
+- rata de completare formular demo peste 4%;
+- demo-show rate peste 60%;
+- trial-to-paid initial peste 12%.

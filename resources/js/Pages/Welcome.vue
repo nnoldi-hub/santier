@@ -59,17 +59,13 @@
                             <Link
                                 v-if="canRegister"
                                 :href="route('register')"
+                                @click="trackCtaClick('hero', 'incearca_modulia')"
                                 class="px-6 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition"
                             >
-                                Încearcă Modulia
+                                Incearca Modulia
                             </Link>
-                            <Link
-                                v-if="canLogin"
-                                :href="route('login')"
-                                class="px-6 py-3 rounded-xl bg-white border border-slate-300 font-semibold hover:bg-slate-50 transition"
-                            >
-                                Solicită demo
-                            </Link>
+                            <a href="#solicita-demo" @click="trackCtaClick('hero', 'solicita_demo')" class="px-6 py-3 rounded-xl bg-white border border-slate-300 font-semibold hover:bg-slate-50 transition">Solicita demo</a>
+                            <a href="#video-demo" @click="trackCtaClick('hero', 'vezi_video_30_sec')" class="px-6 py-3 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 transition">Vezi video 30 sec</a>
                         </div>
 
                         <div class="mt-8 grid grid-cols-3 gap-3 max-w-md">
@@ -132,6 +128,62 @@
                 </div>
             </section>
 
+            <section id="video-demo" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <div class="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 items-stretch">
+                    <div class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+                        <div class="aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                            <iframe
+                                class="h-full w-full"
+                                src="https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0"
+                                title="Modulia demo rapid"
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen
+                            ></iframe>
+                        </div>
+                    </div>
+                    <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-orange-50 to-blue-50 p-6 sm:p-8">
+                        <span class="text-xs uppercase tracking-wide font-semibold text-slate-500">Hero video</span>
+                        <h2 class="mt-2 text-2xl sm:text-3xl font-black text-slate-900">Vezi in 20-30 sec cum arata controlul santierului</h2>
+                        <p class="mt-3 text-slate-600">Clipul arata fluxul complet: proiect, taskuri, defecte, raport PDF si dashboard de management.</p>
+                        <ul class="mt-5 space-y-2 text-sm text-slate-600">
+                            <li>• claritate pe status si responsabilitati</li>
+                            <li>• urmarire defecte cu poze si termene</li>
+                            <li>• raportare rapida pentru management</li>
+                        </ul>
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <a href="#solicita-demo" @click="trackCtaClick('video_section', 'programeaza_demo_live')" class="px-5 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold hover:brightness-95 transition">Programeaza demo live</a>
+                            <a :href="`mailto:${salesEmail || supportEmail || 'contact@modulia.ro'}?subject=Solicitare%20brosura%20Modulia`" @click="trackCtaClick('video_section', 'solicita_brosura_pdf')" class="px-5 py-3 rounded-xl border border-slate-300 bg-white font-semibold hover:bg-slate-50 transition">Solicita brosura PDF</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Cum functioneaza Modulia</h2>
+                <p class="mt-2 text-slate-600">Treci de la haos operational la control in 3 pasi simpli.</p>
+                <div class="mt-6 grid md:grid-cols-3 gap-4">
+                    <article v-for="step in howItWorks" :key="step.title" class="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pasul {{ step.step }}</div>
+                        <h3 class="mt-2 text-lg font-bold text-slate-900">{{ step.title }}</h3>
+                        <p class="mt-2 text-sm text-slate-600">{{ step.text }}</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Pentru cine este Modulia</h2>
+                <p class="mt-2 text-slate-600">Fiecare rol vede ce are nevoie pentru decizii rapide si executie buna.</p>
+                <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <article v-for="segment in audiences" :key="segment.title" class="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div class="text-2xl">{{ segment.icon }}</div>
+                        <h3 class="mt-3 font-bold text-slate-900">{{ segment.title }}</h3>
+                        <p class="mt-2 text-sm text-slate-600">{{ segment.text }}</p>
+                    </article>
+                </div>
+            </section>
+
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Probleme reale pe care le rezolvi din prima saptamana</h2>
                 <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -152,6 +204,34 @@
                         <div class="mt-3 font-semibold text-lg">{{ feature.title }}</div>
                         <p class="mt-1 text-sm text-slate-100/90">{{ feature.text }}</p>
                     </div>
+                </div>
+            </section>
+
+            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">De ce Modulia</h2>
+                <div class="mt-6 grid md:grid-cols-2 gap-4">
+                    <article v-for="reason in whyModulia" :key="reason.title" class="rounded-2xl border border-slate-200 bg-white p-5">
+                        <h3 class="font-bold text-slate-900">{{ reason.title }}</h3>
+                        <p class="mt-2 text-sm text-slate-600">{{ reason.text }}</p>
+                    </article>
+                </div>
+                <div class="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Brosura comerciala Modulia</h3>
+                        <p class="text-sm text-slate-600">Trimite solicitarea si primesti PDF-ul de prezentare cu pachete, onboarding si beneficii.</p>
+                    </div>
+                    <a :href="`mailto:${salesEmail || supportEmail || 'contact@modulia.ro'}?subject=Solicitare%20brosura%20comerciala%20Modulia`" @click="trackCtaClick('why_modulia', 'solicita_brosura')" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">Solicita brosura</a>
+                </div>
+            </section>
+
+            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Ce spun clientii pilot</h2>
+                <div class="mt-6 grid md:grid-cols-3 gap-4">
+                    <article v-for="quote in testimonials" :key="quote.name" class="rounded-2xl border border-slate-200 bg-white p-5">
+                        <p class="text-sm text-slate-700">"{{ quote.text }}"</p>
+                        <div class="mt-4 text-sm font-semibold text-slate-900">{{ quote.name }}</div>
+                        <div class="text-xs text-slate-500">{{ quote.role }}</div>
+                    </article>
                 </div>
             </section>
 
@@ -318,6 +398,32 @@ const features = [
     { icon: '🛡️', title: 'Roluri & Permisiuni Enterprise', text: 'Control complet asupra accesului. Superadmin, Admin firma, roluri custom, permisiuni granulare.' },
 ];
 
+const howItWorks = [
+    { step: 1, title: 'Configurezi proiectul in 10 minute', text: 'Pornesti cu sabloane de etape, responsabili si termene. Echipa vede imediat ce are de facut.' },
+    { step: 2, title: 'Executi si urmaresti progresul zilnic', text: 'Taskuri, defecte si costuri intr-un singur tablou de bord, fara fisiere imprastiate.' },
+    { step: 3, title: 'Raportezi clar catre management', text: 'Exporti PDF/XLSX, verifici riscuri si iei decizii pe date reale, nu pe presupuneri.' },
+];
+
+const audiences = [
+    { icon: '👷', title: 'Antreprenori generali', text: 'Coordonare centralizata pe mai multe santiere, echipe si subcontractori.' },
+    { icon: '🏗️', title: 'Firme de renovari', text: 'Planificare simpla pe etape scurte, control pe defecte si livrare la termen.' },
+    { icon: '📐', title: 'Manageri de proiect', text: 'Vizibilitate operationala completa: status, blocaje, costuri si decizii rapide.' },
+    { icon: '💼', title: 'Proprietari / management', text: 'Rapoarte executive, indicatori de performanta si control asupra bugetelor.' },
+];
+
+const whyModulia = [
+    { title: 'Construit pentru santier, nu generic', text: 'Fluxurile sunt gandite pentru realitatea din teren: etape, defecte, validari si inchideri.' },
+    { title: 'Implementare rapida, fara proiect IT mare', text: 'Intri pe trial, configurezi echipa si ai primele rezultate in cateva zile, nu luni.' },
+    { title: 'Date unificate pentru decizii', text: 'Taskuri, costuri si rapoarte sunt intr-un singur sistem, fara dublari si versiuni conflictuale.' },
+    { title: 'Scalabil de la pilot la enterprise', text: 'Incepi simplu si extinzi cu roluri, aprobari, branding si automatizari pe masura ce cresti.' },
+];
+
+const testimonials = [
+    { name: 'Andrei Pop', role: 'Director Operatiuni, firma renovari', text: 'In primele 2 saptamani am redus timpul de urmarire a taskurilor cu aproape 30%.' },
+    { name: 'Mihai Ionescu', role: 'Project Manager, antreprenor general', text: 'E prima data cand avem status clar pe defecte si termene, fara apeluri continue.' },
+    { name: 'Ioana Matei', role: 'Administrator, companie constructii', text: 'Rapoartele catre management sunt gata in minute. Inainte pierdeam ore in Excel.' },
+];
+
 function formatPrice(price) {
     const numericPrice = Number(price || 0);
 
@@ -344,10 +450,53 @@ const demoForm = useForm({
 });
 
 function submitDemoRequest() {
+    trackEvent('demo_form_submit_attempt', {
+        placement: 'landing_welcome',
+        has_company_name: Boolean(demoForm.company_name),
+        estimated_users: Number(demoForm.estimated_users || 0),
+        customization_scope: demoForm.customization_scope || '',
+    });
+
     demoForm.post(route('demo-request.store'), {
         preserveScroll: true,
-        onSuccess: () => demoForm.reset('contact_name', 'contact_email', 'contact_phone', 'estimated_users', 'customization_scope', 'notes'),
+        onSuccess: () => {
+            trackEvent('demo_form_submit_success', {
+                placement: 'landing_welcome',
+            });
+            demoForm.reset('contact_name', 'contact_email', 'contact_phone', 'estimated_users', 'customization_scope', 'notes');
+        },
+        onError: () => {
+            trackEvent('demo_form_submit_error', {
+                placement: 'landing_welcome',
+            });
+        },
     });
+}
+
+function trackCtaClick(section, cta) {
+    trackEvent('landing_cta_click', {
+        section,
+        cta,
+    });
+}
+
+function trackEvent(eventName, payload = {}) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const data = {
+        event: eventName,
+        page: 'welcome',
+        ...payload,
+    };
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(data);
+
+    if (typeof window.gtag === 'function') {
+        window.gtag('event', eventName, payload);
+    }
 }
 </script>
 
