@@ -71,7 +71,10 @@ class HandleInertiaRequests extends Middleware
                 'trialDays' => (int) ($platformSettings['trial_days'] ?? 14),
                 'publicSignupEnabled' => (bool) ($platformSettings['public_signup_enabled'] ?? true),
                 'demoModeEnabled' => (bool) ($platformSettings['demo_mode_enabled'] ?? true),
-                'isAdmin' => $user ? in_array(strtolower($user->email), array_map('strtolower', config('platform.admin_emails', [])), true) : false,
+                'isAdmin' => $user
+                    ? ((bool) ($user->is_superadmin ?? false)
+                        || in_array(strtolower($user->email), array_map('strtolower', config('platform.admin_emails', [])), true))
+                    : false,
             ],
             'billing' => [
                 'plan' => $user ? PricingPlan::current($user) : null,

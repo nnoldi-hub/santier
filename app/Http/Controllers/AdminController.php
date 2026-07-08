@@ -38,7 +38,10 @@ class AdminController extends Controller
                 'users_paid' => User::query()->whereIn('billing_plan', ['starter', 'pro', 'enterprise'])->count(),
                 'users_on_trial' => User::query()->whereNotNull('billing_trial_ends_at')->whereDate('billing_trial_ends_at', '>=', now()->toDateString())->count(),
                 'monthly_mrr_estimate' => $this->estimateMonthlyRevenue(),
-                'admin_count' => User::query()->whereIn('email', config('platform.admin_emails', []))->count(),
+                'admin_count' => User::query()
+                    ->where('is_superadmin', true)
+                    ->orWhereIn('email', config('platform.admin_emails', []))
+                    ->count(),
             ],
         ]);
     }
@@ -116,6 +119,10 @@ class AdminController extends Controller
     {
         if (! $user) {
             return false;
+        }
+
+        if ((bool) ($user->is_superadmin ?? false)) {
+            return true;
         }
 
         return in_array(strtolower($user->email), array_map('strtolower', config('platform.admin_emails', [])), true);
