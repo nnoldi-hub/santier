@@ -2,8 +2,10 @@
 deployment:
   tasks:
     - export WEBROOT=/home/rlwrgzez/public_html
+    - /bin/rm -rf $WEBROOT/build
     - /bin/mkdir -p $WEBROOT/build
-    - /bin/cp -R public/build/* $WEBROOT/build/ || true
-    - /bin/cp -R public/brand $WEBROOT/ || true
-    - /bin/cp public/robots.txt $WEBROOT/robots.txt || true
-    - /bin/cp public/favicon.ico $WEBROOT/favicon.ico || true
+    - /bin/cp -R public/build/* $WEBROOT/build/
+    - /bin/rm -rf $WEBROOT/brand
+    - /bin/cp -R public/brand $WEBROOT/
+    - /bin/cp public/robots.txt $WEBROOT/robots.txt
+    - /bin/cp public/favicon.ico $WEBROOT/favicon.ico
