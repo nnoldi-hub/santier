@@ -166,11 +166,16 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Video prezentare landing</label>
-                            <input v-model="settingsForm.landing_video_url" type="url" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="https://www.youtube.com/watch?v=..." />
-                            <p class="mt-1 text-[11px] text-slate-500">Accepta URL YouTube standard, youtu.be sau embed.</p>
-                            <p v-if="settingsForm.landing_video_url && !isLandingVideoUrlValid" class="mt-1 text-[11px] text-rose-600">
-                                Link invalid. Foloseste doar youtube.com, youtu.be sau youtube-nocookie.com.
+                            <input v-model="settingsForm.landing_video_url" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="YouTube link sau URL direct .mp4/.webm/.ogg" />
+                            <p class="mt-1 text-[11px] text-slate-500">Accepta YouTube, URL direct catre fisier video sau upload local.</p>
+                            <p v-if="settingsForm.landing_video_url && !isLandingVideoUrlValid && !settingsForm.landing_video_file" class="mt-1 text-[11px] text-rose-600">
+                                Link invalid. Foloseste YouTube sau URL direct .mp4/.webm/.ogg.
                             </p>
+                            <div class="mt-2">
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Sau incarca video</label>
+                                <input type="file" accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogg,.mov" @change="onVideoFileChange" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" />
+                                <p class="mt-1 text-[11px] text-slate-500">MP4, WebM, OGG sau MOV, maxim 100 MB.</p>
+                            </div>
                             <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                                 <div class="mb-2 flex items-center justify-between gap-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Preview video</span>
@@ -178,14 +183,21 @@
                                 </div>
                                 <div class="aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                                     <iframe
+                                        v-if="previewLandingVideo.type === 'youtube'"
                                         class="h-full w-full"
-                                        :src="previewLandingVideoUrl"
+                                        :src="previewLandingVideo.src"
                                         title="Preview video landing"
                                         loading="lazy"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                         referrerpolicy="strict-origin-when-cross-origin"
                                         allowfullscreen
                                     ></iframe>
+                                    <video v-else-if="previewLandingVideo.type === 'file'" class="h-full w-full" controls preload="metadata">
+                                        <source :src="previewLandingVideo.src" />
+                                    </video>
+                                    <div v-else class="h-full w-full flex items-center justify-center text-sm text-slate-500">
+                                        Adauga URL sau incarca un video pentru preview.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -256,6 +268,7 @@ const settingsForm = useForm({
     support_email: props.settings.support_email || '',
     sales_email: props.settings.sales_email || '',
     landing_video_url: props.settings.landing_video_url || '',
+    landing_video_file: null,
     document_logo_url: props.settings.document_logo_url || '',
     document_logo_file: null,
     document_brand_color: props.settings.document_brand_color || '#f97316',
@@ -265,9 +278,8 @@ const settingsForm = useForm({
 });
 
 const logoPreview = ref(props.settings.document_logo_url || '');
-const defaultLandingVideoUrl = 'https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0';
-
-const previewLandingVideoUrl = computed(() => normalizeVideoEmbedUrl(settingsForm.landing_video_url || defaultLandingVideoUrl));
+const uploadedLandingVideoPreviewUrl = ref('');
+const previewLandingVideo = computed(() => resolveLandingVideo(uploadedLandingVideoPreviewUrl.value || settingsForm.landing_video_url));
 const isLandingVideoUrlValid = computed(() => isAllowedLandingVideoUrl(settingsForm.landing_video_url));
 
 const selectedPlanLabel = computed(() => selectedUser.value ? (props.plans?.[selectedUser.value.billing_plan]?.label || selectedUser.value.billing_plan) : '-');
@@ -312,6 +324,19 @@ function onLogoFileChange(event) {
     logoPreview.value = settingsForm.document_logo_url || '';
 }
 
+function onVideoFileChange(event) {
+    const [file] = event.target.files || [];
+
+    settingsForm.landing_video_file = file || null;
+
+    if (file) {
+        uploadedLandingVideoPreviewUrl.value = URL.createObjectURL(file);
+        return;
+    }
+
+    uploadedLandingVideoPreviewUrl.value = '';
+}
+
 function formatDate(value) {
     if (!value) {
         return '-';
@@ -352,7 +377,7 @@ function normalizeVideoEmbedUrl(rawUrl) {
     const value = String(rawUrl || '').trim();
 
     if (!value) {
-        return defaultLandingVideoUrl;
+        return '';
     }
 
     if (value.includes('youtube-nocookie.com/embed/') || value.includes('youtube.com/embed/')) {
@@ -379,10 +404,10 @@ function normalizeVideoEmbedUrl(rawUrl) {
             }
         }
     } catch (error) {
-        return defaultLandingVideoUrl;
+        return '';
     }
 
-    return defaultLandingVideoUrl;
+    return '';
 }
 
 function isAllowedLandingVideoUrl(rawUrl) {
@@ -396,9 +421,35 @@ function isAllowedLandingVideoUrl(rawUrl) {
         const url = new URL(value);
         const host = url.hostname.replace('www.', '');
 
-        return ['youtube.com', 'm.youtube.com', 'youtu.be', 'youtube-nocookie.com'].includes(host);
+        if (['youtube.com', 'm.youtube.com', 'youtu.be', 'youtube-nocookie.com'].includes(host)) {
+            return true;
+        }
+
+        const pathname = String(url.pathname || '').toLowerCase();
+
+        return /\.(mp4|webm|ogg)(\?.*)?$/.test(pathname);
     } catch (error) {
-        return false;
+        return /^\/(storage\/)?.*\.(mp4|webm|ogg)(\?.*)?$/i.test(value);
     }
+}
+
+function resolveLandingVideo(rawUrl) {
+    const value = String(rawUrl || '').trim();
+
+    if (!value) {
+        return { type: 'none', src: '' };
+    }
+
+    const youtubeEmbedUrl = normalizeVideoEmbedUrl(value);
+
+    if (youtubeEmbedUrl) {
+        return { type: 'youtube', src: youtubeEmbedUrl };
+    }
+
+    if (isAllowedLandingVideoUrl(value)) {
+        return { type: 'file', src: value };
+    }
+
+    return { type: 'none', src: '' };
 }
 </script>

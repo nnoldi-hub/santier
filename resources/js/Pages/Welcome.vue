@@ -133,14 +133,21 @@
                     <div class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
                         <div class="aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                             <iframe
+                                v-if="landingVideo.type === 'youtube'"
                                 class="h-full w-full"
-                                :src="resolvedLandingVideoUrl"
+                                :src="landingVideo.src"
                                 title="Modulia demo rapid"
                                 loading="lazy"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 referrerpolicy="strict-origin-when-cross-origin"
                                 allowfullscreen
                             ></iframe>
+                            <video v-else-if="landingVideo.type === 'file'" class="h-full w-full" controls preload="metadata">
+                                <source :src="landingVideo.src" />
+                            </video>
+                            <div v-else class="h-full w-full flex items-center justify-center text-sm text-slate-500">
+                                Video in pregatire. Revenim curand cu prezentarea completa.
+                            </div>
                         </div>
                     </div>
                     <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-orange-50 to-blue-50 p-6 sm:p-8">
@@ -380,7 +387,7 @@ const props = defineProps({
     canRegister: Boolean,
 });
 
-const DEFAULT_LANDING_VIDEO_URL = 'https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0';
+const DEFAULT_LANDING_VIDEO_URL = '';
 
 const painPoints = [
     { icon: '🧩', title: 'Taskuri pierdute', text: 'Ai un backlog clar pe proiect, responsabil si deadline, fara mesaje imprastiate.' },
@@ -428,7 +435,7 @@ const testimonials = [
     { name: 'Ioana Matei', role: 'Administrator, companie constructii', text: 'Rapoartele catre management sunt gata in minute. Inainte pierdeam ore in Excel.' },
 ];
 
-const resolvedLandingVideoUrl = computed(() => normalizeVideoEmbedUrl(props.landingVideoUrl || DEFAULT_LANDING_VIDEO_URL));
+const landingVideo = computed(() => resolveLandingVideo(props.landingVideoUrl || DEFAULT_LANDING_VIDEO_URL));
 
 function formatPrice(price) {
     const numericPrice = Number(price || 0);
@@ -509,7 +516,7 @@ function normalizeVideoEmbedUrl(rawUrl) {
     const value = String(rawUrl || '').trim();
 
     if (!value) {
-        return DEFAULT_LANDING_VIDEO_URL;
+        return '';
     }
 
     if (value.includes('youtube-nocookie.com/embed/') || value.includes('youtube.com/embed/')) {
@@ -536,10 +543,50 @@ function normalizeVideoEmbedUrl(rawUrl) {
             }
         }
     } catch (error) {
-        return DEFAULT_LANDING_VIDEO_URL;
+        return '';
     }
 
-    return DEFAULT_LANDING_VIDEO_URL;
+    return '';
+}
+
+function isDirectVideoUrl(rawUrl) {
+    const value = String(rawUrl || '').trim();
+
+    if (!value) {
+        return false;
+    }
+
+    try {
+        const url = new URL(value);
+        const pathname = String(url.pathname || '').toLowerCase();
+
+        return /\.(mp4|webm|ogg)(\?.*)?$/.test(pathname);
+    } catch (error) {
+        return /^\/(storage\/)?[^\s]+\.(mp4|webm|ogg)(\?.*)?$/i.test(value);
+    }
+}
+
+function resolveLandingVideo(rawUrl) {
+    const youtubeEmbedUrl = normalizeVideoEmbedUrl(rawUrl);
+
+    if (youtubeEmbedUrl) {
+        return {
+            type: 'youtube',
+            src: youtubeEmbedUrl,
+        };
+    }
+
+    if (isDirectVideoUrl(rawUrl)) {
+        return {
+            type: 'file',
+            src: String(rawUrl || '').trim(),
+        };
+    }
+
+    return {
+        type: 'none',
+        src: '',
+    };
 }
 </script>
 
