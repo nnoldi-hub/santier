@@ -361,6 +361,11 @@
                     <span>Modulia - Șantierul devine clar.</span>
                 </div>
                 <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <a v-for="link in socialLinksToRender" :key="link.label" :href="link.url" target="_blank" rel="noopener" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-[var(--brand-blue)] hover:text-[var(--brand-blue)] transition" :aria-label="link.label">
+                            {{ link.shortLabel }}
+                        </a>
+                    </div>
                     <a href="https://modulia.ro" target="_blank" rel="noopener" class="text-[var(--brand-blue)] hover:underline">modulia.ro</a>
                     <a :href="`mailto:${supportEmail || 'suport@modulia.ro'}`" class="text-[var(--brand-blue)] hover:underline">Suport</a>
                     <span>© 2026 Modulia</span>
@@ -382,6 +387,7 @@ const props = defineProps({
     supportEmail: { type: String, default: '' },
     salesEmail: { type: String, default: '' },
     landingVideoUrl: { type: String, default: '' },
+    socialLinks: { type: Object, default: () => ({}) },
     plans: { type: Array, default: () => [] },
     canLogin: Boolean,
     canRegister: Boolean,
@@ -436,6 +442,7 @@ const testimonials = [
 ];
 
 const landingVideo = computed(() => resolveLandingVideo(props.landingVideoUrl || DEFAULT_LANDING_VIDEO_URL));
+const socialLinksToRender = computed(() => buildSocialLinks(props.socialLinks || {}));
 
 function formatPrice(price) {
     const numericPrice = Number(price || 0);
@@ -587,6 +594,23 @@ function resolveLandingVideo(rawUrl) {
         type: 'none',
         src: '',
     };
+}
+
+function buildSocialLinks(links) {
+    const items = [
+        { key: 'facebook', label: 'Facebook', shortLabel: 'f' },
+        { key: 'instagram', label: 'Instagram', shortLabel: 'ig' },
+        { key: 'linkedin', label: 'LinkedIn', shortLabel: 'in' },
+        { key: 'tiktok', label: 'TikTok', shortLabel: 'tt' },
+        { key: 'youtube', label: 'YouTube', shortLabel: 'yt' },
+    ];
+
+    return items
+        .map((item) => ({
+            ...item,
+            url: String(links?.[item.key] || '').trim(),
+        }))
+        .filter((item) => item.url);
 }
 </script>
 

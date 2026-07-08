@@ -81,6 +81,13 @@ Route::get('/', function (Request $request) {
         'supportEmail' => $platformSettings['support_email'] ?? null,
         'salesEmail' => $platformSettings['sales_email'] ?? null,
         'landingVideoUrl' => $platformSettings['landing_video_url'] ?? null,
+        'socialLinks' => [
+            'facebook' => $platformSettings['social_facebook_url'] ?? null,
+            'instagram' => $platformSettings['social_instagram_url'] ?? null,
+            'linkedin' => $platformSettings['social_linkedin_url'] ?? null,
+            'tiktok' => $platformSettings['social_tiktok_url'] ?? null,
+            'youtube' => $platformSettings['social_youtube_url'] ?? null,
+        ],
         'plans' => collect(config('pricing.plans', []))->map(function (array $plan, string $key) {
             return [
                 'key' => $key,

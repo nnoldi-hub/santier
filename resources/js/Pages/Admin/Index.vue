@@ -164,6 +164,16 @@
                             <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Email vanzari</label>
                             <input v-model="settingsForm.sales_email" type="email" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" />
                         </div>
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                            <div>
+                                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Social media</div>
+                                <h3 class="mt-1 text-sm font-bold text-slate-900">Linkuri publice pentru pagina de prezentare</h3>
+                            </div>
+                            <div v-for="field in socialMediaFields" :key="field.key">
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">{{ field.label }}</label>
+                                <input v-model="settingsForm[field.key]" :type="field.type" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" :placeholder="field.placeholder" />
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Video prezentare landing</label>
                             <input v-model="settingsForm.landing_video_url" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="YouTube link sau URL direct .mp4/.webm/.ogg" />
@@ -267,6 +277,11 @@ const settingsForm = useForm({
     company_address: props.settings.company_address || '',
     support_email: props.settings.support_email || '',
     sales_email: props.settings.sales_email || '',
+    social_facebook_url: props.settings.social_facebook_url || '',
+    social_instagram_url: props.settings.social_instagram_url || '',
+    social_linkedin_url: props.settings.social_linkedin_url || '',
+    social_tiktok_url: props.settings.social_tiktok_url || '',
+    social_youtube_url: props.settings.social_youtube_url || '',
     landing_video_url: props.settings.landing_video_url || '',
     landing_video_file: null,
     document_logo_url: props.settings.document_logo_url || '',
@@ -281,6 +296,13 @@ const logoPreview = ref(props.settings.document_logo_url || '');
 const uploadedLandingVideoPreviewUrl = ref('');
 const previewLandingVideo = computed(() => resolveLandingVideo(uploadedLandingVideoPreviewUrl.value || settingsForm.landing_video_url));
 const isLandingVideoUrlValid = computed(() => isAllowedLandingVideoUrl(settingsForm.landing_video_url));
+const socialMediaFields = [
+    { key: 'social_facebook_url', label: 'Facebook', placeholder: 'https://facebook.com/modulia', type: 'url' },
+    { key: 'social_instagram_url', label: 'Instagram', placeholder: 'https://instagram.com/modulia', type: 'url' },
+    { key: 'social_linkedin_url', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/modulia', type: 'url' },
+    { key: 'social_tiktok_url', label: 'TikTok', placeholder: 'https://tiktok.com/@modulia', type: 'url' },
+    { key: 'social_youtube_url', label: 'YouTube', placeholder: 'https://youtube.com/@modulia', type: 'url' },
+];
 
 const selectedPlanLabel = computed(() => selectedUser.value ? (props.plans?.[selectedUser.value.billing_plan]?.label || selectedUser.value.billing_plan) : '-');
 
