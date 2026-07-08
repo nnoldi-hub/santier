@@ -162,6 +162,11 @@
                             <input v-model="settingsForm.sales_email" type="email" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" />
                         </div>
                         <div>
+                            <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Video prezentare landing</label>
+                            <input v-model="settingsForm.landing_video_url" type="url" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="https://www.youtube.com/watch?v=..." />
+                            <p class="mt-1 text-[11px] text-slate-500">Accepta URL YouTube standard, youtu.be sau embed.</p>
+                        </div>
+                        <div>
                             <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Logo documente (URL)</label>
                             <input v-model="settingsForm.document_logo_url" type="url" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="https://.../logo.png" />
                         </div>
@@ -227,6 +232,7 @@ const settingsForm = useForm({
     company_address: props.settings.company_address || '',
     support_email: props.settings.support_email || '',
     sales_email: props.settings.sales_email || '',
+    landing_video_url: props.settings.landing_video_url || '',
     document_logo_url: props.settings.document_logo_url || '',
     document_logo_file: null,
     document_brand_color: props.settings.document_brand_color || '#f97316',

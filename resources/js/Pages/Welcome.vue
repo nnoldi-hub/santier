@@ -134,7 +134,7 @@
                         <div class="aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                             <iframe
                                 class="h-full w-full"
-                                src="https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0"
+                                :src="resolvedLandingVideoUrl"
                                 title="Modulia demo rapid"
                                 loading="lazy"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -364,19 +364,23 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     appName: { type: String, default: 'Modulia' },
     companyName: { type: String, default: 'Modulia' },
     trialDays: { type: Number, default: 14 },
     supportEmail: { type: String, default: '' },
     salesEmail: { type: String, default: '' },
+    landingVideoUrl: { type: String, default: '' },
     plans: { type: Array, default: () => [] },
     canLogin: Boolean,
     canRegister: Boolean,
 });
+
+const DEFAULT_LANDING_VIDEO_URL = 'https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0';
 
 const painPoints = [
     { icon: '🧩', title: 'Taskuri pierdute', text: 'Ai un backlog clar pe proiect, responsabil si deadline, fara mesaje imprastiate.' },
@@ -423,6 +427,8 @@ const testimonials = [
     { name: 'Mihai Ionescu', role: 'Project Manager, antreprenor general', text: 'E prima data cand avem status clar pe defecte si termene, fara apeluri continue.' },
     { name: 'Ioana Matei', role: 'Administrator, companie constructii', text: 'Rapoartele catre management sunt gata in minute. Inainte pierdeam ore in Excel.' },
 ];
+
+const resolvedLandingVideoUrl = computed(() => normalizeVideoEmbedUrl(props.landingVideoUrl || DEFAULT_LANDING_VIDEO_URL));
 
 function formatPrice(price) {
     const numericPrice = Number(price || 0);
@@ -497,6 +503,43 @@ function trackEvent(eventName, payload = {}) {
     if (typeof window.gtag === 'function') {
         window.gtag('event', eventName, payload);
     }
+}
+
+function normalizeVideoEmbedUrl(rawUrl) {
+    const value = String(rawUrl || '').trim();
+
+    if (!value) {
+        return DEFAULT_LANDING_VIDEO_URL;
+    }
+
+    if (value.includes('youtube-nocookie.com/embed/') || value.includes('youtube.com/embed/')) {
+        return value;
+    }
+
+    try {
+        const url = new URL(value);
+        const host = url.hostname.replace('www.', '');
+
+        if (host === 'youtu.be') {
+            const videoId = url.pathname.split('/').filter(Boolean)[0];
+
+            if (videoId) {
+                return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            }
+        }
+
+        if (host === 'youtube.com' || host === 'm.youtube.com') {
+            const videoId = url.searchParams.get('v');
+
+            if (videoId) {
+                return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            }
+        }
+    } catch (error) {
+        return DEFAULT_LANDING_VIDEO_URL;
+    }
+
+    return DEFAULT_LANDING_VIDEO_URL;
 }
 </script>
 

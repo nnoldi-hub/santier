@@ -73,6 +73,7 @@ class AdminController extends Controller
             'company_address' => ['nullable', 'string', 'max:255'],
             'support_email' => ['required', 'email', 'max:255'],
             'sales_email' => ['required', 'email', 'max:255'],
+            'landing_video_url' => ['nullable', 'url', 'max:500'],
             'document_logo_url' => ['nullable', 'url', 'max:500'],
             'document_logo_file' => ['nullable', 'image', 'max:2048'],
             'document_brand_color' => ['nullable', 'string', 'max:32'],
@@ -85,7 +86,7 @@ class AdminController extends Controller
 
         if ($request->hasFile('document_logo_file')) {
             $path = $request->file('document_logo_file')->store('branding', 'public');
-            $documentLogoUrl = Storage::disk('public')->url($path);
+            $documentLogoUrl = Storage::url($path);
         }
 
         AppSetting::setValues([
@@ -95,6 +96,7 @@ class AdminController extends Controller
             'company_address' => $validated['company_address'] ?? '',
             'support_email' => $validated['support_email'],
             'sales_email' => $validated['sales_email'],
+            'landing_video_url' => $validated['landing_video_url'] ?? '',
             'document_logo_url' => $documentLogoUrl,
             'document_brand_color' => $validated['document_brand_color'] ?? '#f97316',
             'trial_days' => $validated['trial_days'],

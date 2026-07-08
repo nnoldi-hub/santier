@@ -80,6 +80,7 @@ Route::get('/', function (Request $request) {
         'trialDays' => (int) ($platformSettings['trial_days'] ?? 14),
         'supportEmail' => $platformSettings['support_email'] ?? null,
         'salesEmail' => $platformSettings['sales_email'] ?? null,
+        'landingVideoUrl' => $platformSettings['landing_video_url'] ?? null,
         'plans' => collect(config('pricing.plans', []))->map(function (array $plan, string $key) {
             return [
                 'key' => $key,

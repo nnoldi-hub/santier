@@ -10,6 +10,7 @@ return [
         'company_address' => env('PLATFORM_COMPANY_ADDRESS', ''),
         'support_email' => env('PLATFORM_SUPPORT_EMAIL', 'suport@modulia.ro'),
         'sales_email' => env('PLATFORM_SALES_EMAIL', 'vanzari@modulia.ro'),
+        'landing_video_url' => env('PLATFORM_LANDING_VIDEO_URL', 'https://www.youtube-nocookie.com/embed/2efN2Y2PLo8?rel=0'),
         'document_logo_url' => env('PLATFORM_DOCUMENT_LOGO_URL', '/brand/logo_modulia.png'),
         'document_brand_color' => env('PLATFORM_DOCUMENT_BRAND_COLOR', '#FF7A00'),
         'trial_days' => (int) env('PLATFORM_TRIAL_DAYS', 14),
