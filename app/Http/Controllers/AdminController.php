@@ -76,7 +76,16 @@ class AdminController extends Controller
             'company_address' => ['nullable', 'string', 'max:255'],
             'support_email' => ['required', 'email', 'max:255'],
             'sales_email' => ['required', 'email', 'max:255'],
-            'landing_video_url' => ['nullable', 'url', 'max:500'],
+            'landing_video_url' => [
+                'nullable',
+                'url',
+                'max:500',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $this->isAllowedLandingVideoUrl($value)) {
+                        $fail('Linkul video trebuie sa fie de pe YouTube (youtube.com, youtu.be sau youtube-nocookie.com).');
+                    }
+                },
+            ],
             'document_logo_url' => ['nullable', 'url', 'max:500'],
             'document_logo_file' => ['nullable', 'image', 'max:2048'],
             'document_brand_color' => ['nullable', 'string', 'max:32'],
@@ -135,5 +144,25 @@ class AdminController extends Controller
         return (int) User::query()->get(['billing_plan'])->sum(function (User $user) use ($plans) {
             return (int) ($plans[$user->billing_plan]['price'] ?? 0);
         });
+    }
+
+    private function isAllowedLandingVideoUrl(mixed $value): bool
+    {
+        $urlValue = trim((string) ($value ?? ''));
+
+        if ($urlValue === '') {
+            return true;
+        }
+
+        $parts = parse_url($urlValue);
+
+        if (! is_array($parts) || empty($parts['host'])) {
+            return false;
+        }
+
+        $host = strtolower((string) $parts['host']);
+        $allowedHosts = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com', 'www.youtube-nocookie.com'];
+
+        return in_array($host, $allowedHosts, true);
     }
 }
