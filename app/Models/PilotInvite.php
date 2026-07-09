@@ -18,12 +18,17 @@ class PilotInvite extends Model
         'status',
         'invited_at',
         'demo_scheduled_at',
+        'follow_up_at',
+        'last_contacted_at',
+        'next_step',
         'notes',
     ];
 
     protected $casts = [
         'invited_at' => 'datetime',
         'demo_scheduled_at' => 'datetime',
+        'follow_up_at' => 'datetime',
+        'last_contacted_at' => 'datetime',
     ];
 
     public function owner(): BelongsTo

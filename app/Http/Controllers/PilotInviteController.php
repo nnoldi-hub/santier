@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
 use App\Models\PilotInvite;
+use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +45,9 @@ class PilotInviteController extends Controller
                     'status' => $invite->status,
                     'invited_at' => $invite->invited_at,
                     'demo_scheduled_at' => $invite->demo_scheduled_at,
+                    'follow_up_at' => $invite->follow_up_at,
+                    'last_contacted_at' => $invite->last_contacted_at,
+                    'next_step' => $invite->next_step,
                     'notes' => $invite->notes,
                     'owner' => $invite->owner,
                     'estimated_users' => $qualification['estimated_users'],
@@ -54,6 +58,9 @@ class PilotInviteController extends Controller
 
         return Inertia::render('PilotInvites/Index', [
             'invites' => $invites,
+            'owners' => User::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']),
             'filters' => [
                 'status' => $status,
                 'customization' => $customization,
@@ -89,11 +96,19 @@ class PilotInviteController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', 'in:invited,contacted,demo_scheduled,trial_started,closed_won,closed_lost'],
+            'owner_id' => ['nullable', 'integer', 'exists:users,id'],
             'demo_scheduled_at' => ['nullable', 'date'],
+            'follow_up_at' => ['nullable', 'date'],
+            'next_step' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $updates = [
             'status' => $validated['status'],
+            'owner_id' => $validated['owner_id'] ?? $pilotInvite->owner_id,
+            'follow_up_at' => $validated['follow_up_at'] ?? null,
+            'next_step' => trim((string) ($validated['next_step'] ?? '')) ?: null,
+            'notes' => array_key_exists('notes', $validated) ? trim((string) $validated['notes']) ?: null : $pilotInvite->notes,
         ];
 
         if ($validated['status'] === 'demo_scheduled' && !empty($validated['demo_scheduled_at'])) {
@@ -102,6 +117,10 @@ class PilotInviteController extends Controller
 
         if ($validated['status'] !== 'demo_scheduled') {
             $updates['demo_scheduled_at'] = null;
+        }
+
+        if ($validated['status'] === 'contacted') {
+            $updates['last_contacted_at'] = now();
         }
 
         $pilotInvite->update($updates);
@@ -122,9 +141,11 @@ class PilotInviteController extends Controller
             'contact_phone' => $validated['contact_phone'] ?? null,
             'notes' => $this->buildSalesNotes($validated),
             'tenant_id' => $tenantId,
-            'owner_id' => $ownerId,
+            'owner_id' => $validated['owner_id'] ?? $ownerId,
             'status' => 'invited',
             'invited_at' => now(),
+            'follow_up_at' => $validated['follow_up_at'] ?? null,
+            'next_step' => trim((string) ($validated['next_step'] ?? '')) ?: null,
         ]);
     }
 

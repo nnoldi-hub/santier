@@ -46,6 +46,21 @@
                             <option value="full_enterprise">Pachet enterprise complet</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Owner comercial</label>
+                        <select v-model="form.owner_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">Alege owner</option>
+                            <option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }} · {{ owner.email }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Follow-up</label>
+                        <input v-model="form.follow_up_at" type="datetime-local" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs text-gray-600 mb-1">Urmator pas</label>
+                        <input v-model="form.next_step" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: programeaza demo sau trimite oferta" />
+                    </div>
                     <div class="md:col-span-3">
                         <label class="block text-xs text-gray-600 mb-1">Note</label>
                         <textarea v-model="form.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
@@ -96,11 +111,11 @@
                         <tr>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Companie</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Contact</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Segment</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Utilizatori</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Personalizare</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Lead</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Pipeline</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Follow-up</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Owner</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -112,9 +127,11 @@
                             <td class="px-4 py-3 text-gray-600">
                                 <div>{{ invite.contact_name || '-' }}</div>
                                 <div class="text-xs text-gray-500">{{ invite.contact_email }}</div>
-                                <div class="text-xs text-gray-500">{{ invite.contact_phone || '-' }}</div>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">{{ invite.segment || '-' }}</td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <div class="font-medium text-gray-700">{{ invite.segment || '-' }}</div>
+                                <div class="mt-1 text-xs text-gray-500">{{ invite.contact_phone || '-' }}</div>
+                            </td>
                             <td class="px-4 py-3 text-gray-600">
                                 <div class="flex items-center gap-2">
                                     <span>{{ invite.estimated_users ?? '-' }}</span>
@@ -122,14 +139,37 @@
                                         High value
                                     </span>
                                 </div>
+                                <div class="mt-1 text-xs text-gray-500">{{ invite.customization_scope_label || '-' }}</div>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">{{ invite.customization_scope_label || '-' }}</td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <div class="space-y-2">
+                                    <select v-model="inviteDrafts[invite.id].status" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                                        <option v-for="status in statusOptions" :key="status" :value="status">{{ labelStatus(status) }}</option>
+                                    </select>
+                                    <input v-model="inviteDrafts[invite.id].demo_scheduled_at" type="datetime-local" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <div class="space-y-2">
+                                    <input v-model="inviteDrafts[invite.id].follow_up_at" type="datetime-local" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                    <input v-model="inviteDrafts[invite.id].next_step" type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Urmator pas" />
+                                    <div class="text-[11px] text-gray-400">Ultim contact: {{ formatDateTime(invite.last_contacted_at) }}</div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <div class="space-y-2">
+                                    <select v-model="inviteDrafts[invite.id].owner_id" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                                        <option value="">Fara owner</option>
+                                        <option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }}</option>
+                                    </select>
+                                    <textarea v-model="inviteDrafts[invite.id].notes" rows="2" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Note comerciale"></textarea>
+                                </div>
+                            </td>
                             <td class="px-4 py-3">
-                                <select :value="invite.status" @change="changeStatus(invite, $event)" class="border border-gray-300 rounded px-2 py-1 text-xs">
-                                    <option v-for="status in statusOptions" :key="status" :value="status">{{ labelStatus(status) }}</option>
-                                </select>
+                                <button :disabled="updatingInviteId === invite.id" @click="saveInvite(invite)" class="inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-60">
+                                    {{ updatingInviteId === invite.id ? 'Se salveaza...' : 'Salveaza' }}
+                                </button>
                             </td>
-                            <td class="px-4 py-3 text-gray-600 text-xs">{{ invite.owner?.name || '-' }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -139,12 +179,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
     invites: { type: Object, required: true },
+    owners: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     statusOptions: { type: Array, default: () => [] },
     customizationOptions: { type: Object, default: () => ({}) },
@@ -153,6 +194,7 @@ const props = defineProps({
 const statusFilter = ref(props.filters?.status || '');
 const customizationFilter = ref(props.filters?.customization || '');
 const sortBy = ref(props.filters?.sort || 'users_desc');
+const updatingInviteId = ref(null);
 
 const form = useForm({
     company_name: '',
@@ -160,10 +202,19 @@ const form = useForm({
     contact_name: '',
     contact_email: '',
     contact_phone: '',
+    owner_id: '',
     estimated_users: 10,
     customization_scope: 'branding',
+    follow_up_at: '',
+    next_step: '',
     notes: '',
 });
+
+const inviteDrafts = ref(buildInviteDrafts(props.invites?.data || []));
+
+watch(() => props.invites?.data, (value) => {
+    inviteDrafts.value = buildInviteDrafts(value || []);
+}, { deep: true });
 
 const displayedInvites = computed(() => {
     const source = Array.isArray(props.invites?.data) ? [...props.invites.data] : [];
@@ -197,17 +248,33 @@ function resetFilter() {
     applyFilter();
 }
 
-function changeStatus(invite, event) {
+function saveInvite(invite) {
+    const draft = inviteDrafts.value[invite.id];
+    updatingInviteId.value = invite.id;
+
     router.patch(route('pilot-invites.status', invite.id), {
-        status: event.target.value,
+        status: draft.status,
+        owner_id: draft.owner_id || null,
+        demo_scheduled_at: draft.demo_scheduled_at || null,
+        follow_up_at: draft.follow_up_at || null,
+        next_step: draft.next_step || null,
+        notes: draft.notes || null,
     }, {
         preserveScroll: true,
+        onFinish: () => {
+            updatingInviteId.value = null;
+        },
     });
 }
 
 function formatDate(value) {
     if (!value) return '-';
     return new Date(value).toLocaleDateString('ro-RO');
+}
+
+function formatDateTime(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('ro-RO');
 }
 
 function labelStatus(status) {
@@ -223,5 +290,24 @@ function labelStatus(status) {
 
 function isHighValue(estimatedUsers) {
     return Number(estimatedUsers || 0) >= 50;
+}
+
+function buildInviteDrafts(invites) {
+    return Object.fromEntries((invites || []).map((invite) => [invite.id, {
+        status: invite.status,
+        owner_id: invite.owner?.id ?? '',
+        demo_scheduled_at: formatDateInput(invite.demo_scheduled_at),
+        follow_up_at: formatDateInput(invite.follow_up_at),
+        next_step: invite.next_step || '',
+        notes: invite.notes || '',
+    }]));
+}
+
+function formatDateInput(value) {
+    if (!value) {
+        return '';
+    }
+
+    return new Date(value).toISOString().slice(0, 16);
 }
 </script>
