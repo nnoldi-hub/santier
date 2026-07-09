@@ -21,11 +21,33 @@
             </div>
 
             <nav class="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+                <div class="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    Acces rapid
+                </div>
                 <NavItem :href="routeOrFallback('dashboard')" :disabled="routeMissing('dashboard')" icon="📊" label="Dashboard" />
                 <NavItem :href="routeOrFallback('help.index')" :disabled="routeMissing('help.index')" icon="❓" label="Ajutor" />
-                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" icon="🛠️" label="Administrare" />
-                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" icon="📈" label="Dashboard Comercial" />
-                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" icon="🏢" label="Firme & Abonamente" />
+
+                <div v-if="isPlatformAdmin" class="pt-3">
+                    <div class="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-300">
+                        Superadmin / Platforma
+                    </div>
+                    <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors" :class="sectionButtonClass('platform')" @click="toggleSection('platform')">
+                        <span>Control platforma</span>
+                        <span :class="['transition-transform', sections.platform ? 'rotate-0' : '-rotate-90']">▾</span>
+                    </button>
+                    <div v-show="sections.platform" class="mt-1 space-y-1 pl-2 border-l border-orange-500/30">
+                        <NavItem :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" icon="🛠️" label="Administrare" />
+                        <NavItem :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" icon="📈" label="Dashboard Comercial" />
+                        <NavItem :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" icon="🏢" label="Firme & Abonamente" />
+                        <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" icon="🤝" label="Firme pilot" />
+                    </div>
+                </div>
+
+                <div class="pt-3">
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                        Operare firma
+                    </div>
+                </div>
 
                 <div class="pt-3">
                     <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors" :class="sectionButtonClass('projects')" @click="toggleSection('projects')">
@@ -123,7 +145,7 @@
 
                 <div>
                     <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors" :class="sectionButtonClass('account')" @click="toggleSection('account')">
-                        <span>Cont / Setari</span>
+                        <span>Cont si organizatie</span>
                         <span :class="['transition-transform', sections.account ? 'rotate-0' : '-rotate-90']">▾</span>
                     </button>
                     <div v-show="sections.account" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
@@ -132,7 +154,6 @@
                         <NavItem :href="routeOrFallback('account.audit.index')" :disabled="routeMissing('account.audit.index')" icon="🧾" label="Audit acces" />
                         <NavItem :href="routeOrFallback('account.notifications.index')" :disabled="routeMissing('account.notifications.index')" icon="🔔" label="Notificari" />
                         <NavItem :href="routeOrFallback('profile.edit')" :disabled="routeMissing('profile.edit')" icon="👤" label="Profil" />
-                        <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" icon="🤝" label="Firme pilot" />
                         <NavItem :href="routeOrFallback('billing.index')" :disabled="routeMissing('billing.index')" icon="💳" label="Plan & Billing" />
                     </div>
                 </div>
@@ -299,6 +320,7 @@ const notificationsOpen = ref(false);
 
 const SECTION_STATE_KEY = 'santier.sidebar.sections';
 const defaultSections = {
+    platform: true,
     projects: true,
     planning: true,
     resources: true,
@@ -312,6 +334,7 @@ const defaultSections = {
 const sections = reactive({ ...defaultSections });
 
 const sectionRoutes = {
+    platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index'],
     projects: ['projects.index', 'wbs.index', 'contractors.index', 'equipment.index', 'documents.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index'],
@@ -319,7 +342,7 @@ const sectionRoutes = {
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],
     reporting: ['exports.index', 'analytics.index', 'stage-progress.index'],
-    account: ['account.users.index', 'account.roles.index', 'account.audit.index', 'account.notifications.index', 'profile.edit', 'pilot-invites.index', 'billing.index'],
+    account: ['account.users.index', 'account.roles.index', 'account.audit.index', 'account.notifications.index', 'profile.edit', 'billing.index'],
 };
 
 const toggleSection = (name) => {

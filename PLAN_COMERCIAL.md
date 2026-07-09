@@ -274,6 +274,7 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 ### Livrat in productie
 - [x] landing comercial extins (video, cum functioneaza, audienta, testimoniale, social);
 - [x] setari admin pentru landing (video direct/file + social links);
+- [x] meniu lateral reorganizat: zona Superadmin / Platforma separata de modulele operationale;
 - [x] backoffice superadmin: Firme & Abonamente;
 - [x] dashboard comercial: KPI + funnel + forecast + riscuri trial + export CSV/XLSX;
 - [x] CRM pilot: owner, follow-up, next-step, note, update inline;
