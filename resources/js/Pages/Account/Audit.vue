@@ -5,6 +5,19 @@
                 <h2 class="text-lg font-semibold text-gray-900">Filtre audit</h2>
                 <p class="text-sm text-gray-500 mt-1">Cauta rapid actiuni IAM dupa actor, actiune, resursa si perioada.</p>
 
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button
+                        v-for="preset in quickActionPresets"
+                        :key="preset.key"
+                        type="button"
+                        class="rounded-full border px-3 py-1 text-xs font-medium"
+                        :class="isPresetActive(preset) ? 'border-sky-300 bg-sky-50 text-sky-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'"
+                        @click="applyPreset(preset)"
+                    >
+                        {{ preset.label }}
+                    </button>
+                </div>
+
                 <form class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3" @submit.prevent="applyFilters">
                     <input v-model="form.actor" type="text" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Actor (nume/email)" />
 
@@ -132,6 +145,12 @@ const form = useForm({
     to: props.filters.to || '',
 });
 
+const quickActionPresets = [
+    { key: 'all', label: 'Toate', action: '', resource_type: '' },
+    { key: 'resource-order', label: 'Resurse (resource_order.*)', action: 'resource_order.', resource_type: 'resource_order' },
+    { key: 'iam', label: 'IAM (iam.*)', action: 'iam.', resource_type: '' },
+];
+
 function applyFilters() {
     form.get(route('account.audit.index'), {
         preserveState: true,
@@ -162,6 +181,17 @@ function resetFilters() {
     form.to = '';
 
     applyFilters();
+}
+
+function applyPreset(preset) {
+    form.action = preset.action;
+    form.resource_type = preset.resource_type;
+    applyFilters();
+}
+
+function isPresetActive(preset) {
+    return (form.action || '') === (preset.action || '')
+        && (form.resource_type || '') === (preset.resource_type || '');
 }
 
 function goTo(url) {
