@@ -62,7 +62,7 @@
 
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Pipeline comercial</div>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Lead -> demo -> trial -> paid</h3>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Lead -> demo -> trial -> client platitor</h3>
                     <div class="mt-5 grid grid-cols-2 gap-3">
                         <div class="rounded-2xl bg-slate-50 p-4">
                             <div class="text-xs text-slate-500">Firme pilot</div>
@@ -133,7 +133,7 @@
                             -> <span class="font-semibold text-slate-800">{{ event.changes.billing_plan.to || '-' }}</span>
                             | Status: <span class="font-semibold text-slate-800">{{ event.changes.status.from || '-' }}</span>
                             -> <span class="font-semibold text-slate-800">{{ event.changes.status.to || '-' }}</span>
-                            | Trial end: <span class="font-semibold text-slate-800">{{ event.changes.billing_trial_ends_at.from || '-' }}</span>
+                            | Final trial: <span class="font-semibold text-slate-800">{{ event.changes.billing_trial_ends_at.from || '-' }}</span>
                             -> <span class="font-semibold text-slate-800">{{ event.changes.billing_trial_ends_at.to || '-' }}</span>
                         </div>
                         <div class="mt-1 text-xs text-slate-500">
@@ -165,7 +165,7 @@
                                 <th class="px-5 py-3 text-left">Status platforma</th>
                                 <th class="px-5 py-3 text-left">Status comercial</th>
                                 <th class="px-5 py-3 text-left">Utilizatori</th>
-                                <th class="px-5 py-3 text-left">Trial end</th>
+                                <th class="px-5 py-3 text-left">Final trial</th>
                                 <th class="px-5 py-3 text-left">MRR estimat</th>
                                 <th class="px-5 py-3 text-left">Actiuni</th>
                             </tr>

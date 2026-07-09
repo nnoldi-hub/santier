@@ -6,19 +6,19 @@
                     <div>
                         <div class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                             <span>📈</span>
-                            Business overview
+                            Imagine comerciala
                         </div>
                         <h2 class="mt-3 text-3xl font-black text-slate-900">Dashboard Comercial</h2>
                         <p class="mt-2 max-w-3xl text-sm text-slate-600">
-                            Vizibilitate pe venit, conversii si pipeline, pentru a decide mai clar unde investesti in demo, trial si follow-up.
+                            Vizibilitate pe venit, conversii si pipeline, pentru a decide mai clar unde investesti in demo, trial si urmarire comerciala.
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-3">
                         <a :href="route('admin.commercial-dashboard.export')" class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition">
-                            Export CSV management
+                            Export CSV comercial
                         </a>
                         <a :href="route('admin.commercial-dashboard.export-xlsx')" class="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition">
-                            Export XLSX board
+                            Export XLSX comercial
                         </a>
                         <Link :href="route('admin.tenants.index')" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
                             Firme & Abonamente
@@ -41,7 +41,7 @@
             <section class="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Funnel</div>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Lead -> demo -> trial -> paid</h3>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Lead -> demo -> trial -> client platitor</h3>
                     <div class="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3">
                         <div v-for="item in funnelCards" :key="item.key" class="rounded-2xl bg-slate-50 p-4">
                             <div class="text-xs text-slate-500">{{ item.label }}</div>
@@ -75,7 +75,7 @@
                         </div>
                     </div>
                     <div class="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4">
-                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Valoare pipeline ponderat</div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Valoare ponderata pipeline</div>
                         <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div class="rounded-xl bg-white px-4 py-3 border border-sky-100">
                                 <div class="text-slate-500">Contactati</div>

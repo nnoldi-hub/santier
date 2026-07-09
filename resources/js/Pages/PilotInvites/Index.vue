@@ -47,14 +47,14 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Owner comercial</label>
+                        <label class="block text-xs text-gray-600 mb-1">Responsabil comercial</label>
                         <select v-model="form.owner_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                            <option value="">Alege owner</option>
+                            <option value="">Alege responsabil</option>
                             <option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }} · {{ owner.email }}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Follow-up</label>
+                        <label class="block text-xs text-gray-600 mb-1">Urmarire</label>
                         <input v-model="form.follow_up_at" type="datetime-local" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
                     <div class="md:col-span-3">
@@ -118,10 +118,10 @@
                         <tr>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Companie</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Contact</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Lead</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Pipeline</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Follow-up</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500">Owner</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Profil lead</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Stadiu comercial</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Urmarire</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Responsabil</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                         </tr>
                     </thead>
@@ -174,7 +174,7 @@
                             <td class="px-4 py-3 text-gray-600">
                                 <div class="space-y-2">
                                     <select v-model="inviteDrafts[invite.id].owner_id" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
-                                        <option value="">Fara owner</option>
+                                        <option value="">Fara responsabil</option>
                                         <option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }}</option>
                                     </select>
                                     <textarea v-model="inviteDrafts[invite.id].notes" rows="2" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Note comerciale"></textarea>
