@@ -14,6 +14,9 @@ use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Models\ResourceDelivery;
+use App\Models\ResourceDocumentLink;
+use App\Models\ResourceOrder;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
@@ -200,6 +203,28 @@ class EnterpriseExportsTest extends TestCase
         ]);
         $response->assertJsonFragment([
             'export_type' => 'tasks',
+        ]);
+
+        $this->assertDatabaseHas('export_logs', [
+            'tenant_id' => 1,
+            'user_id' => $user->id,
+            'export_type' => 'preview',
+            'format' => 'system',
+            'status' => 'success',
+        ]);
+    }
+
+    public function test_resource_comparison_preview_returns_rows_and_audit_log(): void
+    {
+        $user = $this->createOnboardedUser();
+        $this->seedExportData($user);
+
+        $response = $this->actingAs($user)->get('/exports/preview?export_type=resource-comparison&global_search=aviz');
+
+        $response->assertOk();
+        $response->assertJsonFragment([
+            'export_type' => 'resource-comparison',
+            'title' => 'Materiale & Avize comparative',
         ]);
 
         $this->assertDatabaseHas('export_logs', [
@@ -460,6 +485,62 @@ class EnterpriseExportsTest extends TestCase
             'issued_at' => now()->toDateString(),
             'payment_status' => 'partial',
             'file_name' => 'factura-demo.pdf',
+        ]);
+
+        $resourceOrder = ResourceOrder::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'resource_type' => 'material',
+            'material_id' => Material::query()->first()->id,
+            'supplier_name' => 'Furnizor Avize SRL',
+            'carrier_name' => 'Transport Avize SRL',
+            'ordered_quantity' => 100,
+            'ordered_unit' => 'm3',
+            'unit_price' => 55,
+            'delivery_date' => now()->toDateString(),
+            'responsible_user_id' => $user->id,
+            'status' => 'delivered',
+            'notes' => 'Comanda pentru avize si trasabilitate.',
+        ]);
+
+        $document = Document::create([
+            'tenant_id' => 1,
+            'title' => 'Aviz livrare materiale',
+            'type' => 'delivery_note',
+            'project_id' => $project->id,
+            'stage_id' => $phase->id,
+            'contractor_id' => $contractor->id,
+            'amount' => 0,
+            'issued_at' => now()->toDateString(),
+            'payment_status' => 'unpaid',
+            'file_name' => 'aviz-demo.pdf',
+        ]);
+
+        ResourceDelivery::create([
+            'tenant_id' => 1,
+            'resource_order_id' => $resourceOrder->id,
+            'declared_quantity' => 100,
+            'received_quantity' => 96,
+            'equipment_reported_quantity' => 0,
+            'consumed_quantity' => 82,
+            'returned_quantity' => 14,
+            'delivered_at' => now(),
+            'notes' => 'Receptionat partial si consumat pe santier.',
+        ]);
+
+        ResourceDocumentLink::create([
+            'tenant_id' => 1,
+            'resource_order_id' => $resourceOrder->id,
+            'document_id' => $document->id,
+            'document_role' => 'delivery_note',
+            'document_number' => 'AVZ-001',
+            'supplier_name' => 'Furnizor Avize SRL',
+            'carrier_name' => 'Transport Avize SRL',
+            'declared_quantity' => 100,
+            'delivered_quantity' => 96,
+            'difference_quantity' => 4,
+            'notes' => 'Link aviz material.',
         ]);
 
         StageReport::create([

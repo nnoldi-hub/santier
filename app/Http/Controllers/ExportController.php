@@ -35,6 +35,7 @@ class ExportController extends Controller
         'projects',
         'quotes',
         'materials',
+        'resource-comparison',
         'costs',
         'teams',
         'tasks',
@@ -510,7 +511,7 @@ class ExportController extends Controller
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         if (empty($types)) {
-            $types = ['projects', 'quotes', 'materials', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
+            $types = ['projects', 'quotes', 'materials', 'resource-comparison', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
         }
 
         $fileName = 'enterprise_export_' . now()->format('Ymd_His') . '.xlsx';
@@ -536,7 +537,7 @@ class ExportController extends Controller
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
 
         if (empty($types)) {
-            $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects'];
+            $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison'];
         }
 
         $sections = collect($types)->map(function ($type) use ($filters) {
@@ -582,7 +583,7 @@ class ExportController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'export_type' => ['required', 'in:projects,quotes,materials,costs,teams,tasks,defects,wbs,equipment,documents,stage-reports,stage-tasks,stage-progress'],
+            'export_type' => ['required', 'in:projects,quotes,materials,resource-comparison,costs,teams,tasks,defects,wbs,equipment,documents,stage-reports,stage-tasks,stage-progress'],
             'format' => ['required', 'in:csv,xlsx,pdf'],
             'frequency' => ['required', 'in:daily,weekly'],
             'schedule_time' => ['required', 'date_format:H:i'],

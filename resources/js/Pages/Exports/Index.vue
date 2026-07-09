@@ -332,6 +332,7 @@ const exportTypeOptions = [
     { value: 'projects', label: 'Proiecte' },
     { value: 'quotes', label: 'Oferte si devize' },
     { value: 'materials', label: 'Materiale' },
+    { value: 'resource-comparison', label: 'Materiale & Avize comparative' },
     { value: 'costs', label: 'Costuri' },
     { value: 'teams', label: 'Echipe si responsabilitati' },
     { value: 'tasks', label: 'Taskuri generale' },
@@ -502,6 +503,13 @@ const reportTemplates = [
         types: ['materials', 'documents', 'stage-reports'],
         previewType: 'materials',
         primaryCsvRoute: 'exports.materials',
+    },
+    {
+        key: 'materials-comparison',
+        label: 'Materiale & Avize comparative',
+        description: 'Comandat, livrat, receptionat, consumat si diferente din avize.',
+        types: ['resource-comparison'],
+        previewType: 'resource-comparison',
     },
 ];
 

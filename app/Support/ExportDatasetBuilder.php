@@ -5,6 +5,9 @@ namespace App\Support;
 use App\Models\Defect;
 use App\Models\Document;
 use App\Models\Material;
+use App\Models\ResourceDelivery;
+use App\Models\ResourceDocumentLink;
+use App\Models\ResourceOrder;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
@@ -54,6 +57,7 @@ class ExportDatasetBuilder
             'projects' => self::projects($filters),
             'quotes' => self::quotes($filters),
             'materials' => self::materials($filters),
+            'resource-comparison' => self::resourceComparison($filters),
             'costs' => self::costs($filters),
             'teams' => self::teams($filters),
             'tasks' => self::tasks($filters),
@@ -396,6 +400,106 @@ class ExportDatasetBuilder
         return [
             'rows' => $query->orderBy('name')->get(),
             'meta' => ['title' => 'Materiale'],
+        ];
+    }
+
+    private static function resourceComparison(array $filters): array
+    {
+        $tenantId = TenantContext::id();
+
+        $query = ResourceOrder::query()
+            ->where('tenant_id', $tenantId)
+            ->with([
+                'project:id,name',
+                'phase:id,name',
+                'material:id,name,code,unit',
+                'responsibleUser:id,name',
+                'deliveries' => fn ($relation) => $relation->select([
+                    'id',
+                    'resource_order_id',
+                    'declared_quantity',
+                    'received_quantity',
+                    'equipment_reported_quantity',
+                    'consumed_quantity',
+                    'returned_quantity',
+                    'delivered_at',
+                ]),
+                'documentLinks' => fn ($relation) => $relation->select([
+                    'id',
+                    'resource_order_id',
+                    'document_id',
+                    'document_role',
+                    'document_number',
+                    'declared_quantity',
+                    'delivered_quantity',
+                    'difference_quantity',
+                ]),
+            ]);
+
+        self::applyDateRange($query, 'delivery_date', $filters);
+        self::applyProjectFilter($query, $filters);
+
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $query->where(function ($inner) use ($searchText) {
+                $inner->where('supplier_name', 'like', "%{$searchText}%")
+                    ->orWhere('carrier_name', 'like', "%{$searchText}%")
+                    ->orWhere('equipment_name', 'like', "%{$searchText}%")
+                    ->orWhere('notes', 'like', "%{$searchText}%")
+                    ->orWhereHas('project', fn ($projectQuery) => $projectQuery->where('name', 'like', "%{$searchText}%"))
+                    ->orWhereHas('phase', fn ($phaseQuery) => $phaseQuery->where('name', 'like', "%{$searchText}%"))
+                    ->orWhereHas('material', fn ($materialQuery) => $materialQuery->where('name', 'like', "%{$searchText}%")->orWhere('code', 'like', "%{$searchText}%"));
+            });
+        }
+
+        $rows = $query
+            ->orderByDesc('delivery_date')
+            ->latest('id')
+            ->get()
+            ->map(function (ResourceOrder $order) {
+                $deliveries = $order->deliveries;
+                $links = $order->documentLinks;
+
+                $orderedQuantity = (float) $order->ordered_quantity;
+                $receivedQuantity = (float) $deliveries->sum('received_quantity');
+                $declaredQuantity = (float) $deliveries->sum('declared_quantity');
+                $consumedQuantity = (float) $deliveries->sum('consumed_quantity');
+                $returnedQuantity = (float) $deliveries->sum('returned_quantity');
+                $documentDeliveredQuantity = (float) $links->sum('delivered_quantity');
+                $documentDifferenceQuantity = (float) $links->sum('difference_quantity');
+
+                return [
+                    'order_id' => $order->id,
+                    'project' => $order->project?->name,
+                    'phase' => $order->phase?->name,
+                    'resource_type' => $order->resource_type,
+                    'resource_label' => ResourceOrder::$resourceTypeLabels[$order->resource_type] ?? $order->resource_type,
+                    'material' => $order->material?->name ?? $order->equipment_name,
+                    'material_code' => $order->material?->code,
+                    'supplier' => $order->supplier_name,
+                    'carrier' => $order->carrier_name,
+                    'ordered_quantity' => $orderedQuantity,
+                    'ordered_unit' => $order->ordered_unit,
+                    'declared_quantity' => $declaredQuantity,
+                    'received_quantity' => $receivedQuantity,
+                    'consumed_quantity' => $consumedQuantity,
+                    'returned_quantity' => $returnedQuantity,
+                    'received_delta' => round($orderedQuantity - $receivedQuantity, 2),
+                    'document_links_count' => $links->count(),
+                    'delivery_notes_count' => $links->where('document_role', 'delivery_note')->count(),
+                    'document_delivered_quantity' => $documentDeliveredQuantity,
+                    'document_difference_quantity' => $documentDifferenceQuantity,
+                    'status' => $order->status,
+                    'delivery_date' => optional($order->delivery_date)->format('Y-m-d'),
+                    'responsible' => $order->responsibleUser?->name,
+                    'latest_delivery_at' => optional($deliveries->first()?->delivered_at)->format('Y-m-d H:i'),
+                    'notes' => $order->notes,
+                ];
+            });
+
+        return [
+            'rows' => $rows,
+            'meta' => ['title' => 'Materiale & Avize comparative'],
         ];
     }
 
