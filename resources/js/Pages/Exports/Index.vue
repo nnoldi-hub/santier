@@ -23,33 +23,9 @@
                         </button>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs text-gray-600 mb-1">Interval de la</label>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 class="font-semibold text-gray-800 mb-1">Rapoarte predefinite (one-click)</h3>
-                    <p class="text-xs text-gray-500 mb-4">Template-uri profesionale pentru manageri. Se aplica automat filtrele active de mai sus.</p>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        <div v-for="template in reportTemplates" :key="template.key" class="rounded-lg border border-gray-200 p-3">
-                            <div class="text-sm font-semibold text-gray-800">{{ template.label }}</div>
-                            <div class="text-xs text-gray-500 mt-1">{{ template.description }}</div>
-                            <div class="flex flex-wrap gap-2 mt-3">
-                                <a :href="templateWorkbookUrl(template)" class="text-xs border border-green-200 text-green-700 rounded px-2 py-1 hover:bg-green-50">XLSX</a>
-                                <a :href="templatePdfUrl(template)" class="text-xs border border-red-200 text-red-700 rounded px-2 py-1 hover:bg-red-50">PDF</a>
-                                <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="text-xs border border-sky-200 text-sky-700 rounded px-2 py-1 hover:bg-sky-50">CSV</a>
-                                <button
-                                    type="button"
-                                    class="text-xs border border-gray-300 text-gray-700 rounded px-2 py-1 hover:bg-gray-50"
-                                    @click="previewTemplate(template)"
-                                >
-                                    Preview
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                         <input v-model="filters.from" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
                     <div>
@@ -95,6 +71,34 @@
                         <input type="checkbox" v-model="filters.include_inactive" class="rounded border-gray-300 text-orange-500" />
                         Include elemente inactive
                     </label>
+                </div>
+
+                <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50/60 p-4 md:p-5">
+                    <h3 class="font-semibold text-gray-800 mb-1">Rapoarte predefinite (one-click)</h3>
+                    <p class="text-xs text-gray-500 mb-4">Template-uri profesionale pentru manageri. Se aplica automat filtrele active de mai sus.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                        <div
+                            v-for="template in reportTemplates"
+                            :key="template.key"
+                            class="rounded-lg border border-gray-200 bg-white p-3 flex flex-col"
+                        >
+                            <div class="text-sm font-semibold text-gray-800">{{ template.label }}</div>
+                            <div class="text-xs text-gray-500 mt-1 flex-1">{{ template.description }}</div>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <a :href="templateWorkbookUrl(template)" class="text-xs border border-green-200 text-green-700 rounded px-2 py-1 hover:bg-green-50">XLSX</a>
+                                <a :href="templatePdfUrl(template)" class="text-xs border border-red-200 text-red-700 rounded px-2 py-1 hover:bg-red-50">PDF</a>
+                                <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="text-xs border border-sky-200 text-sky-700 rounded px-2 py-1 hover:bg-sky-50">CSV</a>
+                                <button
+                                    type="button"
+                                    class="text-xs border border-gray-300 text-gray-700 rounded px-2 py-1 hover:bg-gray-50"
+                                    @click="previewTemplate(template)"
+                                >
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
