@@ -145,6 +145,105 @@ class AdminController extends Controller
         ]);
     }
 
+    public function commercialDashboard(Request $request): Response
+    {
+        $this->ensureAdmin($request);
+
+        $plans = config('pricing.plans', []);
+        $today = Carbon::today();
+        $currentMrr = (int) Tenant::query()->get(['billing_plan'])->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0));
+
+        $pilotInvites = PilotInvite::query()->latest('id')->get();
+        $statusCounts = [
+            'invited' => $pilotInvites->where('status', 'invited')->count(),
+            'contacted' => $pilotInvites->where('status', 'contacted')->count(),
+            'demo_scheduled' => $pilotInvites->where('status', 'demo_scheduled')->count(),
+            'trial_started' => $pilotInvites->where('status', 'trial_started')->count(),
+            'closed_won' => $pilotInvites->where('status', 'closed_won')->count(),
+            'closed_lost' => $pilotInvites->where('status', 'closed_lost')->count(),
+        ];
+
+        $qualifiedInvites = $pilotInvites->map(function (PilotInvite $invite) use ($plans): array {
+            $qualification = $this->extractSalesQualification($invite->notes);
+            $recommendedPlan = $this->resolveRecommendedPlanForInvite($qualification['estimated_users'], $qualification['customization_scope_label']);
+
+            return [
+                'status' => $invite->status,
+                'estimated_users' => $qualification['estimated_users'],
+                'customization_scope_label' => $qualification['customization_scope_label'],
+                'recommended_plan' => $recommendedPlan,
+                'recommended_mrr' => (int) ($plans[$recommendedPlan]['price'] ?? 0),
+            ];
+        });
+
+        $weightedPipelineMrr = [
+            'contacted' => (int) round($qualifiedInvites->where('status', 'contacted')->sum('recommended_mrr') * 0.18),
+            'demo_scheduled' => (int) round($qualifiedInvites->where('status', 'demo_scheduled')->sum('recommended_mrr') * 0.35),
+            'trial_started' => (int) round($qualifiedInvites->where('status', 'trial_started')->sum('recommended_mrr') * 0.65),
+        ];
+
+        $forecast = [
+            'current_mrr' => $currentMrr,
+            'forecast_30_days' => $currentMrr + (int) round($weightedPipelineMrr['contacted'] * 0.35) + (int) round($weightedPipelineMrr['demo_scheduled'] * 0.6) + (int) round($weightedPipelineMrr['trial_started'] * 0.85),
+            'forecast_60_days' => $currentMrr + (int) round($weightedPipelineMrr['contacted'] * 0.7) + (int) round($weightedPipelineMrr['demo_scheduled'] * 0.9) + $weightedPipelineMrr['trial_started'],
+            'forecast_90_days' => $currentMrr + $weightedPipelineMrr['contacted'] + $weightedPipelineMrr['demo_scheduled'] + $weightedPipelineMrr['trial_started'],
+        ];
+
+        $pilotInvitesTotal = max($pilotInvites->count(), 1);
+        $trialStarted = $statusCounts['trial_started'] + $statusCounts['closed_won'];
+
+        $conversion = [
+            'pilot_to_demo' => round((($statusCounts['demo_scheduled'] + $statusCounts['trial_started'] + $statusCounts['closed_won']) / $pilotInvitesTotal) * 100, 2),
+            'pilot_to_trial' => round(($trialStarted / $pilotInvitesTotal) * 100, 2),
+            'pilot_to_paid' => round(($statusCounts['closed_won'] / $pilotInvitesTotal) * 100, 2),
+        ];
+
+        $tenantStats = [
+            'tenants_total' => Tenant::query()->count(),
+            'tenants_paid' => Tenant::query()->whereIn('billing_plan', self::PAID_PLANS)->where('status', 'active')->count(),
+            'tenants_trial' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->whereHas('users', fn ($query) => $query->whereDate('billing_trial_ends_at', '>=', $today->toDateString()))
+                ->count(),
+            'tenants_at_risk' => Tenant::query()
+                ->where('status', 'active')
+                ->whereHas('users', fn ($query) => $query->whereBetween('billing_trial_ends_at', [$today->copy()->startOfDay(), $today->copy()->addDays(7)->endOfDay()]))
+                ->count(),
+        ];
+
+        $recentCommercialSignals = $pilotInvites
+            ->take(8)
+            ->map(function (PilotInvite $invite) {
+                $qualification = $this->extractSalesQualification($invite->notes);
+
+                return [
+                    'id' => $invite->id,
+                    'company_name' => $invite->company_name,
+                    'status' => $invite->status,
+                    'estimated_users' => $qualification['estimated_users'],
+                    'customization_scope_label' => $qualification['customization_scope_label'],
+                    'created_at' => optional($invite->created_at)->toDateTimeString(),
+                ];
+            })
+            ->values();
+
+        return Inertia::render('Admin/CommercialDashboard', [
+            'kpis' => [
+                'current_mrr' => $forecast['current_mrr'],
+                'tenants_paid' => $tenantStats['tenants_paid'],
+                'tenants_trial' => $tenantStats['tenants_trial'],
+                'tenants_at_risk' => $tenantStats['tenants_at_risk'],
+            ],
+            'funnel' => $statusCounts,
+            'conversion' => $conversion,
+            'forecast' => $forecast,
+            'pipelineValue' => $weightedPipelineMrr,
+            'tenantStats' => $tenantStats,
+            'recentCommercialSignals' => $recentCommercialSignals,
+        ]);
+    }
+
     public function updateSubscription(Request $request, User $user): RedirectResponse
     {
         $this->ensureAdmin($request);
@@ -294,6 +393,35 @@ class AdminController extends Controller
     private function isDirectVideoPath(string $path): bool
     {
         return (bool) preg_match('/\.(mp4|webm|ogg)(\?.*)?$/i', $path);
+    }
+
+    private function extractSalesQualification(?string $notes): array
+    {
+        $content = (string) $notes;
+
+        preg_match('/Utilizatori estimati:\s*(\d+)/i', $content, $usersMatch);
+        preg_match('/Personalizare dorita:\s*(.+)/i', $content, $scopeMatch);
+
+        return [
+            'estimated_users' => isset($usersMatch[1]) ? (int) $usersMatch[1] : null,
+            'customization_scope_label' => isset($scopeMatch[1]) ? trim($scopeMatch[1]) : null,
+        ];
+    }
+
+    private function resolveRecommendedPlanForInvite(?int $estimatedUsers, ?string $customizationScopeLabel): string
+    {
+        $scope = strtolower((string) $customizationScopeLabel);
+        $users = (int) ($estimatedUsers ?? 0);
+
+        if (str_contains($scope, 'enterprise') || str_contains($scope, 'white-label') || str_contains($scope, 'domeniu')) {
+            return 'enterprise';
+        }
+
+        if ($users >= 10 || str_contains($scope, 'template') || str_contains($scope, 'flux')) {
+            return 'pro';
+        }
+
+        return 'starter';
     }
 
     private function resolveTenantCommercialStatus(Tenant $tenant, ?Carbon $trialEndsAt, Carbon $today): string

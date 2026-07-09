@@ -24,6 +24,7 @@
                 <NavItem :href="routeOrFallback('dashboard')" :disabled="routeMissing('dashboard')" icon="📊" label="Dashboard" />
                 <NavItem :href="routeOrFallback('help.index')" :disabled="routeMissing('help.index')" icon="❓" label="Ajutor" />
                 <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" icon="🛠️" label="Administrare" />
+                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" icon="📈" label="Dashboard Comercial" />
                 <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" icon="🏢" label="Firme & Abonamente" />
 
                 <div class="pt-3">

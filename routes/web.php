@@ -1259,6 +1259,7 @@ Route::middleware('auth')->group(function () {
         Route::get('account/notifications', [NotificationCenterController::class, 'index'])->name('account.notifications.index');
 
         Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
+        Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
         Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
         Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
