@@ -277,7 +277,7 @@
                                 </td>
                                 <td class="px-5 py-4">
                                     <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold" :class="riskTone(tenant.risk_level)">
-                                        {{ tenant.risk_score }} / 100
+                                        {{ riskLabel(tenant.risk_level) }} · {{ tenant.risk_score }} / 100
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">
@@ -419,5 +419,17 @@ function riskTone(level) {
     }
 
     return 'bg-emerald-100 text-emerald-700';
+}
+
+function riskLabel(level) {
+    if (level === 'high') {
+        return 'Ridicat';
+    }
+
+    if (level === 'medium') {
+        return 'Mediu';
+    }
+
+    return 'Scazut';
 }
 </script>

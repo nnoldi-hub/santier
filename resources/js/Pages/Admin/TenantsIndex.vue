@@ -203,8 +203,11 @@
                                 <td class="px-5 py-4 text-slate-700">
                                     <div>{{ tenant.commercial_status }}</div>
                                     <span class="mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="riskTone(tenant.risk_level)">
-                                        {{ riskLabel(tenant.risk_level, tenant.days_to_trial_end) }}
+                                        {{ riskLabel(tenant.risk_level) }}
                                     </span>
+                                    <div v-if="typeof tenant.days_to_trial_end === 'number' && tenant.risk_level !== 'low'" class="mt-1 text-[11px] text-slate-500">
+                                        {{ tenant.days_to_trial_end }} zile pana la expirarea trial-ului
+                                    </div>
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">{{ tenant.active_memberships_count }} / {{ tenant.total_memberships_count }}</td>
                                 <td class="px-5 py-4 text-slate-700">
@@ -453,18 +456,14 @@ function riskTone(level) {
 }
 
 function riskLabel(level, daysToTrialEnd) {
-    if (level === 'high' && typeof daysToTrialEnd === 'number') {
-        return `Risc ridicat · ${daysToTrialEnd} zile`;
-    }
-
     if (level === 'high') {
-        return 'Risc ridicat';
+        return 'Ridicat';
     }
 
     if (level === 'medium') {
-        return 'Atentie';
+        return 'Mediu';
     }
 
-    return 'Stabil';
+    return 'Scazut';
 }
 </script>
