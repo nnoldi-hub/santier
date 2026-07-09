@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tenant;
 use App\Support\PricingPlan;
 use App\Support\AnalyticsTracker;
 use Illuminate\Http\RedirectResponse;
@@ -29,8 +30,16 @@ class BillingController extends Controller
         ]);
 
         $user = $request->user();
-        $previousPlan = $user->billing_plan;
+        $tenant = $user?->currentTenant ?: $user?->tenant;
+        $previousPlan = $tenant?->billing_plan ?: $user->billing_plan;
 
+        if ($tenant instanceof Tenant) {
+            $tenant->update([
+                'billing_plan' => $validated['plan'],
+            ]);
+        }
+
+        // Compatibility sync while remaining billing reads are migrated to tenant-level data.
         $user->update([
             'billing_plan' => $validated['plan'],
         ]);

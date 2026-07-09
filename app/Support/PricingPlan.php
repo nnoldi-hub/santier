@@ -3,13 +3,15 @@
 namespace App\Support;
 
 use App\Models\Project;
+use App\Models\Tenant;
 use App\Models\User;
 
 class PricingPlan
 {
     public static function current(User $user): string
     {
-        $plan = $user->billing_plan ?? 'free';
+        $tenant = self::tenant($user);
+        $plan = $tenant?->billing_plan ?: ($user->billing_plan ?? 'free');
 
         return array_key_exists($plan, config('pricing.plans', [])) ? $plan : 'free';
     }
@@ -71,5 +73,10 @@ class PricingPlan
             'document_branding' => 'Configurarea documentelor este disponibila pentru conturile cu abonament platit.',
             default => 'Functionalitatea nu este disponibila pe planul curent.',
         };
+    }
+
+    private static function tenant(User $user): ?Tenant
+    {
+        return $user->currentTenant ?: $user->tenant;
     }
 }

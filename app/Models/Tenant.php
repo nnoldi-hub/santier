@@ -12,12 +12,14 @@ class Tenant extends Model
         'name',
         'slug',
         'billing_plan',
+        'billing_trial_ends_at',
         'status',
         'module_flags',
     ];
 
     protected $casts = [
         'module_flags' => 'array',
+        'billing_trial_ends_at' => 'datetime',
     ];
 
     public function users(): BelongsToMany

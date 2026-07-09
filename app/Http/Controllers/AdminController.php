@@ -69,7 +69,6 @@ class AdminController extends Controller
                 'memberships as total_memberships_count' => fn ($query) => $query,
                 'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
             ])
-            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
             ->orderByDesc('created_at');
 
         if ($filters['search'] !== '') {
@@ -91,7 +90,7 @@ class AdminController extends Controller
         $tenants = $tenantQuery
             ->paginate(12)
             ->through(function (Tenant $tenant) use ($plans, $today): array {
-                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+                $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
                 $commercialStatus = $this->resolveTenantCommercialStatus($tenant, $trialEndsAt, $today);
 
                 return [
@@ -117,7 +116,7 @@ class AdminController extends Controller
             'tenants_trial' => Tenant::query()
                 ->where('status', 'active')
                 ->whereNotIn('billing_plan', self::PAID_PLANS)
-                ->whereHas('users', fn ($query) => $query->whereDate('billing_trial_ends_at', '>=', $today->toDateString()))
+                ->whereDate('billing_trial_ends_at', '>=', $today->toDateString())
                 ->count(),
             'monthly_mrr_estimate' => (int) Tenant::query()->get(['billing_plan'])->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0)),
         ];
@@ -205,11 +204,11 @@ class AdminController extends Controller
             'tenants_trial' => Tenant::query()
                 ->where('status', 'active')
                 ->whereNotIn('billing_plan', self::PAID_PLANS)
-                ->whereHas('users', fn ($query) => $query->whereDate('billing_trial_ends_at', '>=', $today->toDateString()))
+                ->whereDate('billing_trial_ends_at', '>=', $today->toDateString())
                 ->count(),
             'tenants_at_risk' => Tenant::query()
                 ->where('status', 'active')
-                ->whereHas('users', fn ($query) => $query->whereBetween('billing_trial_ends_at', [$today->copy()->startOfDay(), $today->copy()->addDays(7)->endOfDay()]))
+                ->whereBetween('billing_trial_ends_at', [$today->copy()->startOfDay(), $today->copy()->addDays(7)->endOfDay()])
                 ->count(),
         ];
 
@@ -232,13 +231,12 @@ class AdminController extends Controller
         $trialRiskTenants = Tenant::query()
             ->where('status', 'active')
             ->whereNotIn('billing_plan', self::PAID_PLANS)
-            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
             ->withCount([
                 'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
             ])
             ->get()
             ->map(function (Tenant $tenant) use ($today): ?array {
-                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+                $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
 
                 if (! $trialEndsAt || $trialEndsAt->lt($today) || $trialEndsAt->gt($today->copy()->addDays(7))) {
                     return null;
@@ -291,11 +289,10 @@ class AdminController extends Controller
                 'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
                 'memberships as total_memberships_count' => fn ($query) => $query,
             ])
-            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
             ->orderBy('name')
             ->get()
             ->map(function (Tenant $tenant) use ($plans): array {
-                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+                $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
 
                 return [
                     $tenant->id,
@@ -341,6 +338,15 @@ class AdminController extends Controller
             'billing_trial_ends_at' => ['nullable', 'date'],
             'onboarding_completed' => ['nullable', 'boolean'],
         ]);
+
+        $tenant = $user->currentTenant ?: $user->tenant;
+
+        if ($tenant instanceof Tenant) {
+            $tenant->update([
+                'billing_plan' => $validated['billing_plan'],
+                'billing_trial_ends_at' => $validated['billing_trial_ends_at'] ?? null,
+            ]);
+        }
 
         $user->update([
             'billing_plan' => $validated['billing_plan'],
@@ -443,8 +449,8 @@ class AdminController extends Controller
     {
         $plans = config('pricing.plans', []);
 
-        return (int) User::query()->get(['billing_plan'])->sum(function (User $user) use ($plans) {
-            return (int) ($plans[$user->billing_plan]['price'] ?? 0);
+        return (int) Tenant::query()->get(['billing_plan'])->sum(function (Tenant $tenant) use ($plans) {
+            return (int) ($plans[$tenant->billing_plan]['price'] ?? 0);
         });
     }
 

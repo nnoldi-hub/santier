@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\Team;
 use App\Support\AnalyticsTracker;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,11 +55,12 @@ class OnboardingController extends Controller
         ]);
 
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $data = array_merge($user->onboarding_data ?? [], $validated);
 
         $client = Client::firstOrCreate(
             [
-                'tenant_id' => 1,
+                'tenant_id' => $tenantId,
                 'name' => $data['company_name'] ?? ($user->name . ' Company'),
             ],
             [
@@ -70,7 +72,7 @@ class OnboardingController extends Controller
 
         if (empty($data['project_id']) || !Project::whereKey($data['project_id'])->exists()) {
             $project = Project::create([
-                'tenant_id' => 1,
+                'tenant_id' => $tenantId,
                 'client_id' => $client->id,
                 'created_by' => $user->id,
                 'name' => $validated['project_name'],
@@ -103,11 +105,12 @@ class OnboardingController extends Controller
         ]);
 
         $user = $request->user();
+        $tenantId = TenantContext::id($user);
         $data = array_merge($user->onboarding_data ?? [], $validated);
 
         if (empty($data['team_id']) || !Team::whereKey($data['team_id'])->exists()) {
             $team = Team::create([
-                'tenant_id' => 1,
+            'tenant_id' => $tenantId,
                 'name' => $validated['team_name'],
                 'specialty' => $validated['team_specialty'] ?? null,
                 'leader_id' => $user->id,
