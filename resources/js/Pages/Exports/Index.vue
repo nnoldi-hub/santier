@@ -262,11 +262,11 @@
                         </div>
 
                         <div v-else class="mt-2">
-                            <div v-if="(previewState.result.sample || []).length > 0" class="space-y-3">
+                            <div v-if="previewSampleRows.length > 0" class="space-y-3">
                                 <div class="text-xs font-semibold text-gray-700">Sample (primele randuri)</div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div
-                                        v-for="(sample, index) in previewState.result.sample"
+                                        v-for="(sample, index) in previewSampleRows"
                                         :key="index"
                                         class="rounded-xl border border-gray-200 bg-gray-50/60 p-4"
                                     >
@@ -286,6 +286,10 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div v-else class="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+                                Nu exista date de preview pentru filtrele curente.
                             </div>
                         </div>
                     </div>
@@ -682,6 +686,7 @@ const resourceComparisonSummary = computed(() => previewState.result?.summary ??
 const isResourceComparisonPreview = computed(() => previewState.result?.export_type === 'resource-comparison');
 
 const previewComparisonRows = computed(() => (isResourceComparisonPreview.value ? (previewState.result?.sample ?? []) : []));
+const previewSampleRows = computed(() => previewState.result?.sample ?? []);
 
 function routeWithFilters(routeName) {
     return route(routeName, {

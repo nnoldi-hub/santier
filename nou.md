@@ -273,6 +273,7 @@ Legenda status:
 	- Fallback-ul pentru celelalte preview-uri a fost uniformizat in carduri key/value, ca sa nu mai existe JSON brut in UI.
 	- Tab-urile pe domenii au primit descrieri si contori, astfel incat navigarea exporturilor sa fie mai explicita.
 	- Preview-ul porneste acum cu un shell vizibil si scroll automat, ca apasarea pe buton sa aiba feedback imediat in pagina.
+	- A fost corectat crash-ul din preview cand sample-ul era null, prin protectie in template si empty-state explicit.
 - Validare:
 	- `tests/Feature/ResourceOrdersTest.php` -> passed.
 	- `tests/Unit/ExportFilterTest.php` -> passed.
