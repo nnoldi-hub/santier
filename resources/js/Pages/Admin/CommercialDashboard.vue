@@ -14,6 +14,9 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-3">
+                        <a :href="route('admin.commercial-dashboard.export')" class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition">
+                            Export CSV management
+                        </a>
                         <Link :href="route('admin.tenants.index')" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
                             Firme & Abonamente
                         </Link>
@@ -147,6 +150,62 @@
                     </div>
                 </div>
             </section>
+
+            <section class="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-4">
+                <div class="rounded-3xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+                    <div class="border-b border-amber-100 px-5 py-4 bg-amber-50/70">
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Risc churn / trial</div>
+                        <h3 class="mt-1 text-lg font-bold text-slate-900">Trial-uri aproape de expirare</h3>
+                    </div>
+                    <div v-if="trialRiskTenants.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
+                        Nu exista trial-uri care expira in urmatoarele 7 zile.
+                    </div>
+                    <div v-else class="divide-y divide-slate-100">
+                        <div v-for="tenant in trialRiskTenants" :key="tenant.id" class="px-5 py-4 flex items-start justify-between gap-4">
+                            <div>
+                                <div class="font-semibold text-slate-900">{{ tenant.name }}</div>
+                                <div class="mt-1 text-xs text-slate-500">{{ tenant.active_memberships_count }} utilizatori activi · plan {{ tenant.billing_plan }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-semibold text-amber-900">{{ tenant.days_left }} zile</div>
+                                <div class="text-xs text-slate-500">Expira la {{ formatDate(tenant.trial_ends_at) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-sky-200 bg-white shadow-sm overflow-hidden">
+                    <div class="border-b border-sky-100 px-5 py-4 bg-sky-50/70">
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Oportunitati</div>
+                        <h3 class="mt-1 text-lg font-bold text-slate-900">Top oportunitati din pipeline</h3>
+                    </div>
+                    <div v-if="topPipelineOpportunities.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
+                        Nu exista oportunitati active in pipeline.
+                    </div>
+                    <div v-else class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-[0.15em]">
+                                <tr>
+                                    <th class="px-5 py-3 text-left">Status</th>
+                                    <th class="px-5 py-3 text-left">Utilizatori</th>
+                                    <th class="px-5 py-3 text-left">Personalizare</th>
+                                    <th class="px-5 py-3 text-left">Plan recomandat</th>
+                                    <th class="px-5 py-3 text-left">MRR potential</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="(item, index) in topPipelineOpportunities" :key="`${item.status}-${item.recommended_plan}-${index}`">
+                                    <td class="px-5 py-4 text-slate-700">{{ labelStatus(item.status) }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ item.estimated_users ?? '-' }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ item.customization_scope_label || '-' }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ labelPlan(item.recommended_plan) }}</td>
+                                    <td class="px-5 py-4 font-semibold text-slate-900">{{ formatMoney(item.recommended_mrr) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     </AppLayout>
 </template>
@@ -164,6 +223,8 @@ const props = defineProps({
     pipelineValue: { type: Object, required: true },
     tenantStats: { type: Object, required: true },
     recentCommercialSignals: { type: Array, default: () => [] },
+    trialRiskTenants: { type: Array, default: () => [] },
+    topPipelineOpportunities: { type: Array, default: () => [] },
 });
 
 const kpiCards = computed(() => [
@@ -206,6 +267,14 @@ function formatDateTime(value) {
     return new Date(value).toLocaleString('ro-RO');
 }
 
+function formatDate(value) {
+    if (!value) {
+        return '-';
+    }
+
+    return new Date(value).toLocaleDateString('ro-RO');
+}
+
 function labelStatus(status) {
     return {
         invited: 'Invitat',
@@ -215,5 +284,14 @@ function labelStatus(status) {
         closed_won: 'Castigat',
         closed_lost: 'Pierdut',
     }[status] || status;
+}
+
+function labelPlan(plan) {
+    return {
+        starter: 'Brand de baza',
+        pro: 'Brand complet',
+        enterprise: 'Enterprise',
+        free: 'Demo',
+    }[plan] || plan;
 }
 </script>

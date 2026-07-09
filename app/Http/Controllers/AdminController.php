@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
@@ -228,6 +229,40 @@ class AdminController extends Controller
             })
             ->values();
 
+        $trialRiskTenants = Tenant::query()
+            ->where('status', 'active')
+            ->whereNotIn('billing_plan', self::PAID_PLANS)
+            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
+            ->withCount([
+                'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
+            ])
+            ->get()
+            ->map(function (Tenant $tenant) use ($today): ?array {
+                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+
+                if (! $trialEndsAt || $trialEndsAt->lt($today) || $trialEndsAt->gt($today->copy()->addDays(7))) {
+                    return null;
+                }
+
+                return [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'billing_plan' => $tenant->billing_plan,
+                    'trial_ends_at' => $trialEndsAt->toDateString(),
+                    'days_left' => $today->diffInDays($trialEndsAt, false),
+                    'active_memberships_count' => (int) ($tenant->active_memberships_count ?? 0),
+                ];
+            })
+            ->filter()
+            ->sortBy('days_left')
+            ->values();
+
+        $topPipelineOpportunities = $qualifiedInvites
+            ->filter(fn (array $invite) => in_array($invite['status'], ['contacted', 'demo_scheduled', 'trial_started'], true))
+            ->sortByDesc('recommended_mrr')
+            ->take(8)
+            ->values();
+
         return Inertia::render('Admin/CommercialDashboard', [
             'kpis' => [
                 'current_mrr' => $forecast['current_mrr'],
@@ -241,6 +276,59 @@ class AdminController extends Controller
             'pipelineValue' => $weightedPipelineMrr,
             'tenantStats' => $tenantStats,
             'recentCommercialSignals' => $recentCommercialSignals,
+            'trialRiskTenants' => $trialRiskTenants,
+            'topPipelineOpportunities' => $topPipelineOpportunities,
+        ]);
+    }
+
+    public function exportCommercialCsv(Request $request): StreamedResponse
+    {
+        $this->ensureAdmin($request);
+
+        $plans = config('pricing.plans', []);
+        $rows = Tenant::query()
+            ->withCount([
+                'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
+                'memberships as total_memberships_count' => fn ($query) => $query,
+            ])
+            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Tenant $tenant) use ($plans): array {
+                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+
+                return [
+                    $tenant->id,
+                    $tenant->name,
+                    $tenant->slug,
+                    $tenant->billing_plan,
+                    $plans[$tenant->billing_plan]['label'] ?? $tenant->billing_plan,
+                    $tenant->status,
+                    $this->resolveTenantCommercialStatus($tenant, $trialEndsAt, Carbon::today()),
+                    (int) ($tenant->active_memberships_count ?? 0),
+                    (int) ($tenant->total_memberships_count ?? 0),
+                    optional($trialEndsAt)->toDateString(),
+                    (int) ($plans[$tenant->billing_plan]['price'] ?? 0),
+                    optional($tenant->created_at)->toDateString(),
+                ];
+            })
+            ->all();
+
+        return response()->streamDownload(function () use ($rows): void {
+            $handle = fopen('php://output', 'w');
+            if ($handle === false) {
+                return;
+            }
+
+            fputcsv($handle, ['tenant_id', 'name', 'slug', 'billing_plan', 'billing_plan_label', 'platform_status', 'commercial_status', 'active_memberships', 'total_memberships', 'trial_ends_at', 'estimated_mrr', 'created_at']);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+
+            fclose($handle);
+        }, 'dashboard-comercial-firme.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 
