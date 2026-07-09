@@ -88,6 +88,25 @@
                 </div>
             </section>
 
+            <section class="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
+                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Prioritate acum</div>
+                <h3 class="mt-1 text-lg font-bold text-slate-900">Firme care cer atentie imediata</h3>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <div class="text-xs text-amber-700">Trial expira in 7 zile</div>
+                        <div class="mt-1 text-2xl font-black text-amber-900">{{ attention.trial_expiring_soon }}</div>
+                    </div>
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                        <div class="text-xs text-rose-700">Firme suspendate</div>
+                        <div class="mt-1 text-2xl font-black text-rose-900">{{ attention.suspended_tenants }}</div>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="text-xs text-slate-600">Free fara trial activ</div>
+                        <div class="mt-1 text-2xl font-black text-slate-900">{{ attention.free_without_active_trial }}</div>
+                    </div>
+                </div>
+            </section>
+
             <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <div>
@@ -181,7 +200,12 @@
                                         {{ tenant.status === 'active' ? 'Activa' : 'Suspendata' }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 text-slate-700">{{ tenant.commercial_status }}</td>
+                                <td class="px-5 py-4 text-slate-700">
+                                    <div>{{ tenant.commercial_status }}</div>
+                                    <span class="mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="riskTone(tenant.risk_level)">
+                                        {{ riskLabel(tenant.risk_level, tenant.days_to_trial_end) }}
+                                    </span>
+                                </td>
                                 <td class="px-5 py-4 text-slate-700">{{ tenant.active_memberships_count }} / {{ tenant.total_memberships_count }}</td>
                                 <td class="px-5 py-4 text-slate-700">
                                     <input
@@ -258,6 +282,7 @@ const props = defineProps({
     tenants: { type: Object, required: true },
     metrics: { type: Object, required: true },
     pipeline: { type: Object, required: true },
+    attention: { type: Object, default: () => ({}) },
     recentCommercialActions: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     planOptions: { type: Array, default: () => [] },
@@ -413,5 +438,33 @@ function planTone(plan) {
     }
 
     return 'bg-slate-100 text-slate-600';
+}
+
+function riskTone(level) {
+    if (level === 'high') {
+        return 'bg-rose-100 text-rose-700';
+    }
+
+    if (level === 'medium') {
+        return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-emerald-100 text-emerald-700';
+}
+
+function riskLabel(level, daysToTrialEnd) {
+    if (level === 'high' && typeof daysToTrialEnd === 'number') {
+        return `Risc ridicat · ${daysToTrialEnd} zile`;
+    }
+
+    if (level === 'high') {
+        return 'Risc ridicat';
+    }
+
+    if (level === 'medium') {
+        return 'Atentie';
+    }
+
+    return 'Stabil';
 }
 </script>

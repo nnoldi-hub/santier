@@ -120,6 +120,16 @@ class AdminController extends Controller
             ->through(function (Tenant $tenant) use ($plans, $today): array {
                 $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
                 $commercialStatus = $this->resolveTenantCommercialStatus($tenant, $trialEndsAt, $today);
+                $daysToTrialEnd = $trialEndsAt ? $today->diffInDays($trialEndsAt, false) : null;
+                $riskLevel = 'low';
+
+                if ($tenant->status === 'suspended') {
+                    $riskLevel = 'high';
+                } elseif (! in_array($tenant->billing_plan, self::PAID_PLANS, true) && $daysToTrialEnd !== null && $daysToTrialEnd <= 7) {
+                    $riskLevel = 'high';
+                } elseif (! in_array($tenant->billing_plan, self::PAID_PLANS, true) && $daysToTrialEnd !== null && $daysToTrialEnd <= 14) {
+                    $riskLevel = 'medium';
+                }
 
                 return [
                     'id' => $tenant->id,
@@ -130,6 +140,8 @@ class AdminController extends Controller
                     'status' => $tenant->status,
                     'commercial_status' => $commercialStatus,
                     'trial_ends_at' => optional($trialEndsAt)->toDateString(),
+                    'days_to_trial_end' => $daysToTrialEnd,
+                    'risk_level' => $riskLevel,
                     'active_memberships_count' => (int) ($tenant->active_memberships_count ?? 0),
                     'total_memberships_count' => (int) ($tenant->total_memberships_count ?? 0),
                     'estimated_mrr' => (int) ($plans[$tenant->billing_plan]['price'] ?? 0),
@@ -158,6 +170,24 @@ class AdminController extends Controller
             'trial_started' => PilotInvite::query()->where('status', 'trial_started')->count(),
             'closed_won' => $pilotWon,
             'pilot_to_paid_rate' => $pilotInvitesTotal > 0 ? round(($pilotWon / $pilotInvitesTotal) * 100, 2) : 0,
+        ];
+
+        $attention = [
+            'trial_expiring_soon' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->whereBetween('billing_trial_ends_at', [$today->copy()->startOfDay(), $today->copy()->addDays(7)->endOfDay()])
+                ->count(),
+            'suspended_tenants' => Tenant::query()->where('status', 'suspended')->count(),
+            'free_without_active_trial' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->where(function ($query) use ($today): void {
+                    $query
+                        ->whereNull('billing_trial_ends_at')
+                        ->orWhereDate('billing_trial_ends_at', '<', $today->toDateString());
+                })
+                ->count(),
         ];
 
         $recentCommercialActions = AccessAuditLog::query()
@@ -196,6 +226,7 @@ class AdminController extends Controller
             'tenants' => $tenants,
             'metrics' => $metrics,
             'pipeline' => $pipeline,
+            'attention' => $attention,
             'recentCommercialActions' => $recentCommercialActions,
             'filters' => $filters,
             'planOptions' => collect($plans)->map(fn (array $plan, string $key) => ['value' => $key, 'label' => $plan['label'] ?? $key])->values(),
