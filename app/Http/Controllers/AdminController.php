@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\AccessAuditLog;
 use App\Models\PilotInvite;
 use App\Models\Tenant;
 use App\Models\User;
@@ -133,10 +134,43 @@ class AdminController extends Controller
             'pilot_to_paid_rate' => $pilotInvitesTotal > 0 ? round(($pilotWon / $pilotInvitesTotal) * 100, 2) : 0,
         ];
 
+        $recentCommercialActions = AccessAuditLog::query()
+            ->with('actor:id,name,email')
+            ->where('action', 'admin.tenant.commercial.updated')
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(function (AccessAuditLog $log): array {
+                return [
+                    'id' => $log->id,
+                    'tenant_id' => $log->tenant_id,
+                    'tenant_name' => (string) (($log->metadata['tenant_name'] ?? '') ?: ('Tenant #' . (string) $log->tenant_id)),
+                    'changes' => [
+                        'billing_plan' => [
+                            'from' => $log->metadata['old']['billing_plan'] ?? null,
+                            'to' => $log->metadata['new']['billing_plan'] ?? null,
+                        ],
+                        'status' => [
+                            'from' => $log->metadata['old']['status'] ?? null,
+                            'to' => $log->metadata['new']['status'] ?? null,
+                        ],
+                        'billing_trial_ends_at' => [
+                            'from' => $log->metadata['old']['billing_trial_ends_at'] ?? null,
+                            'to' => $log->metadata['new']['billing_trial_ends_at'] ?? null,
+                        ],
+                    ],
+                    'actor_name' => $log->actor?->name,
+                    'actor_email' => $log->actor?->email,
+                    'created_at' => optional($log->created_at)->toDateTimeString(),
+                ];
+            })
+            ->values();
+
         return Inertia::render('Admin/TenantsIndex', [
             'tenants' => $tenants,
             'metrics' => $metrics,
             'pipeline' => $pipeline,
+            'recentCommercialActions' => $recentCommercialActions,
             'filters' => $filters,
             'planOptions' => collect($plans)->map(fn (array $plan, string $key) => ['value' => $key, 'label' => $plan['label'] ?? $key])->values(),
             'statusOptions' => [
@@ -362,6 +396,12 @@ class AdminController extends Controller
     {
         $this->ensureAdmin($request);
 
+        $oldCommercialState = [
+            'billing_plan' => $tenant->billing_plan,
+            'status' => $tenant->status,
+            'billing_trial_ends_at' => optional($tenant->billing_trial_ends_at)->toDateString(),
+        ];
+
         $planKeys = array_keys(config('pricing.plans', []));
 
         $validated = $request->validate([
@@ -406,6 +446,25 @@ class AdminController extends Controller
                     'billing_trial_ends_at' => $trialEndsAt,
                 ]);
         }
+
+        AccessAuditLog::query()->create([
+            'tenant_id' => $tenant->id,
+            'actor_user_id' => $request->user()?->id,
+            'action' => 'admin.tenant.commercial.updated',
+            'resource_type' => 'tenant',
+            'resource_id' => $tenant->id,
+            'metadata' => [
+                'tenant_name' => $tenant->name,
+                'old' => $oldCommercialState,
+                'new' => [
+                    'billing_plan' => $validated['billing_plan'],
+                    'status' => $validated['status'],
+                    'billing_trial_ends_at' => $trialEndsAt,
+                ],
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return back()->with('success', 'Firma a fost actualizata.');
     }

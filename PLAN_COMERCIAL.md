@@ -242,28 +242,46 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - implementarea se face incremental, cu slice-uri mici, testabile si usor de validat live.
 
 ### Etapa 1 - Firme & Abonamente
-- [ ] pagina noua `Firme & Abonamente` in Admin;
-- [ ] lista cu toate firmele (`tenants`), plan activ, status, numar utilizatori, trial end estimat;
-- [ ] carduri de sinteza: firme totale, firme trial, firme platitoare, MRR estimat;
-- [ ] filtre minime: cautare, status, plan.
+- [x] pagina noua `Firme & Abonamente` in Admin;
+- [x] lista cu toate firmele (`tenants`), plan activ, status, numar utilizatori, trial end estimat;
+- [x] carduri de sinteza: firme totale, firme trial, firme platitoare, MRR estimat;
+- [x] filtre minime: cautare, status, plan;
+- [x] editare inline pe tenant (plan, status, trial end) + validari + highlight modificari nesalvate.
 
 ### Etapa 2 - Dashboard Comercial
-- [ ] agregare pilot invites -> demo -> trial -> paid;
-- [ ] KPI comerciali centrali: MRR, trial active, conversie pilot->paid, forecast simplu;
-- [ ] top firme dupa utilizare / potential comercial;
-- [ ] alerta pentru trial-uri aproape de expirare.
+- [x] agregare pilot invites -> demo -> trial -> paid;
+- [x] KPI comerciali centrali: MRR, trial active, conversie pilot->paid, forecast simplu;
+- [x] top oportunitati dupa potential comercial;
+- [x] alerta pentru trial-uri aproape de expirare.
 
 ### Etapa 3 - CRM Comercial
-- [ ] lead board pentru firme pilot;
+- [x] lead board pentru firme pilot;
 - [ ] statusuri comerciale extinse: nou, contactat, demo, follow-up, trial, negociere, castigat, pierdut;
-- [ ] owner comercial, note, urmator pas, data follow-up;
-- [ ] istoric de actiuni comerciale.
+- [x] owner comercial, note, urmator pas, data follow-up;
+- [x] istoric de actiuni comerciale (audit pentru modificari comerciale tenant).
 
 ### Etapa 4 - Operare si forecast
-- [ ] venit estimat lunar pe planuri;
-- [ ] forecast simplu pe 30/60/90 zile;
-- [ ] risc churn / trial neactivat / onboarding incomplet;
-- [ ] export management CSV/XLSX pentru board/comercial.
+- [x] venit estimat lunar pe planuri;
+- [x] forecast simplu pe 30/60/90 zile;
+- [ ] risc churn / trial neactivat / onboarding incomplet (partial: trial risk live);
+- [ ] export management CSV/XLSX pentru board/comercial (partial: CSV live).
 
 ### Primul slice livrabil
-- [ ] livram acum Etapa 1 - `Firme & Abonamente` ca fundatie pentru toate celelalte module.
+- [x] livram acum Etapa 1 - `Firme & Abonamente` ca fundatie pentru toate celelalte module.
+
+## 15) Status implementare (actualizat 2026-07-09)
+
+### Livrat in productie
+- [x] landing comercial extins (video, cum functioneaza, audienta, testimoniale, social);
+- [x] setari admin pentru landing (video direct/file + social links);
+- [x] backoffice superadmin: Firme & Abonamente;
+- [x] dashboard comercial: KPI + funnel + forecast + riscuri trial + export CSV;
+- [x] CRM pilot: owner, follow-up, next-step, note, update inline;
+- [x] unificare initiala billing pe tenant (signup/onboarding/billing/pricing);
+- [x] editare comerciala tenant + validari + istoric audit.
+
+### In lucru / urmatorii pasi
+- [ ] extindere statusuri CRM comerciale (follow-up, negociere etc.) fara risc pe date live;
+- [ ] scor risc complet (trial neactivat + onboarding incomplet + semnal churn);
+- [ ] export XLSX pentru board/comercial;
+- [ ] cleanup final: eliminare dependinte ramase pe billing user-level.

@@ -88,6 +88,42 @@
                 </div>
             </section>
 
+            <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Istoric comercial</div>
+                        <h3 class="mt-1 text-lg font-bold text-slate-900">Ultimele modificari pe firme</h3>
+                    </div>
+                    <Link :href="route('account.audit.index')" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        Vezi audit complet
+                    </Link>
+                </div>
+
+                <div v-if="!recentCommercialActions.length" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                    Nu exista inca modificari comerciale inregistrate.
+                </div>
+
+                <div v-else class="mt-4 space-y-2">
+                    <article v-for="event in recentCommercialActions" :key="event.id" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="text-sm font-semibold text-slate-900">{{ event.tenant_name }}</div>
+                            <div class="text-xs text-slate-500">{{ formatDateTime(event.created_at) }}</div>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-600">
+                            Plan: <span class="font-semibold text-slate-800">{{ event.changes.billing_plan.from || '-' }}</span>
+                            -> <span class="font-semibold text-slate-800">{{ event.changes.billing_plan.to || '-' }}</span>
+                            | Status: <span class="font-semibold text-slate-800">{{ event.changes.status.from || '-' }}</span>
+                            -> <span class="font-semibold text-slate-800">{{ event.changes.status.to || '-' }}</span>
+                            | Trial end: <span class="font-semibold text-slate-800">{{ event.changes.billing_trial_ends_at.from || '-' }}</span>
+                            -> <span class="font-semibold text-slate-800">{{ event.changes.billing_trial_ends_at.to || '-' }}</span>
+                        </div>
+                        <div class="mt-1 text-xs text-slate-500">
+                            Operator: {{ event.actor_name || '-' }} <span v-if="event.actor_email">({{ event.actor_email }})</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
             <section class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
                     <div>
@@ -222,6 +258,7 @@ const props = defineProps({
     tenants: { type: Object, required: true },
     metrics: { type: Object, required: true },
     pipeline: { type: Object, required: true },
+    recentCommercialActions: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     planOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
@@ -348,6 +385,14 @@ function formatDate(value) {
     }
 
     return new Date(value).toLocaleDateString('ro-RO');
+}
+
+function formatDateTime(value) {
+    if (!value) {
+        return '-';
+    }
+
+    return new Date(value).toLocaleString('ro-RO');
 }
 
 function formatMoney(value) {
