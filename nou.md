@@ -1094,3 +1094,43 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe controller/page/test -> fara erori.
 - Ce ramane:
 	- urmatorul pas: tranzitii de status pe flux de confirmari (`ordered` -> `verified` -> `financial_review` -> `approved`) cu reguli explicite pe roluri.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 6)
+- Etapa: lifecycle automat pe confirmari + precedenta blocaj financiar.
+- Dovezi:
+	- `updateConfirmation` aplica automat statusul comenzii dupa fiecare confirmare pe baza regulilor de workflow;
+	- reguli lifecycle implementate:
+		- orice confirmare `rejected` => status `rejected`;
+		- discrepanta blocanta activa => status `blocked_payment` (precedenta maxima);
+		- toate confirmarile tehnice + financiar confirmat => `approved`;
+		- toate confirmarile tehnice confirmate, fara financiar => `financial_review`;
+		- minim o confirmare tehnica => `verified`;
+		- fara confirmari => `ordered`.
+	- teste extinse pentru:
+		- tranzitie `verified` dupa prima confirmare tehnica,
+		- `financial_review` dupa completare tehnica,
+		- `approved` dupa confirmare financiara,
+		- precedenta `blocked_payment` fata de fluxul de confirmari.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (9/9).
+	- `npm run build` -> passed.
+	- push pe `origin/main` realizat cu commit `42d78f1`.
+
+### 2026-07-09 - Checkpoint Comercial (automatizari reminder + task)
+- Etapa: inchidere backlog comercial pentru reminder-uri si taskuri automate.
+- Dovezi:
+	- schema noua `commercial_tasks` pentru taskuri comerciale dedicate lead-urilor (`pilot_invites`);
+	- model nou `CommercialTask` + relatie `PilotInvite->commercialTasks`;
+	- `PilotInviteController` extins cu automatizare lifecycle:
+		- creare task comercial automat la lead activ (`invited`, `contacted`, `demo_scheduled`, `trial_started`),
+		- recalcul prioritate/scadenta pe baza `follow_up_at` / `demo_scheduled_at`,
+		- anulare automata task deschis la `closed_won` / `closed_lost`,
+		- notificare automata `commercial_follow_up` catre responsabil la creare task nou;
+	- `NotificationCenterController` include `commercial_follow_up` in filtrele de evenimente;
+	- UI `PilotInvites/Index` afiseaza sumarul taskului comercial activ (titlu, scadenta, prioritate).
+- Validare:
+	- `artisan test tests/Feature/PilotInvitesTest.php` -> passed (4/4).
+	- `artisan test tests/Feature/PilotInvitesTest.php tests/Feature/ResourceOrdersTest.php` -> passed (13/13).
+	- `npm run build` -> passed.
+- Ce ramane:
+	- optional v2: pagina dedicata `Taskuri comerciale` cu board pe stadii (`todo/in_progress/done/cancelled`) si SLA pe owner.

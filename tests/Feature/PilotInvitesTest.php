@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\User;
+use App\Notifications\OperationalReminderNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,6 +25,9 @@ class PilotInvitesTest extends TestCase
                 'contact_name' => 'Mihai Ionescu',
                 'contact_email' => 'mihai@constructpro.ro',
                 'contact_phone' => '0722333444',
+                'estimated_users' => 25,
+                'customization_scope' => 'template',
+                'follow_up_at' => now()->addDay()->toDateTimeString(),
                 'notes' => 'Interes pentru pilot iulie.',
             ]);
 
@@ -35,6 +40,20 @@ class PilotInvitesTest extends TestCase
             'contact_email' => 'mihai@constructpro.ro',
             'status' => 'invited',
         ]);
+
+        $invite = PilotInvite::query()->latest('id')->first();
+        $this->assertNotNull($invite);
+
+        $this->assertDatabaseHas('commercial_tasks', [
+            'pilot_invite_id' => $invite->id,
+            'status' => 'todo',
+            'priority' => 'medium',
+        ]);
+
+        $notification = $user->notifications()->latest()->first();
+        $this->assertNotNull($notification);
+        $this->assertSame(OperationalReminderNotification::class, $notification->type);
+        $this->assertSame('commercial_follow_up', (string) ($notification->data['event'] ?? null));
     }
 
     public function test_user_can_update_pilot_invite_status(): void
@@ -50,6 +69,19 @@ class PilotInvitesTest extends TestCase
             'invited_at' => now(),
         ]);
 
+        CommercialTask::create([
+            'tenant_id' => 1,
+            'pilot_invite_id' => $invite->id,
+            'assigned_to' => $user->id,
+            'created_by' => $user->id,
+            'title' => 'Follow-up comercial: Pilot Build SRL',
+            'description' => 'Task initial',
+            'status' => 'todo',
+            'priority' => 'medium',
+            'due_at' => now()->addDay(),
+            'automated' => true,
+        ]);
+
         $response = $this->actingAs($user)
             ->patch("/pilot-invites/{$invite->id}/status", [
                 'status' => 'demo_scheduled',
@@ -61,6 +93,52 @@ class PilotInvitesTest extends TestCase
         $this->assertDatabaseHas('pilot_invites', [
             'id' => $invite->id,
             'status' => 'demo_scheduled',
+        ]);
+
+        $this->assertDatabaseHas('commercial_tasks', [
+            'pilot_invite_id' => $invite->id,
+            'status' => 'todo',
+            'priority' => 'high',
+        ]);
+    }
+
+    public function test_closed_pilot_status_cancels_open_commercial_task(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        $invite = PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Close Flow SRL',
+            'contact_email' => 'close@flow.ro',
+            'status' => 'trial_started',
+            'commercial_stage' => 'trial',
+            'invited_at' => now(),
+        ]);
+
+        $task = CommercialTask::create([
+            'tenant_id' => 1,
+            'pilot_invite_id' => $invite->id,
+            'assigned_to' => $user->id,
+            'created_by' => $user->id,
+            'title' => 'Follow-up comercial: Close Flow SRL',
+            'description' => 'Task deschis',
+            'status' => 'todo',
+            'priority' => 'high',
+            'due_at' => now()->addDay(),
+            'automated' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/pilot-invites/{$invite->id}/status", [
+                'status' => 'closed_won',
+                'commercial_stage' => 'won',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('commercial_tasks', [
+            'id' => $task->id,
+            'status' => 'cancelled',
         ]);
     }
 

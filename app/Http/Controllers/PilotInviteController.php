@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
+use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\User;
+use App\Notifications\OperationalReminderNotification;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +34,7 @@ class PilotInviteController extends Controller
 
         $invites = PilotInvite::query()
             ->where('tenant_id', $tenantId)
-            ->with('owner:id,name,email')
+            ->with(['owner:id,name,email', 'commercialTasks'])
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($commercialStage !== '', fn ($query) => $query->where('commercial_stage', $commercialStage))
             ->when($selectedScopeLabel, fn ($query) => $query->where('notes', 'like', '%Personalizare dorita: '.$selectedScopeLabel.'%'))
@@ -58,6 +61,7 @@ class PilotInviteController extends Controller
                     'owner' => $invite->owner,
                     'estimated_users' => $qualification['estimated_users'],
                     'customization_scope_label' => $qualification['customization_scope_label'],
+                    'commercial_task' => $this->resolveCommercialTaskSummary($invite->commercialTasks),
                 ];
             })
             ->withQueryString();
@@ -88,14 +92,16 @@ class PilotInviteController extends Controller
 
     public function store(StorePilotInviteRequest $request): RedirectResponse
     {
-        $this->persistInvite($request, $request->user()?->id);
+        $invite = $this->persistInvite($request, $request->user()?->id);
+        $this->syncCommercialTaskAutomation($invite, (int) ($request->user()?->id ?? 0));
 
         return back()->with('success', 'Invitatia pilot a fost adaugata.');
     }
 
     public function storePublic(StorePilotInviteRequest $request): RedirectResponse
     {
-        $this->persistInvite($request, null);
+        $invite = $this->persistInvite($request, null);
+        $this->syncCommercialTaskAutomation($invite, 0);
 
         return back()->with('success', 'Solicitarea ta a fost trimisa. Te contactam in cel mai scurt timp.');
     }
@@ -139,8 +145,113 @@ class PilotInviteController extends Controller
         }
 
         $pilotInvite->update($updates);
+        $this->syncCommercialTaskAutomation($pilotInvite->fresh(['owner', 'commercialTasks']), (int) ($request->user()?->id ?? 0));
 
         return back()->with('success', 'Status invitatie actualizat.');
+    }
+
+    private function resolveCommercialTaskSummary(Collection $tasks): ?array
+    {
+        /** @var CommercialTask|null $task */
+        $task = $tasks->first(fn (CommercialTask $item) => in_array($item->status, ['todo', 'in_progress'], true));
+
+        if (! $task instanceof CommercialTask) {
+            return null;
+        }
+
+        return [
+            'id' => $task->id,
+            'title' => $task->title,
+            'status' => $task->status,
+            'priority' => $task->priority,
+            'due_at' => optional($task->due_at)->toDateTimeString(),
+        ];
+    }
+
+    private function syncCommercialTaskAutomation(PilotInvite $invite, int $actorId): void
+    {
+        $activeStatuses = ['invited', 'contacted', 'demo_scheduled', 'trial_started'];
+        $openStatuses = ['todo', 'in_progress'];
+
+        $openTask = CommercialTask::query()
+            ->where('pilot_invite_id', $invite->id)
+            ->whereIn('status', $openStatuses)
+            ->latest('id')
+            ->first();
+
+        if (! in_array((string) $invite->status, $activeStatuses, true)) {
+            if ($openTask instanceof CommercialTask) {
+                $openTask->update([
+                    'status' => 'cancelled',
+                    'completed_at' => now(),
+                ]);
+            }
+
+            return;
+        }
+
+        $dueAt = $invite->follow_up_at
+            ?? $invite->demo_scheduled_at
+            ?? now()->addDay();
+
+        $priority = in_array((string) $invite->status, ['demo_scheduled', 'trial_started'], true)
+            ? 'high'
+            : 'medium';
+
+        $payload = [
+            'tenant_id' => (int) $invite->tenant_id,
+            'assigned_to' => $invite->owner_id,
+            'created_by' => $actorId > 0 ? $actorId : null,
+            'title' => 'Follow-up comercial: ' . $invite->company_name,
+            'description' => $this->buildCommercialTaskDescription($invite),
+            'status' => 'todo',
+            'priority' => $priority,
+            'due_at' => $dueAt,
+            'completed_at' => null,
+            'automated' => true,
+        ];
+
+        if ($openTask instanceof CommercialTask) {
+            $openTask->update($payload);
+
+            return;
+        }
+
+        $task = CommercialTask::create([
+            ...$payload,
+            'pilot_invite_id' => $invite->id,
+        ]);
+
+        $recipient = $invite->owner;
+
+        if (! $recipient instanceof User) {
+            return;
+        }
+
+        $recipient->notify(new OperationalReminderNotification(
+            event: 'commercial_follow_up',
+            title: 'Task comercial nou',
+            message: sprintf('Lead-ul %s necesita follow-up pana la %s.', $invite->company_name, $task->due_at?->format('Y-m-d H:i') ?? '-'),
+            entityType: 'pilot_invite',
+            entityId: (int) $invite->id,
+            projectId: null,
+            projectName: null,
+            url: route('pilot-invites.index'),
+            severity: $priority === 'high' ? 'high' : 'medium',
+        ));
+    }
+
+    private function buildCommercialTaskDescription(PilotInvite $invite): string
+    {
+        $lines = [
+            'Lead: ' . $invite->company_name,
+            'Status curent: ' . (string) $invite->status,
+            'Etapa comerciala: ' . (string) $this->resolveCommercialStage($invite),
+            'Contact: ' . ($invite->contact_name ?: '-') . ' / ' . ($invite->contact_email ?: '-'),
+            'Urmator pas: ' . ($invite->next_step ?: 'Actualizeaza urmatorul pas comercial.'),
+        ];
+
+        return implode("\n", $lines);
     }
 
     private function persistInvite(StorePilotInviteRequest $request, ?int $ownerId): PilotInvite

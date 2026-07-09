@@ -121,6 +121,7 @@
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Profil lead</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Stadiu comercial</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Urmarire</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Task comercial</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Responsabil</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                         </tr>
@@ -170,6 +171,18 @@
                                     <input v-model="inviteDrafts[invite.id].next_step" type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Urmator pas" />
                                     <div class="text-[11px] text-gray-400">Ultim contact: {{ formatDateTime(invite.last_contacted_at) }}</div>
                                 </div>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <div v-if="invite.commercial_task" class="space-y-1">
+                                    <div class="text-xs font-semibold text-gray-800">{{ invite.commercial_task.title }}</div>
+                                    <div class="text-[11px] text-gray-500">Scadenta: {{ formatDateTime(invite.commercial_task.due_at) }}</div>
+                                    <div class="text-[11px]">
+                                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
+                                            {{ labelTaskPriority(invite.commercial_task.priority) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div v-else class="text-xs text-gray-400">Nu exista task deschis.</div>
                             </td>
                             <td class="px-4 py-3 text-gray-600">
                                 <div class="space-y-2">
@@ -303,6 +316,12 @@ const labelStage = (stage) => props.stageOptions?.[stage] || labelCommercialStag
 
 function isHighValue(estimatedUsers) {
     return Number(estimatedUsers || 0) >= 50;
+}
+
+function labelTaskPriority(priority) {
+    if (priority === 'high') return 'Prioritate mare';
+    if (priority === 'medium') return 'Prioritate medie';
+    return 'Prioritate redusa';
 }
 
 function buildInviteDrafts(invites) {

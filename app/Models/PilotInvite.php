@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PilotInvite extends Model
 {
@@ -35,5 +36,10 @@ class PilotInvite extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function commercialTasks(): HasMany
+    {
+        return $this->hasMany(CommercialTask::class)->latest('id');
     }
 }
