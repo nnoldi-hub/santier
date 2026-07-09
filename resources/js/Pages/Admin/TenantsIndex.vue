@@ -280,6 +280,7 @@
 import { computed, reactive, ref } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { commercialRiskTone, labelCommercialRisk } from '@/Support/commercialLabels';
 
 const props = defineProps({
     tenants: { type: Object, required: true },
@@ -443,27 +444,6 @@ function planTone(plan) {
     return 'bg-slate-100 text-slate-600';
 }
 
-function riskTone(level) {
-    if (level === 'high') {
-        return 'bg-rose-100 text-rose-700';
-    }
-
-    if (level === 'medium') {
-        return 'bg-amber-100 text-amber-700';
-    }
-
-    return 'bg-emerald-100 text-emerald-700';
-}
-
-function riskLabel(level, daysToTrialEnd) {
-    if (level === 'high') {
-        return 'Ridicat';
-    }
-
-    if (level === 'medium') {
-        return 'Mediu';
-    }
-
-    return 'Scazut';
-}
+const riskTone = commercialRiskTone;
+const riskLabel = labelCommercialRisk;
 </script>

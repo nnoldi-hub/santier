@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Exports\Sheets\CollectionSheetExport;
+use App\Support\CommercialLabels;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
@@ -61,9 +62,9 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         return collect($this->payload['riskScoredTenants'] ?? [])->map(function (array $tenant) {
             return [
                 'Firma' => $tenant['name'] ?? '',
-                'Plan' => $this->labelPlan((string) ($tenant['billing_plan'] ?? '')),
+                'Plan' => CommercialLabels::plan((string) ($tenant['billing_plan'] ?? '')),
                 'Scor risc' => $tenant['risk_score'] ?? 0,
-                'Nivel risc' => $this->labelRisk((string) ($tenant['risk_level'] ?? '')),
+                'Nivel risc' => CommercialLabels::risk((string) ($tenant['risk_level'] ?? '')),
                 'Utilizatori activi' => $tenant['active_memberships_count'] ?? 0,
                 'Gap onboarding' => $tenant['onboarding_incomplete_memberships_count'] ?? 0,
                 'Semnal churn' => !empty($tenant['churn_signal']) ? 'Da' : 'Nu',
@@ -77,11 +78,11 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
     {
         return collect($this->payload['topPipelineOpportunities'] ?? [])->map(function (array $item) {
             return [
-                'Status' => $this->labelStatus((string) ($item['status'] ?? '')),
-                'Etapa comerciala' => $this->labelStage((string) ($item['commercial_stage'] ?? '')),
+                'Status' => CommercialLabels::status((string) ($item['status'] ?? '')),
+                'Etapa comerciala' => CommercialLabels::stage((string) ($item['commercial_stage'] ?? '')),
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
-                'Plan recomandat' => $this->labelPlan((string) ($item['recommended_plan'] ?? '')),
+                'Plan recomandat' => CommercialLabels::plan((string) ($item['recommended_plan'] ?? '')),
                 'MRR potential' => $item['recommended_mrr'] ?? 0,
             ];
         })->values();
@@ -92,8 +93,8 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         return collect($this->payload['recentCommercialSignals'] ?? [])->map(function (array $item) {
             return [
                 'Firma' => $item['company_name'] ?? '',
-                'Status' => $this->labelStatus((string) ($item['status'] ?? '')),
-                'Etapa comerciala' => $this->labelStage((string) ($item['commercial_stage'] ?? '')),
+                'Status' => CommercialLabels::status((string) ($item['status'] ?? '')),
+                'Etapa comerciala' => CommercialLabels::stage((string) ($item['commercial_stage'] ?? '')),
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
                 'Data' => $item['created_at'] ?? '',
@@ -130,52 +131,4 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         };
     }
 
-    private function labelStatus(string $status): string
-    {
-        return match ($status) {
-            'invited' => 'Invitat',
-            'contacted' => 'Contactat',
-            'demo_scheduled' => 'Demo programat',
-            'trial_started' => 'Trial pornit',
-            'closed_won' => 'Castigat',
-            'closed_lost' => 'Pierdut',
-            default => $status,
-        };
-    }
-
-    private function labelStage(string $stage): string
-    {
-        return match ($stage) {
-            'prospecting' => 'Prospectare',
-            'contacted' => 'Contactat',
-            'follow_up' => 'Follow-up',
-            'demo' => 'Demo',
-            'trial' => 'Trial',
-            'negotiation' => 'Negociere',
-            'won' => 'Castigat',
-            'lost' => 'Pierdut',
-            default => $stage,
-        };
-    }
-
-    private function labelPlan(string $plan): string
-    {
-        return match ($plan) {
-            'starter' => 'Brand de baza',
-            'pro' => 'Brand complet',
-            'enterprise' => 'Enterprise',
-            'free' => 'Demo',
-            default => $plan,
-        };
-    }
-
-    private function labelRisk(string $risk): string
-    {
-        return match ($risk) {
-            'high' => 'Ridicat',
-            'medium' => 'Mediu',
-            'low' => 'Scazut',
-            default => $risk,
-        };
-    }
 }

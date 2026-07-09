@@ -197,6 +197,7 @@
 import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { labelCommercialStage, labelCommercialStatus } from '@/Support/commercialLabels';
 
 const props = defineProps({
     invites: { type: Object, required: true },
@@ -297,20 +298,8 @@ function formatDateTime(value) {
     return new Date(value).toLocaleString('ro-RO');
 }
 
-function labelStatus(status) {
-    return {
-        invited: 'Invitat',
-        contacted: 'Contactat',
-        demo_scheduled: 'Demo programat',
-        trial_started: 'Trial pornit',
-        closed_won: 'Castigat',
-        closed_lost: 'Pierdut',
-    }[status] || status;
-}
-
-function labelStage(stage) {
-    return props.stageOptions?.[stage] || stage || '-';
-}
+const labelStatus = labelCommercialStatus;
+const labelStage = (stage) => props.stageOptions?.[stage] || labelCommercialStage(stage);
 
 function isHighValue(estimatedUsers) {
     return Number(estimatedUsers || 0) >= 50;

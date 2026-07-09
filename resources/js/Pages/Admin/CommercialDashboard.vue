@@ -301,6 +301,7 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { commercialRiskTone, labelCommercialPlan, labelCommercialRisk, labelCommercialStage, labelCommercialStatus } from '@/Support/commercialLabels';
 
 const props = defineProps({
     kpis: { type: Object, required: true },
@@ -376,60 +377,9 @@ function formatDate(value) {
     return new Date(value).toLocaleDateString('ro-RO');
 }
 
-function labelStatus(status) {
-    return {
-        invited: 'Invitat',
-        contacted: 'Contactat',
-        demo_scheduled: 'Demo programat',
-        trial_started: 'Trial pornit',
-        closed_won: 'Castigat',
-        closed_lost: 'Pierdut',
-    }[status] || status;
-}
-
-function labelPlan(plan) {
-    return {
-        starter: 'Brand de baza',
-        pro: 'Brand complet',
-        enterprise: 'Enterprise',
-        free: 'Demo',
-    }[plan] || plan;
-}
-
-function labelStage(stage) {
-    return {
-        prospecting: 'Prospectare',
-        contacted: 'Contactat',
-        follow_up: 'Follow-up',
-        demo: 'Demo',
-        trial: 'Trial',
-        negotiation: 'Negociere',
-        won: 'Castigat',
-        lost: 'Pierdut',
-    }[stage] || stage || '-';
-}
-
-function riskTone(level) {
-    if (level === 'high') {
-        return 'bg-rose-100 text-rose-700';
-    }
-
-    if (level === 'medium') {
-        return 'bg-amber-100 text-amber-700';
-    }
-
-    return 'bg-emerald-100 text-emerald-700';
-}
-
-function riskLabel(level) {
-    if (level === 'high') {
-        return 'Ridicat';
-    }
-
-    if (level === 'medium') {
-        return 'Mediu';
-    }
-
-    return 'Scazut';
-}
+const labelStatus = labelCommercialStatus;
+const labelPlan = labelCommercialPlan;
+const labelStage = labelCommercialStage;
+const riskTone = commercialRiskTone;
+const riskLabel = labelCommercialRisk;
 </script>
