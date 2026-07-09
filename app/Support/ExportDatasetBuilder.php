@@ -21,6 +21,33 @@ use Illuminate\Support\Collection;
 
 class ExportDatasetBuilder
 {
+    private const PRIORITY_ALIASES = [
+        'high' => ['high', 'urgent', 'critic', 'critice', 'critical'],
+        'medium' => ['medium', 'mediu', 'medie', 'moderate'],
+        'low' => ['low', 'scazut', 'minor'],
+    ];
+
+    private const CONTROL_TOKENS = [
+        'proiect',
+        'proiecte',
+        'etapa',
+        'etape',
+        'contractor',
+        'contractori',
+        'defect',
+        'defecte',
+        'task',
+        'taskuri',
+        'utilaj',
+        'utilaje',
+        'material',
+        'materiale',
+        'resursa',
+        'resurse',
+        'aviz',
+        'avize',
+    ];
+
     public static function build(string $exportType, array $filters): array
     {
         return match ($exportType) {
@@ -59,8 +86,9 @@ class ExportDatasetBuilder
             $query->where('contractor_id', $filters['contractor_id']);
         }
 
-        if (!empty($filters['q'])) {
-            $text = $filters['q'];
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $text = $searchText;
             $query->where(function ($inner) use ($text) {
                 $inner->where('name', 'like', "%{$text}%")
                     ->orWhereHas('project', fn ($projectQuery) => $projectQuery->where('name', 'like', "%{$text}%"))
@@ -107,8 +135,9 @@ class ExportDatasetBuilder
             $query->whereHas('stage', fn ($q) => $q->where('project_id', $filters['project_id']));
         }
 
-        if (!empty($filters['q'])) {
-            $text = $filters['q'];
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $text = $searchText;
             $query->where(function ($inner) use ($text) {
                 $inner->where('activities', 'like', "%{$text}%")
                     ->orWhere('issues', 'like', "%{$text}%");
@@ -139,8 +168,11 @@ class ExportDatasetBuilder
             $query->whereIn('status', $filters['status']);
         }
 
-        if (!empty($filters['q'])) {
-            $text = $filters['q'];
+        self::applyInferredPriorityFilter($query, $filters, 'priority');
+
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $text = $searchText;
             $query->where(function ($inner) use ($text) {
                 $inner->where('title', 'like', "%{$text}%")
                     ->orWhere('description', 'like', "%{$text}%");
@@ -194,8 +226,9 @@ class ExportDatasetBuilder
         self::applyDateRange($query, 'usage_start', $filters);
         self::applyProjectFilter($query, $filters);
 
-        if (!empty($filters['q'])) {
-            $text = $filters['q'];
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $text = $searchText;
             $query->where(function ($inner) use ($text) {
                 $inner->whereHas('equipment', function ($equipmentQuery) use ($text) {
                     $equipmentQuery->where('name', 'like', "%{$text}%")
@@ -493,6 +526,8 @@ class ExportDatasetBuilder
             $query->whereIn('priority', $filters['priority']);
         }
 
+        self::applyInferredPriorityFilter($query, $filters, 'priority');
+
         if (!empty($filters['assignee_ids'])) {
             $query->whereIn('assigned_to', $filters['assignee_ids']);
         }
@@ -521,6 +556,8 @@ class ExportDatasetBuilder
         if (!empty($filters['priority'])) {
             $query->whereIn('priority', $filters['priority']);
         }
+
+        self::applyInferredPriorityFilter($query, $filters, 'priority');
 
         if (!empty($filters['assignee_ids'])) {
             $query->whereIn('assigned_to', $filters['assignee_ids']);
@@ -552,11 +589,11 @@ class ExportDatasetBuilder
 
     private static function applyTextFilter(Builder|Relation $query, array $columns, array $filters): void
     {
-        if (empty($filters['q'])) {
+        $text = self::searchTerm($filters);
+        if ($text === null) {
             return;
         }
 
-        $text = $filters['q'];
         $query->where(function ($inner) use ($columns, $text) {
             foreach ($columns as $index => $column) {
                 if ($index === 0) {
@@ -566,5 +603,59 @@ class ExportDatasetBuilder
                 }
             }
         });
+    }
+
+    private static function searchTerm(array $filters): ?string
+    {
+        $candidate = trim((string) ($filters['global_search'] ?? $filters['q'] ?? ''));
+        if ($candidate === '') {
+            return null;
+        }
+
+        $normalized = mb_strtolower($candidate);
+
+        $dropTokens = [
+            ...self::CONTROL_TOKENS,
+            ...array_merge(...array_values(self::PRIORITY_ALIASES)),
+        ];
+
+        $filtered = collect(preg_split('/\s+/u', $normalized) ?: [])
+            ->filter(fn ($token) => $token !== '' && !in_array($token, $dropTokens, true))
+            ->implode(' ');
+
+        return trim($filtered) !== '' ? trim($filtered) : $candidate;
+    }
+
+    private static function inferredPriority(array $filters): ?string
+    {
+        if (!empty($filters['priority'])) {
+            return null;
+        }
+
+        $search = mb_strtolower(trim((string) ($filters['global_search'] ?? $filters['q'] ?? '')));
+        if ($search === '') {
+            return null;
+        }
+
+        foreach (self::PRIORITY_ALIASES as $priority => $aliases) {
+            foreach ($aliases as $alias) {
+                if (preg_match('/(^|\s)' . preg_quote($alias, '/') . '(\s|$)/u', $search) === 1) {
+                    return $priority;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function applyInferredPriorityFilter(Builder|Relation $query, array $filters, string $column): void
+    {
+        $priority = self::inferredPriority($filters);
+
+        if ($priority === null) {
+            return;
+        }
+
+        $query->where($column, $priority);
     }
 }

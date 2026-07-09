@@ -8,6 +8,21 @@
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">Filtre avansate export</h3>
+                <div class="mb-4">
+                    <label class="block text-xs text-gray-600 mb-1">Interval rapid</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-for="option in quickRangeOptions"
+                            :key="option.value"
+                            type="button"
+                            class="text-xs rounded-full border px-3 py-1.5"
+                            :class="filters.quick_range === option.value ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
+                            @click="setQuickRange(option.value)"
+                        >
+                            {{ option.label }}
+                        </button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs text-gray-600 mb-1">Interval de la</label>
@@ -47,8 +62,8 @@
                         <p class="mt-1 text-[11px] text-gray-400">Camp optional pentru filtre tehnice pe utilizator.</p>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Cautare</label>
-                        <input v-model="filters.q" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="proiect, etapa, contractor" />
+                        <label class="block text-xs text-gray-600 mb-1">Cautare globala</label>
+                        <input v-model="filters.global_search" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="proiect X, etapa finisaje, defecte high, utilaje pompa" />
                     </div>
                 </div>
                 <div class="mt-3">
@@ -261,6 +276,7 @@ const props = defineProps({
     subscriptions: { type: Array, default: () => [] },
     recentLogs: { type: Array, default: () => [] },
     branding: { type: Object, default: () => ({}) },
+    filters: { type: Object, default: () => ({}) },
 });
 
 const projectId = ref('');
@@ -283,17 +299,30 @@ const exportTypeOptions = [
 
 const exportTypeLabels = Object.fromEntries(exportTypeOptions.map((option) => [option.value, option.label]));
 
+const quickRangeOptions = [
+    { value: 'today', label: 'Today' },
+    { value: 'last_7d', label: 'Last 7 days' },
+    { value: 'last_30d', label: 'Last 30 days' },
+    { value: 'last_90d', label: 'Last 90 days' },
+    { value: 'this_year', label: 'This year' },
+];
+
 const filters = reactive({
-    from: '',
-    to: '',
-    project_id: '',
-    team_id: '',
-    status: '',
-    priority: '',
-    assignee_ids: '',
-    q: '',
-    include_inactive: false,
+    from: props.filters?.from || '',
+    to: props.filters?.to || '',
+    quick_range: props.filters?.quick_range || '',
+    project_id: props.filters?.project_id ? String(props.filters.project_id) : '',
+    team_id: props.filters?.team_id ? String(props.filters.team_id) : '',
+    status: Array.isArray(props.filters?.status) ? props.filters.status.join(',') : (props.filters?.status || ''),
+    priority: Array.isArray(props.filters?.priority) ? props.filters.priority.join(',') : (props.filters?.priority || ''),
+    assignee_ids: Array.isArray(props.filters?.assignee_ids) ? props.filters.assignee_ids.join(',') : (props.filters?.assignee_ids || ''),
+    global_search: props.filters?.global_search || props.filters?.q || '',
+    include_inactive: Boolean(props.filters?.include_inactive),
 });
+
+function setQuickRange(value) {
+    filters.quick_range = filters.quick_range === value ? '' : value;
+}
 
 const subscriptionForm = useForm({
     name: '',
@@ -308,6 +337,7 @@ const subscriptionForm = useForm({
 function routeWithFilters(routeName) {
     return route(routeName, {
         ...filters,
+        q: filters.global_search || undefined,
     });
 }
 

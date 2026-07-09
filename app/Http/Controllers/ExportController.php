@@ -29,11 +29,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $user = request()->user();
+        $user = $request->user();
         $tenantId = TenantContext::id($user);
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $filters = ExportFilter::fromRequest($request);
 
         return Inertia::render('Exports/Index', [
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
@@ -56,6 +57,7 @@ class ExportController extends Controller
                 ->latest('id')
                 ->take(20)
                 ->get(['id', 'export_type', 'format', 'status', 'file_name', 'delivery_channel', 'delivery_target', 'created_at']),
+            'filters' => $filters,
             'branding' => [
                 'company_name' => $branding['company_name'] ?? config('exports.company_name'),
                 'company_email' => $branding['support_email'] ?? config('exports.company_email'),
