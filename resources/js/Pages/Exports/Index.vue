@@ -1,9 +1,39 @@
 <template>
     <AppLayout title="Exporturi">
         <div class="max-w-6xl mx-auto space-y-6">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-800">Exporturi si rapoarte</h2>
-                <p class="text-sm text-gray-500 mt-1">Descarca datele operationale in format CSV sau pachet complet pe proiect.</p>
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800">Exporturi si rapoarte</h2>
+                    <p class="text-sm text-gray-500 mt-1">Descarca datele operationale in format CSV sau pachet complet pe proiect.</p>
+                </div>
+
+                <div class="w-full rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 via-amber-50 to-white p-4 shadow-sm lg:w-[420px]">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-orange-700">Export rapid</div>
+                            <div class="text-sm text-gray-600">Preset-uri executive pentru manageri</div>
+                        </div>
+                        <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700">One-click</span>
+                    </div>
+
+                    <a
+                        :href="quickExportUrl(quickExportPresets[0])"
+                        class="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                    >
+                        {{ quickExportPresets[0].label }}
+                    </a>
+
+                    <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <a
+                            v-for="preset in quickExportPresets.slice(1)"
+                            :key="preset.key"
+                            :href="quickExportUrl(preset)"
+                            class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
+                        >
+                            {{ preset.label }}
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
@@ -77,25 +107,51 @@
                     <h3 class="font-semibold text-gray-800 mb-1">Rapoarte predefinite (one-click)</h3>
                     <p class="text-xs text-gray-500 mb-4">Template-uri profesionale pentru manageri. Se aplica automat filtrele active de mai sus.</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                         <div
                             v-for="template in reportTemplates"
                             :key="template.key"
-                            class="rounded-lg border border-gray-200 bg-white p-3 flex flex-col"
+                            class="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
                         >
-                            <div class="text-sm font-semibold text-gray-800">{{ template.label }}</div>
-                            <div class="text-xs text-gray-500 mt-1 flex-1">{{ template.description }}</div>
-                            <div class="flex flex-wrap gap-2 mt-3">
-                                <a :href="templateWorkbookUrl(template)" class="text-xs border border-green-200 text-green-700 rounded px-2 py-1 hover:bg-green-50">XLSX</a>
-                                <a :href="templatePdfUrl(template)" class="text-xs border border-red-200 text-red-700 rounded px-2 py-1 hover:bg-red-50">PDF</a>
-                                <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="text-xs border border-sky-200 text-sky-700 rounded px-2 py-1 hover:bg-sky-50">CSV</a>
-                                <button
-                                    type="button"
-                                    class="text-xs border border-gray-300 text-gray-700 rounded px-2 py-1 hover:bg-gray-50"
-                                    @click="previewTemplate(template)"
-                                >
-                                    Preview
-                                </button>
+                            <div class="h-1.5" :class="templateCardMeta(template).barClass"></div>
+                            <div class="flex h-full flex-col p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900">{{ template.label }}</div>
+                                        <div class="mt-1 text-xs text-gray-500">{{ template.description }}</div>
+                                    </div>
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg border" :class="templateCardMeta(template).badgeClass">
+                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path :d="templateCardMeta(template).iconPath" />
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                <div class="mt-3 grid grid-cols-2 gap-2">
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2">
+                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Module</div>
+                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ template.types.length }}</div>
+                                    </div>
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2">
+                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Rulari recente</div>
+                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ templateRunCount(template) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2 text-[11px] text-gray-500">Ultima rulare: {{ templateLastRunLabel(template) }}</div>
+
+                                <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] font-semibold">
+                                    <a :href="templateWorkbookUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-700 transition hover:bg-emerald-100">XLSX</a>
+                                    <a :href="templatePdfUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-rose-700 transition hover:bg-rose-100">PDF</a>
+                                    <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-2 py-1.5 text-sky-700 transition hover:bg-sky-100">CSV</a>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-gray-700 transition hover:bg-gray-50"
+                                        @click="previewTemplate(template)"
+                                    >
+                                        Preview
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -630,6 +686,72 @@ const reportTemplates = [
     },
 ];
 
+const quickExportPresets = [
+    {
+        key: 'project-full',
+        label: 'Export proiect complet',
+        types: ['projects', 'wbs', 'tasks', 'defects', 'stage-progress', 'documents'],
+    },
+    {
+        key: 'finance-full',
+        label: 'Export financiar complet',
+        types: ['costs', 'documents', 'quotes', 'stage-progress'],
+    },
+    {
+        key: 'quality-full',
+        label: 'Export calitate complet',
+        types: ['defects', 'tasks', 'stage-tasks', 'stage-reports'],
+    },
+];
+
+const templateCardMetaMap = {
+    'project-complete': {
+        barClass: 'bg-gradient-to-r from-indigo-500 to-sky-500',
+        badgeClass: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+        iconPath: 'M3 6.75A1.75 1.75 0 0 1 4.75 5h4.5L11 6.75h8.25A1.75 1.75 0 0 1 21 8.5v9.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V6.75Z',
+    },
+    'financial-complete': {
+        barClass: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+        badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        iconPath: 'M4 4h16v16H4V4Zm3 10.5 2.5-3 2 2 3-4 2.5 3.5',
+    },
+    'quality-defects': {
+        barClass: 'bg-gradient-to-r from-rose-500 to-orange-500',
+        badgeClass: 'border-rose-200 bg-rose-50 text-rose-700',
+        iconPath: 'M12 3 2 20h20L12 3Zm0 6v5m0 3h.01',
+    },
+    'equipment-resources': {
+        barClass: 'bg-gradient-to-r from-cyan-500 to-sky-500',
+        badgeClass: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+        iconPath: 'M7 10h10l2 4v4h-2a2 2 0 1 1-4 0H11a2 2 0 1 1-4 0H5v-4l2-4Zm3-4h4',
+    },
+    'tasks-progress': {
+        barClass: 'bg-gradient-to-r from-violet-500 to-fuchsia-500',
+        badgeClass: 'border-violet-200 bg-violet-50 text-violet-700',
+        iconPath: 'M5 12h5m0 0 2 2m-2-2 2-2m2 8h5m0 0 2 2m-2-2 2-2M5 6h14',
+    },
+    'cost-vs-budget': {
+        barClass: 'bg-gradient-to-r from-amber-500 to-orange-500',
+        badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+        iconPath: 'M4 17V7m4 10V9m4 8V5m4 12v-6m4 6V8',
+    },
+    'materials-notes': {
+        barClass: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+        badgeClass: 'border-blue-200 bg-blue-50 text-blue-700',
+        iconPath: 'M5 5h14v14H5V5Zm3 3h8m-8 4h8m-8 4h5',
+    },
+    'materials-comparison': {
+        barClass: 'bg-gradient-to-r from-purple-500 to-indigo-500',
+        badgeClass: 'border-purple-200 bg-purple-50 text-purple-700',
+        iconPath: 'M4 18 10 8l4 6 6-9M4 5h6M14 19h6',
+    },
+    default: {
+        barClass: 'bg-gradient-to-r from-gray-500 to-gray-700',
+        badgeClass: 'border-gray-200 bg-gray-50 text-gray-700',
+        iconPath: 'M4 5h16v14H4V5Zm4 4h8m-8 4h8',
+    },
+};
+
 const quickRangeOptions = [
     { value: 'today', label: 'Today' },
     { value: 'last_7d', label: 'Last 7 days' },
@@ -693,6 +815,42 @@ function routeWithFilters(routeName) {
         ...filters,
         q: filters.global_search || undefined,
     });
+}
+
+function quickExportUrl(preset) {
+    if (!preset) {
+        return '#';
+    }
+
+    return route('exports.workbook', {
+        ...filters,
+        q: filters.global_search || undefined,
+        types: preset.types.join(','),
+    });
+}
+
+function templateCardMeta(template) {
+    return templateCardMetaMap[template.key] ?? templateCardMetaMap.default;
+}
+
+function templateRunCount(template) {
+    if (!template?.types?.length) {
+        return 0;
+    }
+
+    const typeSet = new Set(template.types);
+    return (props.recentLogs || []).filter((log) => typeSet.has(log.export_type)).length;
+}
+
+function templateLastRunLabel(template) {
+    if (!template?.types?.length) {
+        return '-';
+    }
+
+    const typeSet = new Set(template.types);
+    const latest = (props.recentLogs || []).find((log) => typeSet.has(log.export_type));
+
+    return latest?.created_at ? formatDateTime(latest.created_at) : 'fara rulare recenta';
 }
 
 function templateWorkbookUrl(template) {

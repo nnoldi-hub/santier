@@ -1305,15 +1305,26 @@ Faza E (Sprint 5) - Materiale & Avize advanced pack
 4. Verificare manuala pe tenant demo + tenant productie controlat.
 
 ### 14.5. Status initial
-1. Faza A: `NEINCEPUT`.
+1. Faza A: `IN PROGRES`.
 2. Faza B: `NEINCEPUT`.
 3. Faza C: `NEINCEPUT`.
 4. Faza D: `NEINCEPUT`.
 5. Faza E: `NEINCEPUT`.
 
 ### 14.6. Urmatorul pas imediat (propunere executie)
-1. Pornim cu Faza A in urmatorul commit: redesign carduri + buton `Export rapid`.
-2. Inchidem Faza A doar dupa `npm run build` + screenshot comparativ + update in acest tracker.
+1. Inchidem Faza A doar dupa validare UX completa pe carduri premium + `Export rapid`.
+2. Urmatorul commit pentru Faza A: metrici KPI reale (volum/rulare) pe fiecare card.
+
+### 14.7. Progres executie curent (Faza A)
+1. Livrat:
+	- panou `Export rapid` in header (CTA mare + preseturi manageriale);
+	- carduri one-click modernizate (dimensiune, accent color, icon, KPI-uri, actiuni vizibile XLSX/PDF/CSV/Preview);
+	- metadate vizuale per template + indicator de rulare recenta din loguri.
+2. Validare tehnica:
+	- `npm run build` -> passed.
+3. Ce ramane in Faza A:
+	- calibrare KPI pe date reale per domeniu (nu doar rulari recente);
+	- ajustare finala spacing/contrast pentru viewport-uri mici.
 
 Faza A (Sapt. 1-2) - Foundation UX + Query Layer
 1. Search bar global in pagina exporturi (query unificata peste module).
