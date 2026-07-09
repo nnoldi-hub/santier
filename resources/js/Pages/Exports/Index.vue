@@ -102,164 +102,128 @@
                 </div>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-xl p-4 md:p-5 space-y-4">
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        v-for="domain in exportDomains"
-                        :key="domain.key"
-                        type="button"
-                        class="text-xs rounded-full border px-3 py-1.5"
-                        :class="activeExportDomain === domain.key ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
-                        @click="activeExportDomain = domain.key"
-                    >
-                        {{ domain.label }}
-                    </button>
-                </div>
+                <div v-if="previewState.result" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                    <div class="border-b border-gray-200 bg-gradient-to-r from-slate-50 via-white to-orange-50 px-4 py-4 md:px-5">
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700">Preview export</span>
+                                    <span v-if="isResourceComparisonPreview" class="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-violet-700">Raport comparativ</span>
+                                </div>
+                                <div class="mt-2 text-base font-semibold text-gray-900 md:text-lg">{{ previewState.result.title }}</div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Randuri estimate: {{ previewState.result.rows_count }} · Generat: {{ formatDateTime(previewState.result.generated_at) }}
+                                </div>
+                            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <a
-                        v-for="card in filteredExportCards"
-                        :key="card.route"
-                        :href="routeWithFilters(card.route)"
-                        class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block"
-                    >
-                        <div class="text-sm font-semibold text-gray-800">{{ card.title }}</div>
-                        <div class="text-xs text-gray-500 mt-1">{{ card.description }}</div>
-                    </a>
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Preview inainte de export</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs text-gray-600 mb-1">Tip raport</label>
-                        <select v-model="previewState.export_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                            <option v-for="option in exportTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <button
-                            type="button"
-                            class="w-full bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-60"
-                            :disabled="previewState.loading"
-                            @click="generatePreview"
-                        >
-                            {{ previewState.loading ? 'Se genereaza...' : 'Genereaza preview' }}
-                        </button>
-                    </div>
-                </div>
-
-                <div v-if="previewState.error" class="mt-3 text-sm text-red-600">{{ previewState.error }}</div>
-
-                <div v-if="previewState.result" class="mt-4 rounded-lg border border-gray-200 p-4">
-                    <div class="text-sm font-semibold text-gray-800">{{ previewState.result.title }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Randuri estimate: {{ previewState.result.rows_count }} · Generat: {{ formatDateTime(previewState.result.generated_at) }}</div>
-
-                    <div class="mt-3">
-                        <div class="text-xs font-semibold text-gray-700 mb-1">Filtre active</div>
-                        <div class="text-xs text-gray-600">
-                            {{ formatActiveFilters(previewState.result.active_filters) }}
+                            <div class="max-w-2xl rounded-xl border border-gray-200 bg-white/80 p-3 text-xs text-gray-600 shadow-sm">
+                                <div class="font-semibold text-gray-700">Filtre active</div>
+                                <div class="mt-1 leading-5">
+                                    {{ formatActiveFilters(previewState.result.active_filters) }}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mt-3" v-if="(previewState.result.sample || []).length > 0">
-                        <div class="text-xs font-semibold text-gray-700 mb-1">Sample (primele randuri)</div>
-                        <div class="space-y-2">
-                            <pre
-                                v-for="(sample, index) in previewState.result.sample"
-                                :key="index"
-                                class="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-700 overflow-x-auto"
-                            >{{ JSON.stringify(sample, null, 2) }}</pre>
-                        </div>
-                    </div>
+                    <div class="p-4 md:p-5">
+                        <div v-if="isResourceComparisonPreview" class="space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <div class="rounded-xl border border-orange-100 bg-orange-50/70 p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-orange-700">Comenzi analizate</div>
+                                    <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.orders_count) }}</div>
+                                </div>
+                                <div class="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-emerald-700">Comandat total</div>
+                                    <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.ordered_quantity_total) }}</div>
+                                </div>
+                                <div class="rounded-xl border border-sky-100 bg-sky-50/70 p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-sky-700">Receptionat total</div>
+                                    <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_quantity_total) }}</div>
+                                </div>
+                                <div class="rounded-xl border border-violet-100 bg-violet-50/70 p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-violet-700">Diferenta receptionare</div>
+                                    <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_delta_total) }}</div>
+                                </div>
+                            </div>
 
-                    <div v-if="isResourceComparisonPreview" class="mt-5 space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                            <div class="rounded-xl border border-orange-100 bg-orange-50/60 p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-orange-700">Comenzi analizate</div>
-                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.orders_count) }}</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-gray-500">Consum total</div>
+                                    <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.consumed_quantity_total) }}</div>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-gray-500">Returnat total</div>
+                                    <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.returned_quantity_total) }}</div>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div class="text-[11px] uppercase tracking-wide text-gray-500">Linkuri documente</div>
+                                    <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.document_links_total) }}</div>
+                                </div>
                             </div>
-                            <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-emerald-700">Comandat total</div>
-                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.ordered_quantity_total) }}</div>
-                            </div>
-                            <div class="rounded-xl border border-sky-100 bg-sky-50/60 p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-sky-700">Receptionat total</div>
-                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_quantity_total) }}</div>
-                            </div>
-                            <div class="rounded-xl border border-violet-100 bg-violet-50/60 p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-violet-700">Diferenta receptionare</div>
-                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_delta_total) }}</div>
+
+                            <div class="rounded-xl border border-gray-200 bg-white">
+                                <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                                    <div class="text-sm font-semibold text-gray-800">Mostre comparative</div>
+                                    <div class="text-xs text-gray-500">Rezumat rapid al comenzilor cu avize si diferente</div>
+                                </div>
+
+                                <div class="divide-y divide-gray-100">
+                                    <div v-for="(row, index) in previewComparisonRows" :key="index" class="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-12 md:items-center">
+                                        <div class="md:col-span-3">
+                                            <div class="text-sm font-semibold text-gray-900">{{ row.project || '-' }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ row.phase || '-' }}</div>
+                                        </div>
+                                        <div class="md:col-span-3">
+                                            <div class="text-sm font-medium text-gray-800">{{ row.material || '-' }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ row.resource_label || row.resource_type || '-' }}</div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 md:col-span-4 md:grid-cols-4">
+                                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Comandat</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.ordered_quantity) }} {{ row.ordered_unit || '' }}</div>
+                                            </div>
+                                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Receptionat</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.received_quantity) }} {{ row.ordered_unit || '' }}</div>
+                                            </div>
+                                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Consum</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.consumed_quantity) }} {{ row.ordered_unit || '' }}</div>
+                                            </div>
+                                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Returnat</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.returned_quantity) }} {{ row.ordered_unit || '' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-3 md:col-span-2 md:justify-end md:text-right">
+                                            <div>
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Avize</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.document_links_count) }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">Dif. doc</div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ formatNumber(row.document_difference_quantity) }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div class="rounded-xl border border-gray-200 bg-white p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Consum total</div>
-                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.consumed_quantity_total) }}</div>
-                            </div>
-                            <div class="rounded-xl border border-gray-200 bg-white p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Returnat total</div>
-                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.returned_quantity_total) }}</div>
-                            </div>
-                            <div class="rounded-xl border border-gray-200 bg-white p-4">
-                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Linkuri documente</div>
-                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.document_links_total) }}</div>
-                            </div>
-                        </div>
-
-                        <div class="rounded-xl border border-gray-200 overflow-hidden">
-                            <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                                <div class="text-sm font-semibold text-gray-800">Mostre comparative</div>
-                                <div class="text-xs text-gray-500">Vizualizare rapida a comenzilor cu avize si diferente</div>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full text-sm">
-                                    <thead>
-                                        <tr class="text-left text-gray-500 border-b">
-                                            <th class="py-2 px-4">Proiect</th>
-                                            <th class="py-2 px-4">Resursa</th>
-                                            <th class="py-2 px-4">Comandat</th>
-                                            <th class="py-2 px-4">Receptionat</th>
-                                            <th class="py-2 px-4">Consum</th>
-                                            <th class="py-2 px-4">Returnat</th>
-                                            <th class="py-2 px-4">Avize</th>
-                                            <th class="py-2 px-4">Dif. doc</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(row, index) in previewComparisonRows" :key="index" class="border-b last:border-0">
-                                            <td class="py-2 px-4 text-gray-700">{{ row.project || '-' }}</td>
-                                            <td class="py-2 px-4">
-                                                <div class="font-medium text-gray-800">{{ row.material || '-' }}</div>
-                                                <div class="text-[11px] text-gray-500">{{ row.resource_label || row.resource_type || '-' }}</div>
-                                            </td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.ordered_quantity) }} {{ row.ordered_unit || '' }}</td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.received_quantity) }} {{ row.ordered_unit || '' }}</td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.consumed_quantity) }} {{ row.ordered_unit || '' }}</td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.returned_quantity) }} {{ row.ordered_unit || '' }}</td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.document_links_count) }}</td>
-                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.document_difference_quantity) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div v-else class="mt-2">
+                            <div v-if="(previewState.result.sample || []).length > 0">
+                                <div class="text-xs font-semibold text-gray-700 mb-2">Sample (primele randuri)</div>
+                                <div class="space-y-2">
+                                    <pre
+                                        v-for="(sample, index) in previewState.result.sample"
+                                        :key="index"
+                                        class="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-700 overflow-x-auto"
+                                    >{{ JSON.stringify(sample, null, 2) }}</pre>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a :href="routeWithFilters('exports.workbook')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Export XLSX multi-sheet</div>
-                    <div class="text-xs text-gray-500 mt-1">Workbook enterprise cu branding companie si date filtrate</div>
-                </a>
-                <a :href="routeWithFilters('exports.managerial-pdf')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Export PDF managerial</div>
-                    <div class="text-xs text-gray-500 mt-1">Status proiect, costuri, riscuri, taskuri restante</div>
-                </a>
-            </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">Pachet complet pe proiect</h3>

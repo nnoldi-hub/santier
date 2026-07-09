@@ -268,6 +268,8 @@ Legenda status:
 	- Lista de exporturi a fost reorganizata in tab-uri pe domenii pentru navigare mai clara.
 	- A fost adaugat raportul comparativ `Materiale & Avize comparative` cu date despre comandat, livrat, receptionat, consumat, returnat si diferente din documente.
 	- Exporturile enterprise, preview-ul si abonarea pe email sunt acoperite de teste feature si build validat.
+- Polish vizual recent:
+	- Preview-ul raportului comparativ a fost refacut in stil dashboard, cu header accent, KPI cards si mostre lizibile pe randuri.
 - Validare:
 	- `tests/Feature/ResourceOrdersTest.php` -> passed.
 	- `tests/Unit/ExportFilterTest.php` -> passed.
