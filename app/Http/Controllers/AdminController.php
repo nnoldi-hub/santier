@@ -370,10 +370,29 @@ class AdminController extends Controller
             'billing_trial_ends_at' => ['nullable', 'date'],
         ]);
 
+        $requiresTrialDate = $validated['status'] === 'active' && ! in_array($validated['billing_plan'], self::PAID_PLANS, true);
+        $trialEndsAt = $validated['billing_trial_ends_at'] ?? null;
+
+        if ($requiresTrialDate && empty($trialEndsAt)) {
+            return back()->withErrors([
+                'billing_trial_ends_at' => 'Pentru planuri neplatite active, data de final trial este obligatorie.',
+            ]);
+        }
+
+        if (! empty($trialEndsAt) && Carbon::parse((string) $trialEndsAt)->lt(Carbon::today())) {
+            return back()->withErrors([
+                'billing_trial_ends_at' => 'Data de final trial nu poate fi in trecut.',
+            ]);
+        }
+
+        if (! $requiresTrialDate) {
+            $trialEndsAt = null;
+        }
+
         $tenant->update([
             'billing_plan' => $validated['billing_plan'],
             'status' => $validated['status'],
-            'billing_trial_ends_at' => $validated['billing_trial_ends_at'] ?? null,
+            'billing_trial_ends_at' => $trialEndsAt,
         ]);
 
         // Compat mode: keep user-level billing fields aligned while legacy screens still read them.
@@ -384,7 +403,7 @@ class AdminController extends Controller
                 ->whereIn('id', $tenantUserIds)
                 ->update([
                     'billing_plan' => $validated['billing_plan'],
-                    'billing_trial_ends_at' => $validated['billing_trial_ends_at'] ?? null,
+                    'billing_trial_ends_at' => $trialEndsAt,
                 ]);
         }
 

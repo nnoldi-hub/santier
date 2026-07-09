@@ -155,10 +155,16 @@
                                         class="rounded-lg border-slate-300 px-2 py-1 text-xs"
                                     />
                                     <span v-else>{{ formatDate(tenant.trial_ends_at) }}</span>
+                                    <p v-if="isEditing(tenant.id) && (localValidationMessage || editForm.errors.billing_trial_ends_at)" class="mt-1 text-[11px] font-medium text-rose-600">
+                                        {{ localValidationMessage || editForm.errors.billing_trial_ends_at }}
+                                    </p>
                                 </td>
                                 <td class="px-5 py-4 font-semibold text-slate-900">{{ formatMoney(tenant.estimated_mrr) }}</td>
                                 <td class="px-5 py-4">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span v-if="isEditing(tenant.id) && editHasChanges" class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                                            Modificari nesalvate
+                                        </span>
                                         <button
                                             v-if="!isEditing(tenant.id)"
                                             type="button"
@@ -171,7 +177,7 @@
                                             <button
                                                 type="button"
                                                 class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-                                                :disabled="editForm.processing"
+                                                :disabled="editForm.processing || !editHasChanges || Boolean(localValidationMessage)"
                                                 @click="saveEdit(tenant.id)"
                                             >
                                                 Salveaza
@@ -228,6 +234,12 @@ const filterForm = reactive({
 });
 
 const editingTenantId = ref(null);
+const originalEditState = ref({
+    billing_plan: '',
+    status: '',
+    billing_trial_ends_at: '',
+});
+
 const editForm = useForm({
     billing_plan: '',
     status: 'active',
@@ -240,6 +252,28 @@ const metricCards = computed(() => [
     { key: 'tenants_trial', label: 'Firme in trial', value: props.metrics.tenants_trial || 0, note: 'Trial activ neconvertit' },
     { key: 'monthly_mrr_estimate', label: 'MRR estimat', value: formatMoney(props.metrics.monthly_mrr_estimate || 0), note: 'Estimare bazata pe planurile active' },
 ]);
+
+const editHasChanges = computed(() => {
+    return editForm.billing_plan !== originalEditState.value.billing_plan
+        || editForm.status !== originalEditState.value.status
+        || (editForm.billing_trial_ends_at || '') !== originalEditState.value.billing_trial_ends_at;
+});
+
+const requiresTrialDate = computed(() => {
+    if (editForm.status !== 'active') {
+        return false;
+    }
+
+    return !['starter', 'pro', 'enterprise'].includes(editForm.billing_plan);
+});
+
+const localValidationMessage = computed(() => {
+    if (requiresTrialDate.value && !editForm.billing_trial_ends_at) {
+        return 'Pentru planuri neplatite active, data de final trial este obligatorie.';
+    }
+
+    return '';
+});
 
 function applyFilters() {
     router.get(route('admin.tenants.index'), {
@@ -279,14 +313,27 @@ function startEdit(tenant) {
     editForm.billing_plan = tenant.billing_plan || 'free';
     editForm.status = tenant.status || 'active';
     editForm.billing_trial_ends_at = tenant.trial_ends_at || '';
+    originalEditState.value = {
+        billing_plan: editForm.billing_plan,
+        status: editForm.status,
+        billing_trial_ends_at: editForm.billing_trial_ends_at,
+    };
+    editForm.clearErrors();
 }
 
 function cancelEdit() {
     editingTenantId.value = null;
     editForm.reset();
+    editForm.clearErrors();
 }
 
 function saveEdit(tenantId) {
+    if (localValidationMessage.value) {
+        editForm.setError('billing_trial_ends_at', localValidationMessage.value);
+
+        return;
+    }
+
     editForm.patch(route('admin.tenants.commercial.update', tenantId), {
         preserveScroll: true,
         onSuccess: () => {
