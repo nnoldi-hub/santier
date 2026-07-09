@@ -17,9 +17,9 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
     {
         return [
             new CollectionSheetExport('Rezumat', ['Indicator', 'Valoare'], $this->summaryRows()),
-            new CollectionSheetExport('Funnel', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['funnel'] ?? [])),
-            new CollectionSheetExport('Conversii', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['conversion'] ?? [], '%')),
-            new CollectionSheetExport('Forecast', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['forecast'] ?? [], 'RON')),
+            new CollectionSheetExport('Funnel', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['funnel'] ?? [], '', 'funnel')),
+            new CollectionSheetExport('Conversii', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['conversion'] ?? [], '%', 'conversion')),
+            new CollectionSheetExport('Forecast', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['forecast'] ?? [], 'RON', 'forecast')),
             new CollectionSheetExport('Riscuri', ['Firma', 'Plan', 'Scor risc', 'Nivel risc', 'Utilizatori activi', 'Gap onboarding', 'Semnal churn', 'Trial expira curand', 'Trial end'], $this->riskRows()),
             new CollectionSheetExport('Oportunitati', ['Status', 'Etapa comerciala', 'Utilizatori estimati', 'Personalizare', 'Plan recomandat', 'MRR potential'], $this->opportunityRows()),
             new CollectionSheetExport('Semnale', ['Firma', 'Status', 'Etapa comerciala', 'Utilizatori estimati', 'Personalizare', 'Data'], $this->signalRows()),
@@ -41,16 +41,16 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         ]);
     }
 
-    private function simpleRows(array $items, string $suffix = ''): Collection
+    private function simpleRows(array $items, string $suffix = '', string $context = 'generic'): Collection
     {
-        return collect($items)->map(function ($value, $key) use ($suffix) {
+        return collect($items)->map(function ($value, $key) use ($suffix, $context) {
             $normalized = (string) $value;
             if ($suffix !== '') {
                 $normalized .= ' ' . $suffix;
             }
 
             return [
-                'Indicator' => (string) $key,
+                'Indicator' => $this->labelIndicator((string) $key, $context),
                 'Valoare' => $normalized,
             ];
         })->values();
@@ -61,9 +61,9 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         return collect($this->payload['riskScoredTenants'] ?? [])->map(function (array $tenant) {
             return [
                 'Firma' => $tenant['name'] ?? '',
-                'Plan' => $tenant['billing_plan'] ?? '',
+                'Plan' => $this->labelPlan((string) ($tenant['billing_plan'] ?? '')),
                 'Scor risc' => $tenant['risk_score'] ?? 0,
-                'Nivel risc' => $tenant['risk_level'] ?? '',
+                'Nivel risc' => $this->labelRisk((string) ($tenant['risk_level'] ?? '')),
                 'Utilizatori activi' => $tenant['active_memberships_count'] ?? 0,
                 'Gap onboarding' => $tenant['onboarding_incomplete_memberships_count'] ?? 0,
                 'Semnal churn' => !empty($tenant['churn_signal']) ? 'Da' : 'Nu',
@@ -77,11 +77,11 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
     {
         return collect($this->payload['topPipelineOpportunities'] ?? [])->map(function (array $item) {
             return [
-                'Status' => $item['status'] ?? '',
-                'Etapa comerciala' => $item['commercial_stage'] ?? '',
+                'Status' => $this->labelStatus((string) ($item['status'] ?? '')),
+                'Etapa comerciala' => $this->labelStage((string) ($item['commercial_stage'] ?? '')),
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
-                'Plan recomandat' => $item['recommended_plan'] ?? '',
+                'Plan recomandat' => $this->labelPlan((string) ($item['recommended_plan'] ?? '')),
                 'MRR potential' => $item['recommended_mrr'] ?? 0,
             ];
         })->values();
@@ -92,12 +92,90 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         return collect($this->payload['recentCommercialSignals'] ?? [])->map(function (array $item) {
             return [
                 'Firma' => $item['company_name'] ?? '',
-                'Status' => $item['status'] ?? '',
-                'Etapa comerciala' => $item['commercial_stage'] ?? '',
+                'Status' => $this->labelStatus((string) ($item['status'] ?? '')),
+                'Etapa comerciala' => $this->labelStage((string) ($item['commercial_stage'] ?? '')),
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
                 'Data' => $item['created_at'] ?? '',
             ];
         })->values();
+    }
+
+    private function labelIndicator(string $key, string $context): string
+    {
+        return match ($context) {
+            'funnel' => match ($key) {
+                'invited' => 'Invitate',
+                'contacted' => 'Contactate',
+                'demo_scheduled' => 'Demo programat',
+                'trial_started' => 'Trial pornit',
+                'closed_won' => 'Castigate',
+                'closed_lost' => 'Pierdute',
+                default => $key,
+            },
+            'conversion' => match ($key) {
+                'pilot_to_demo' => 'Pilot -> Demo',
+                'pilot_to_trial' => 'Pilot -> Trial',
+                'pilot_to_paid' => 'Pilot -> Paid',
+                default => $key,
+            },
+            'forecast' => match ($key) {
+                'current_mrr' => 'MRR curent',
+                'forecast_30_days' => 'Forecast 30 zile',
+                'forecast_60_days' => 'Forecast 60 zile',
+                'forecast_90_days' => 'Forecast 90 zile',
+                default => $key,
+            },
+            default => $key,
+        };
+    }
+
+    private function labelStatus(string $status): string
+    {
+        return match ($status) {
+            'invited' => 'Invitat',
+            'contacted' => 'Contactat',
+            'demo_scheduled' => 'Demo programat',
+            'trial_started' => 'Trial pornit',
+            'closed_won' => 'Castigat',
+            'closed_lost' => 'Pierdut',
+            default => $status,
+        };
+    }
+
+    private function labelStage(string $stage): string
+    {
+        return match ($stage) {
+            'prospecting' => 'Prospectare',
+            'contacted' => 'Contactat',
+            'follow_up' => 'Follow-up',
+            'demo' => 'Demo',
+            'trial' => 'Trial',
+            'negotiation' => 'Negociere',
+            'won' => 'Castigat',
+            'lost' => 'Pierdut',
+            default => $stage,
+        };
+    }
+
+    private function labelPlan(string $plan): string
+    {
+        return match ($plan) {
+            'starter' => 'Brand de baza',
+            'pro' => 'Brand complet',
+            'enterprise' => 'Enterprise',
+            'free' => 'Demo',
+            default => $plan,
+        };
+    }
+
+    private function labelRisk(string $risk): string
+    {
+        return match ($risk) {
+            'high' => 'Ridicat',
+            'medium' => 'Mediu',
+            'low' => 'Scazut',
+            default => $risk,
+        };
     }
 }
