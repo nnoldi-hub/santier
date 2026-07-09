@@ -211,14 +211,29 @@
                         </div>
 
                         <div v-else class="mt-2">
-                            <div v-if="(previewState.result.sample || []).length > 0">
-                                <div class="text-xs font-semibold text-gray-700 mb-2">Sample (primele randuri)</div>
-                                <div class="space-y-2">
-                                    <pre
+                            <div v-if="(previewState.result.sample || []).length > 0" class="space-y-3">
+                                <div class="text-xs font-semibold text-gray-700">Sample (primele randuri)</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div
                                         v-for="(sample, index) in previewState.result.sample"
                                         :key="index"
-                                        class="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-700 overflow-x-auto"
-                                    >{{ JSON.stringify(sample, null, 2) }}</pre>
+                                        class="rounded-xl border border-gray-200 bg-gray-50/60 p-4"
+                                    >
+                                        <div class="mb-3 flex items-center justify-between">
+                                            <div class="text-sm font-semibold text-gray-800">Rand {{ index + 1 }}</div>
+                                            <span class="rounded-full bg-white px-2 py-1 text-[11px] font-medium text-gray-500">preview</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                            <div
+                                                v-for="entry in previewSampleEntries(sample)"
+                                                :key="entry.key"
+                                                class="rounded-lg border border-white bg-white px-3 py-2 shadow-sm"
+                                            >
+                                                <div class="text-[10px] uppercase tracking-wide text-gray-500">{{ entry.key }}</div>
+                                                <div class="mt-1 text-sm font-medium text-gray-800 break-words">{{ entry.value }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -732,6 +747,25 @@ function formatNumber(value) {
     return new Intl.NumberFormat('ro-RO', {
         maximumFractionDigits: 2,
     }).format(numeric);
+}
+
+function previewSampleEntries(sample) {
+    if (!sample || typeof sample !== 'object') {
+        return [];
+    }
+
+    return Object.entries(sample)
+        .slice(0, 6)
+        .map(([key, value]) => ({
+            key,
+            value: Array.isArray(value)
+                ? value.join(', ')
+                : value === null || value === undefined || value === ''
+                    ? '-'
+                    : typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : String(value),
+        }));
 }
 
 function formatExportType(value) {

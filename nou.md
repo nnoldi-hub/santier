@@ -270,6 +270,7 @@ Legenda status:
 	- Exporturile enterprise, preview-ul si abonarea pe email sunt acoperite de teste feature si build validat.
 - Polish vizual recent:
 	- Preview-ul raportului comparativ a fost refacut in stil dashboard, cu header accent, KPI cards si mostre lizibile pe randuri.
+	- Fallback-ul pentru celelalte preview-uri a fost uniformizat in carduri key/value, ca sa nu mai existe JSON brut in UI.
 - Validare:
 	- `tests/Feature/ResourceOrdersTest.php` -> passed.
 	- `tests/Unit/ExportFilterTest.php` -> passed.
