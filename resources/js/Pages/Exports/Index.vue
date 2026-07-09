@@ -141,18 +141,9 @@
                     </div>
                 </div>
 
-                <div v-if="previewState.loading || previewState.error" class="mt-6 rounded-xl border border-gray-200 bg-white p-4 md:p-5">
-                    <div v-if="previewState.loading" class="flex items-center gap-3 text-sm text-gray-600">
-                        <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500"></span>
-                        Se genereaza preview-ul raportului...
-                    </div>
-                    <div v-else class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {{ previewState.error }}
-                    </div>
-                </div>
             </div>
 
-                <div v-if="previewState.result" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+            <div ref="previewPanelRef" v-if="previewState.export_type" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
                     <div class="border-b border-gray-200 bg-gradient-to-r from-slate-50 via-white to-orange-50 px-4 py-4 md:px-5">
                         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                             <div>
@@ -160,8 +151,9 @@
                                     <span class="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700">Preview export</span>
                                     <span v-if="isResourceComparisonPreview" class="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-violet-700">Raport comparativ</span>
                                 </div>
-                                <div class="mt-2 text-base font-semibold text-gray-900 md:text-lg">{{ previewState.result.title }}</div>
-                                <div class="mt-1 text-xs text-gray-500">
+                                <div v-if="previewState.loading" class="mt-2 text-base font-semibold text-gray-900 md:text-lg">Se genereaza preview-ul...</div>
+                                <div v-else class="mt-2 text-base font-semibold text-gray-900 md:text-lg">{{ previewState.result?.title || 'Preview indisponibil' }}</div>
+                                <div v-if="previewState.result" class="mt-1 text-xs text-gray-500">
                                     Randuri estimate: {{ previewState.result.rows_count }} · Generat: {{ formatDateTime(previewState.result.generated_at) }}
                                 </div>
                             </div>
@@ -169,14 +161,23 @@
                             <div class="max-w-2xl rounded-xl border border-gray-200 bg-white/80 p-3 text-xs text-gray-600 shadow-sm">
                                 <div class="font-semibold text-gray-700">Filtre active</div>
                                 <div class="mt-1 leading-5">
-                                    {{ formatActiveFilters(previewState.result.active_filters) }}
+                                    {{ previewState.result ? formatActiveFilters(previewState.result.active_filters) : formatActiveFilters(filters) }}
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="p-4 md:p-5">
-                        <div v-if="isResourceComparisonPreview" class="space-y-4">
+                        <div v-if="previewState.loading" class="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/70 px-4 py-3 text-sm text-gray-700">
+                            <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500"></span>
+                            Se genereaza preview-ul raportului...
+                        </div>
+
+                        <div v-else-if="previewState.error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {{ previewState.error }}
+                        </div>
+
+                        <div v-else-if="isResourceComparisonPreview" class="space-y-4">
                             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                                 <div class="rounded-xl border border-orange-100 bg-orange-50/70 p-4">
                                     <div class="text-[11px] uppercase tracking-wide text-orange-700">Comenzi analizate</div>
@@ -288,7 +289,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+            </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">Pachet complet pe proiect</h3>
@@ -415,7 +416,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -430,6 +431,7 @@ const props = defineProps({
 });
 
 const projectId = ref('');
+const previewPanelRef = ref(null);
 
 const exportTypeOptions = [
     { value: 'projects', label: 'Proiecte' },
@@ -712,6 +714,7 @@ function previewTemplate(template) {
 async function generatePreview() {
     previewState.loading = true;
     previewState.error = '';
+    previewState.result = null;
 
     try {
         const url = route('exports.preview', {
@@ -737,6 +740,8 @@ async function generatePreview() {
         previewState.result = null;
     } finally {
         previewState.loading = false;
+        await nextTick();
+        previewPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
