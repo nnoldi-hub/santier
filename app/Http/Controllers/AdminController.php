@@ -240,6 +240,17 @@ class AdminController extends Controller
             'closed_lost' => $pilotInvites->where('status', 'closed_lost')->count(),
         ];
 
+        $stageCounts = [
+            'prospecting' => $pilotInvites->where('commercial_stage', 'prospecting')->count(),
+            'contacted' => $pilotInvites->where('commercial_stage', 'contacted')->count(),
+            'follow_up' => $pilotInvites->where('commercial_stage', 'follow_up')->count(),
+            'demo' => $pilotInvites->where('commercial_stage', 'demo')->count(),
+            'trial' => $pilotInvites->where('commercial_stage', 'trial')->count(),
+            'negotiation' => $pilotInvites->where('commercial_stage', 'negotiation')->count(),
+            'won' => $pilotInvites->where('commercial_stage', 'won')->count(),
+            'lost' => $pilotInvites->where('commercial_stage', 'lost')->count(),
+        ];
+
         $qualifiedInvites = $pilotInvites->map(function (PilotInvite $invite) use ($plans): array {
             $qualification = $this->extractSalesQualification($invite->notes);
             $recommendedPlan = $this->resolveRecommendedPlanForInvite($qualification['estimated_users'], $qualification['customization_scope_label']);
@@ -405,6 +416,7 @@ class AdminController extends Controller
                 'tenants_at_risk' => $tenantStats['tenants_at_risk'],
             ],
             'funnel' => $statusCounts,
+            'stageFunnel' => $stageCounts,
             'conversion' => $conversion,
             'forecast' => $forecast,
             'pipelineValue' => $weightedPipelineMrr,

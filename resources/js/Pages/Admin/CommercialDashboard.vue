@@ -54,6 +54,15 @@
                             <div class="mt-1 text-2xl font-black text-emerald-900">{{ item.value }}%</div>
                         </div>
                     </div>
+                    <div class="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Etape CRM</div>
+                        <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div v-for="item in stageCards" :key="item.key" class="rounded-xl border border-sky-100 bg-white px-4 py-3">
+                                <div class="text-xs text-slate-500">{{ item.label }}</div>
+                                <div class="mt-1 text-lg font-black text-slate-900">{{ item.value }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -296,6 +305,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 const props = defineProps({
     kpis: { type: Object, required: true },
     funnel: { type: Object, required: true },
+    stageFunnel: { type: Object, default: () => ({}) },
     conversion: { type: Object, required: true },
     forecast: { type: Object, required: true },
     pipelineValue: { type: Object, required: true },
@@ -321,6 +331,17 @@ const funnelCards = computed(() => [
     { key: 'trial_started', label: 'Trial pornit', value: props.funnel.trial_started || 0 },
     { key: 'closed_won', label: 'Castigate', value: props.funnel.closed_won || 0 },
     { key: 'closed_lost', label: 'Pierdute', value: props.funnel.closed_lost || 0 },
+]);
+
+const stageCards = computed(() => [
+    { key: 'prospecting', label: 'Prospectare', value: props.stageFunnel.prospecting || 0 },
+    { key: 'contacted', label: 'Contactat', value: props.stageFunnel.contacted || 0 },
+    { key: 'follow_up', label: 'Follow-up', value: props.stageFunnel.follow_up || 0 },
+    { key: 'demo', label: 'Demo', value: props.stageFunnel.demo || 0 },
+    { key: 'trial', label: 'Trial', value: props.stageFunnel.trial || 0 },
+    { key: 'negotiation', label: 'Negociere', value: props.stageFunnel.negotiation || 0 },
+    { key: 'won', label: 'Castigat', value: props.stageFunnel.won || 0 },
+    { key: 'lost', label: 'Pierdut', value: props.stageFunnel.lost || 0 },
 ]);
 
 const conversionCards = computed(() => [
