@@ -102,59 +102,31 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <a :href="routeWithFilters('exports.projects')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Proiecte</div>
-                    <div class="text-xs text-gray-500 mt-1">Lista proiecte cu status si buget</div>
-                </a>
-                <a :href="routeWithFilters('exports.quotes')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Oferte si Devize</div>
-                    <div class="text-xs text-gray-500 mt-1">Versiuni, status, totaluri financiare</div>
-                </a>
-                <a :href="routeWithFilters('exports.materials')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Materiale</div>
-                    <div class="text-xs text-gray-500 mt-1">Catalog complet cu preturi si furnizori</div>
-                </a>
-                <a :href="routeWithFilters('exports.costs')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Costuri</div>
-                    <div class="text-xs text-gray-500 mt-1">Comparativ buget proiect vs oferte</div>
-                </a>
-                <a :href="routeWithFilters('exports.teams')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Echipe si responsabilitati</div>
-                    <div class="text-xs text-gray-500 mt-1">Lideri, membri, roluri, alocari</div>
-                </a>
-                <a :href="routeWithFilters('exports.tasks')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Taskuri</div>
-                    <div class="text-xs text-gray-500 mt-1">Taskuri cu status, prioritate si responsabil</div>
-                </a>
-                <a :href="routeWithFilters('exports.defects')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Defecte</div>
-                    <div class="text-xs text-gray-500 mt-1">Snag list cu prioritati si termene</div>
-                </a>
-                <a :href="routeWithFilters('exports.wbs')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">WBS Etape</div>
-                    <div class="text-xs text-gray-500 mt-1">Ierarhie etape cu nivel, parinte, contractor si progres</div>
-                </a>
-                <a :href="routeWithFilters('exports.equipment')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Utilaje pe etape</div>
-                    <div class="text-xs text-gray-500 mt-1">Rezervari utilaje cu interval, cantitate si cost estimat</div>
-                </a>
-                <a :href="routeWithFilters('exports.documents')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Documente financiare</div>
-                    <div class="text-xs text-gray-500 mt-1">Contracte, facturi, devize si oferte pe proiect/etapa</div>
-                </a>
-                <a :href="routeWithFilters('exports.stage-reports')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Rapoarte etapa</div>
-                    <div class="text-xs text-gray-500 mt-1">Progres raportat, activitati si probleme pe etape</div>
-                </a>
-                <a :href="routeWithFilters('exports.stage-tasks')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Taskuri etapa</div>
-                    <div class="text-xs text-gray-500 mt-1">Taskuri operationale pe etape cu responsabili</div>
-                </a>
-                <a :href="routeWithFilters('exports.stage-progress')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
-                    <div class="text-sm font-semibold text-gray-800">Progres etape</div>
-                    <div class="text-xs text-gray-500 mt-1">Progres, status, contractori si ordonare pe etape</div>
-                </a>
+            <div class="bg-white border border-gray-200 rounded-xl p-4 md:p-5 space-y-4">
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-for="domain in exportDomains"
+                        :key="domain.key"
+                        type="button"
+                        class="text-xs rounded-full border px-3 py-1.5"
+                        :class="activeExportDomain === domain.key ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
+                        @click="activeExportDomain = domain.key"
+                    >
+                        {{ domain.label }}
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <a
+                        v-for="card in filteredExportCards"
+                        :key="card.route"
+                        :href="routeWithFilters(card.route)"
+                        class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block"
+                    >
+                        <div class="text-sm font-semibold text-gray-800">{{ card.title }}</div>
+                        <div class="text-xs text-gray-500 mt-1">{{ card.description }}</div>
+                    </a>
+                </div>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
@@ -340,7 +312,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -373,6 +345,106 @@ const exportTypeOptions = [
 ];
 
 const exportTypeLabels = Object.fromEntries(exportTypeOptions.map((option) => [option.value, option.label]));
+
+const exportDomains = [
+    { key: 'all', label: 'Toate rapoartele' },
+    { key: 'project', label: 'Proiect & Etape' },
+    { key: 'operational', label: 'Operare & Echipe' },
+    { key: 'resources', label: 'Resurse & Utilaje' },
+    { key: 'quality', label: 'Calitate' },
+    { key: 'financial', label: 'Financiar' },
+];
+
+const exportCards = [
+    {
+        route: 'exports.projects',
+        title: 'Proiecte',
+        description: 'Lista proiecte cu status si buget',
+        domain: 'project',
+    },
+    {
+        route: 'exports.wbs',
+        title: 'WBS Etape',
+        description: 'Ierarhie etape cu nivel, parinte, contractor si progres',
+        domain: 'project',
+    },
+    {
+        route: 'exports.stage-progress',
+        title: 'Progres etape',
+        description: 'Progres, status, contractori si ordonare pe etape',
+        domain: 'project',
+    },
+    {
+        route: 'exports.tasks',
+        title: 'Taskuri',
+        description: 'Taskuri cu status, prioritate si responsabil',
+        domain: 'operational',
+    },
+    {
+        route: 'exports.stage-tasks',
+        title: 'Taskuri etapa',
+        description: 'Taskuri operationale pe etape cu responsabili',
+        domain: 'operational',
+    },
+    {
+        route: 'exports.stage-reports',
+        title: 'Rapoarte etapa',
+        description: 'Progres raportat, activitati si probleme pe etape',
+        domain: 'operational',
+    },
+    {
+        route: 'exports.teams',
+        title: 'Echipe si responsabilitati',
+        description: 'Lideri, membri, roluri, alocari',
+        domain: 'operational',
+    },
+    {
+        route: 'exports.materials',
+        title: 'Materiale',
+        description: 'Catalog complet cu preturi si furnizori',
+        domain: 'resources',
+    },
+    {
+        route: 'exports.equipment',
+        title: 'Utilaje pe etape',
+        description: 'Rezervari utilaje cu interval, cantitate si cost estimat',
+        domain: 'resources',
+    },
+    {
+        route: 'exports.defects',
+        title: 'Defecte',
+        description: 'Snag list cu prioritati si termene',
+        domain: 'quality',
+    },
+    {
+        route: 'exports.quotes',
+        title: 'Oferte si Devize',
+        description: 'Versiuni, status, totaluri financiare',
+        domain: 'financial',
+    },
+    {
+        route: 'exports.costs',
+        title: 'Costuri',
+        description: 'Comparativ buget proiect vs oferte',
+        domain: 'financial',
+    },
+    {
+        route: 'exports.documents',
+        title: 'Documente financiare',
+        description: 'Contracte, facturi, devize si oferte pe proiect/etapa',
+        domain: 'financial',
+    },
+];
+
+const activeExportDomain = ref('all');
+
+const filteredExportCards = computed(() => {
+    if (activeExportDomain.value === 'all') {
+        return exportCards;
+    }
+
+    return exportCards.filter((card) => card.domain === activeExportDomain.value);
+});
 
 const reportTemplates = [
     {
