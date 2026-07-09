@@ -290,6 +290,14 @@ class ResourceOrdersTest extends TestCase
             'notes' => 'Conform pe receptie',
         ]);
 
+        $this->assertDatabaseHas('access_audit_logs', [
+            'tenant_id' => 1,
+            'actor_user_id' => $user->id,
+            'action' => 'resource_order.confirmation_updated',
+            'resource_type' => 'resource_order',
+            'resource_id' => $order->id,
+        ]);
+
         $order->refresh();
         $this->assertSame('verified', (string) $order->status);
     }
@@ -422,6 +430,14 @@ class ResourceOrdersTest extends TestCase
             'document_role' => 'resource_invoice',
         ]);
 
+        $this->assertDatabaseHas('access_audit_logs', [
+            'tenant_id' => 1,
+            'actor_user_id' => $user->id,
+            'action' => 'resource_order.document_attached',
+            'resource_type' => 'resource_order',
+            'resource_id' => $order->id,
+        ]);
+
         $order->refresh();
         $this->assertSame('blocked_payment', (string) $order->status);
     }
@@ -476,6 +492,14 @@ class ResourceOrdersTest extends TestCase
 
         $this->assertSoftDeleted('resource_document_links', ['id' => $link->id]);
         $this->assertSoftDeleted('documents', ['id' => $document->id]);
+
+        $this->assertDatabaseHas('access_audit_logs', [
+            'tenant_id' => 1,
+            'actor_user_id' => $user->id,
+            'action' => 'resource_order.document_deleted',
+            'resource_type' => 'resource_order',
+            'resource_id' => $order->id,
+        ]);
 
         $order->refresh();
         $this->assertSame('ordered', (string) $order->status);
@@ -536,6 +560,14 @@ class ResourceOrdersTest extends TestCase
         $this->actingAs($user)
             ->delete('/resource-orders/' . $order->id)
             ->assertRedirect('/resource-orders');
+
+        $this->assertDatabaseHas('access_audit_logs', [
+            'tenant_id' => 1,
+            'actor_user_id' => $user->id,
+            'action' => 'resource_order.deleted',
+            'resource_type' => 'resource_order',
+            'resource_id' => $order->id,
+        ]);
 
         $this->assertSoftDeleted('resource_orders', ['id' => $order->id]);
     }

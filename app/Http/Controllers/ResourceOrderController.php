@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreResourceOrderRequest;
+use App\Models\AccessAuditLog;
 use App\Models\Document;
 use App\Models\Equipment;
 use App\Models\Material;
@@ -14,6 +15,7 @@ use App\Models\ResourceOrder;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
+use App\Support\AccessAudit;
 use App\Support\DemoScope;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -209,6 +211,25 @@ class ResourceOrderController extends Controller
             'quantity_tolerance' => (float) config('resources.quantity_tolerance', 0.20),
         ];
 
+        $auditTrail = AccessAuditLog::query()
+            ->where('tenant_id', $tenantId)
+            ->where('resource_type', 'resource_order')
+            ->where('resource_id', $resource_order->id)
+            ->with('actor:id,name,email')
+            ->latest('id')
+            ->limit(30)
+            ->get()
+            ->map(fn (AccessAuditLog $log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'action_label' => $this->auditActionLabel($log->action),
+                'created_at' => optional($log->created_at)->format('Y-m-d H:i:s'),
+                'actor_name' => $log->actor?->name,
+                'actor_email' => $log->actor?->email,
+                'metadata' => $log->metadata ?? [],
+            ])
+            ->values();
+
         return Inertia::render('ResourceOrders/Show', [
             'order' => [
                 'id' => $resource_order->id,
@@ -237,6 +258,7 @@ class ResourceOrderController extends Controller
             'discrepancySummary' => $discrepancySummary,
             'reconciliation' => $reconciliation,
             'resourceDocumentTypes' => ResourceOrder::$documentTypeLabels,
+            'auditTrail' => $auditTrail,
         ]);
     }
 
@@ -265,6 +287,13 @@ class ResourceOrderController extends Controller
 
             $this->persistLinkedDocuments($order, $documents, $request, $tenantId);
             $this->reconcileOrderState($order, $actorId);
+
+            $this->logResourceAudit('resource_order.created', $request, $order, [
+                'status' => $order->status,
+                'resource_type' => $order->resource_type,
+                'ordered_quantity' => (float) $order->ordered_quantity,
+                'ordered_unit' => $order->ordered_unit,
+            ]);
         });
 
         return redirect()->route('resource-orders.index')->with('success', 'Documentul de resursa a fost inregistrat.');
@@ -280,6 +309,11 @@ class ResourceOrderController extends Controller
             'status' => ['required', 'in:confirmed,rejected'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $previous = ResourceConfirmation::query()
+            ->where('resource_order_id', $resource_order->id)
+            ->where('confirmation_role', $validated['confirmation_role'])
+            ->first();
 
         ResourceConfirmation::query()->updateOrCreate(
             [
@@ -320,6 +354,13 @@ class ResourceOrderController extends Controller
 
         $this->applyLifecycleStatus($resource_order, $reconciliation, $resource_order->confirmations);
 
+        $this->logResourceAudit('resource_order.confirmation_updated', $request, $resource_order, [
+            'confirmation_role' => $validated['confirmation_role'],
+            'status_before' => $previous?->status ?? 'pending',
+            'status_after' => $validated['status'],
+            'notes' => trim((string) ($validated['notes'] ?? '')) ?: null,
+        ]);
+
         return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Confirmarea a fost actualizata.');
     }
 
@@ -327,6 +368,13 @@ class ResourceOrderController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $resource_order->tenant_id === $tenantId, 404);
+
+        $this->logResourceAudit('resource_order.deleted', $request, $resource_order, [
+            'status' => $resource_order->status,
+            'ordered_quantity' => (float) $resource_order->ordered_quantity,
+            'ordered_unit' => $resource_order->ordered_unit,
+            'document_links_count' => (int) $resource_order->documentLinks()->count(),
+        ]);
 
         $resource_order->delete();
 
@@ -378,7 +426,7 @@ class ResourceOrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            ResourceDocumentLink::create([
+            $link = ResourceDocumentLink::create([
                 'tenant_id' => $tenantId,
                 'resource_order_id' => $resource_order->id,
                 'document_id' => $document->id,
@@ -394,6 +442,16 @@ class ResourceOrderController extends Controller
             ]);
 
             $this->reconcileOrderState($resource_order, (int) ($request->user()?->id ?? 0));
+
+            $this->logResourceAudit('resource_order.document_attached', $request, $resource_order, [
+                'resource_document_link_id' => (int) $link->id,
+                'document_id' => (int) $document->id,
+                'document_type' => $validated['type'],
+                'document_number' => $validated['document_number'] ?? null,
+                'declared_quantity' => $declaredQuantity,
+                'delivered_quantity' => $deliveredQuantity,
+                'difference_quantity' => $declaredQuantity - $deliveredQuantity,
+            ]);
         });
 
         return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Documentul a fost atasat.');
@@ -408,6 +466,15 @@ class ResourceOrderController extends Controller
 
         DB::transaction(function () use ($resource_order, $resource_document_link, $request): void {
             $document = $resource_document_link->document;
+            $snapshot = [
+                'resource_document_link_id' => (int) $resource_document_link->id,
+                'document_id' => (int) ($resource_document_link->document_id ?? 0),
+                'document_type' => (string) ($resource_document_link->document_role ?? ''),
+                'document_number' => $resource_document_link->document_number,
+                'declared_quantity' => (float) ($resource_document_link->declared_quantity ?? 0),
+                'delivered_quantity' => (float) ($resource_document_link->delivered_quantity ?? 0),
+                'difference_quantity' => (float) ($resource_document_link->difference_quantity ?? 0),
+            ];
 
             $resource_document_link->delete();
 
@@ -427,6 +494,8 @@ class ResourceOrderController extends Controller
             }
 
             $this->reconcileOrderState($resource_order, (int) ($request->user()?->id ?? 0));
+
+            $this->logResourceAudit('resource_order.document_deleted', $request, $resource_order, $snapshot);
         });
 
         return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Documentul a fost sters.');
@@ -604,6 +673,40 @@ class ResourceOrderController extends Controller
             'status' => 'cancelled',
             'completed_at' => now(),
         ]);
+    }
+
+    private function auditActionLabel(string $action): string
+    {
+        return match ($action) {
+            'resource_order.created' => 'Comanda creata',
+            'resource_order.deleted' => 'Comanda stearsa',
+            'resource_order.document_attached' => 'Document atasat',
+            'resource_order.document_deleted' => 'Document sters',
+            'resource_order.confirmation_updated' => 'Confirmare actualizata',
+            default => $action,
+        };
+    }
+
+    private function logResourceAudit(string $action, Request $request, ResourceOrder $order, array $metadata = []): void
+    {
+        $actor = $request->user();
+
+        if (! $actor instanceof User) {
+            return;
+        }
+
+        AccessAudit::log(
+            action: $action,
+            actor: $actor,
+            request: $request,
+            resourceType: 'resource_order',
+            resourceId: (int) $order->id,
+            metadata: [
+                ...$metadata,
+                'resource_order_id' => (int) $order->id,
+                'status' => (string) $order->status,
+            ]
+        );
     }
 
     private function applyLifecycleStatus(ResourceOrder $order, array $reconciliation, Collection $confirmations): void

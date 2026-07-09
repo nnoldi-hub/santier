@@ -151,6 +151,22 @@
                             </div>
                         </div>
                     </section>
+
+                    <section class="bg-white border border-gray-200 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-3">Istoric audit</h3>
+                        <div v-if="(auditTrail || []).length === 0" class="text-sm text-gray-500">Nu exista inca inregistrari de audit pentru aceasta comanda.</div>
+                        <div v-else class="space-y-2">
+                            <div v-for="item in auditTrail" :key="item.id" class="rounded-lg border border-gray-200 px-3 py-2">
+                                <div class="text-xs text-gray-400">{{ item.created_at }}</div>
+                                <div class="text-sm font-semibold text-gray-800">{{ item.action_label }}</div>
+                                <div class="text-xs text-gray-600">Actor: {{ item.actor_name || item.actor_email || 'Sistem' }}</div>
+                                <div class="text-xs text-gray-500 mt-1" v-if="item.metadata?.document_number">Document: {{ item.metadata.document_number }}</div>
+                                <div class="text-xs text-gray-500" v-if="item.metadata?.confirmation_role">
+                                    Rol confirmare: {{ item.metadata.confirmation_role }} ({{ item.metadata.status_before || '-' }} -> {{ item.metadata.status_after || '-' }})
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div class="space-y-4">
@@ -203,6 +219,7 @@ const props = defineProps({
     discrepancySummary: Object,
     reconciliation: Object,
     resourceDocumentTypes: Object,
+    auditTrail: Array,
 });
 
 const confirmationNotes = reactive(

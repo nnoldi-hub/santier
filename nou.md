@@ -1164,3 +1164,20 @@ Template de evaluare plusuri / minusuri:
 	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (12/12).
 	- `npm run build` -> passed.
 	- `get_errors` pe index/controller/routes/test -> fara erori.
+
+### 2026-07-09 - Checkpoint Audit Istoric Documente/Confirmari
+- Etapa: consolidare control anti-manipulare pe comenzi de resurse.
+- Dovezi:
+	- loguri persistente in `access_audit_logs` pentru actiuni critice:
+		- `resource_order.document_attached`,
+		- `resource_order.document_deleted`,
+		- `resource_order.confirmation_updated`,
+		- `resource_order.deleted`,
+		- `resource_order.created`;
+	- metadata audit include campuri operationale (tip document, numar document, cantitati, rol confirmare, status inainte/dupa);
+	- `resource-orders.show` afiseaza sectiune noua `Istoric audit` cu actor, timestamp si context principal de actiune.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (12/12, 100 assertions).
+	- `get_errors` pe fisierele modificate -> fara erori.
+- Ce ramane:
+	- optional v2: filtru dedicat in pagina globala de audit pentru `resource_order.*` + export audit punctual pe comanda.

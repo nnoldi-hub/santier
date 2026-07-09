@@ -79,7 +79,14 @@
                     <div class="shrink-0 text-sm font-medium text-gray-700">{{ formatCurrency(order.unit_price) }}</div>
                     <div class="shrink-0 flex items-center gap-2">
                         <Link :href="order.show_url" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Detalii</Link>
-                        <button type="button" @click="destroyOrder(order.id)" class="text-xs border border-red-200 rounded px-2 py-1 text-red-600 hover:bg-red-50">Sterge</button>
+                        <button
+                            type="button"
+                            @click="destroyOrder(order.id)"
+                            :disabled="deletingOrderId === order.id"
+                            class="text-xs border border-red-200 rounded px-2 py-1 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                        >
+                            {{ deletingOrderId === order.id ? 'Se sterge...' : 'Sterge' }}
+                        </button>
                     </div>
             </div>
         </div>
@@ -87,7 +94,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -106,6 +113,8 @@ const filterForm = reactive({
     project_id: props.filters?.project_id ? String(props.filters.project_id) : '',
 });
 
+const deletingOrderId = ref(null);
+
 function applyFilters() {
     router.get(route('resource-orders.index'), { ...filterForm }, { preserveState: true, preserveScroll: true });
 }
@@ -119,12 +128,27 @@ function resetFilters() {
 }
 
 function destroyOrder(orderId) {
+    if (deletingOrderId.value !== null) {
+        return;
+    }
+
     if (!window.confirm('Confirmi stergerea acestei inregistrari?')) {
         return;
     }
 
+    deletingOrderId.value = orderId;
+
     router.delete(route('resource-orders.destroy', { resource_order: orderId }), {
         preserveScroll: true,
+        onSuccess: () => {
+            router.reload({ only: ['orders'] });
+        },
+        onError: () => {
+            window.alert('Nu s-a putut sterge inregistrarea. Reincarca pagina si incearca din nou.');
+        },
+        onFinish: () => {
+            deletingOrderId.value = null;
+        },
     });
 }
 
