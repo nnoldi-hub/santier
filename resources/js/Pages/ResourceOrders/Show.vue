@@ -42,10 +42,32 @@
                     <section class="bg-white border border-gray-200 rounded-xl p-4">
                         <h3 class="text-sm font-semibold text-gray-800 mb-3">Reconciliere cantitati</h3>
                         <div class="space-y-2 mb-4">
-                            <div v-for="item in reconciliation.checks" :key="item.key" class="rounded-lg border p-3" :class="item.is_blocking ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'">
-                                <div class="text-sm font-semibold" :class="item.is_blocking ? 'text-red-800' : 'text-green-800'">{{ item.label }}</div>
-                                <div class="text-xs mt-1" :class="item.is_blocking ? 'text-red-700' : 'text-green-700'">
-                                    {{ Number(item.left || 0).toFixed(2) }} vs {{ Number(item.right || 0).toFixed(2) }} · Delta {{ Number(item.delta || 0).toFixed(2) }}
+                            <div
+                                v-for="item in reconciliation.checks"
+                                :key="item.key"
+                                class="rounded-lg border p-3"
+                                :class="
+                                    item.is_applicable
+                                        ? (item.is_blocking ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50')
+                                        : 'border-gray-200 bg-gray-50'
+                                "
+                            >
+                                <div
+                                    class="text-sm font-semibold"
+                                    :class="item.is_applicable ? (item.is_blocking ? 'text-red-800' : 'text-green-800') : 'text-gray-700'"
+                                >
+                                    {{ item.label }}
+                                </div>
+                                <div
+                                    class="text-xs mt-1"
+                                    :class="item.is_applicable ? (item.is_blocking ? 'text-red-700' : 'text-green-700') : 'text-gray-500'"
+                                >
+                                    <template v-if="item.is_applicable">
+                                        {{ formatMaybeQuantity(item.left) }} vs {{ formatMaybeQuantity(item.right) }} · Delta {{ Number(item.delta || 0).toFixed(2) }}
+                                    </template>
+                                    <template v-else>
+                                        N/A - lipsesc documentele necesare pentru verificare.
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -159,6 +181,14 @@ function formatQuantity(value, unit) {
 
 function formatCurrency(value) {
     return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON', maximumFractionDigits: 2 }).format(Number(value || 0));
+}
+
+function formatMaybeQuantity(value) {
+    if (value === null || value === undefined) {
+        return 'N/A';
+    }
+
+    return Number(value || 0).toFixed(2);
 }
 
 function statusClass(status) {
