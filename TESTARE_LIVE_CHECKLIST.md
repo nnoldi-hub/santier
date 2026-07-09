@@ -56,6 +56,51 @@ Scope: verificari imediat dupa lansare pe modulia.ro
 - [ ] Fluxurile critice sunt functionale end-to-end.
 - [ ] Backup initial realizat (DB + fisiere).
 
+## 6. UAT - Documente resurse (trasabilitate)
+
+### 6.1 Acces si registru
+
+- [x] Meniu lateral `Resurse > Documente resurse` vizibil si accesibil.
+- [x] Pagina `Documente resurse` se incarca fara eroare 500.
+- [x] Filtrele `Cautare / Tip resursa / Status / Proiect` functioneaza.
+- [x] Butonul `+ Document resursa nou` deschide formularul de creare.
+
+### 6.2 Creare inregistrare
+
+- [x] Se poate crea comanda `Material` cu campurile obligatorii.
+- [x] Se poate crea comanda `Utilaj` cu campurile obligatorii.
+- [x] Inregistrarea apare in lista imediat dupa salvare.
+- [x] Butonul `Detalii` deschide pagina de detaliu pentru comanda selectata.
+
+### 6.3 Detalii si reconciliere
+
+- [x] Sectiunea `Reconciliere cantitati` este afisata in pagina de detaliu.
+- [x] Verificarile neaplicabile afiseaza `N/A - lipsesc documentele necesare pentru verificare`.
+- [x] `Timeline trasabilitate` afiseaza minim evenimentul de creare comanda.
+- [x] Cardurile rezumat (`Cantitate comandata`, `Diferenta maxima`, `Status`, `Valoare unitara`) sunt populate corect.
+
+### 6.4 Flux discrepante si blocare la plata
+
+- [ ] Caz sub prag: diferenta <= `0.20` unitati nu blocheaza plata.
+- [ ] Caz peste prag: diferenta > `0.20` unitati seteaza status `Blocat la plata`.
+- [ ] La blocaj se creeaza automat task de follow-up (prioritate `high`).
+- [ ] La blocaj se trimite notificare `resource_discrepancy` catre responsabil.
+
+### 6.5 Confirmari workflow
+
+- [ ] Confirmare tehnica (sef santier/executie/calitate) muta statusul in `Verificata`.
+- [ ] Confirmari tehnice complete muta statusul in `In validare financiara`.
+- [ ] Confirmare financiara finala muta statusul in `Aprobata`.
+- [ ] Orice respingere muta statusul in `Respinsa`.
+- [ ] Daca exista discrepanta blocanta activa, statusul ramane `Blocat la plata` (precedenta maxima).
+
+### 6.6 Criterii de acceptanta UAT
+
+- [ ] Nu apar erori 500 in fluxul complet create -> details -> confirmations.
+- [ ] Datele din reconciliere sunt coerente cu documentele atasate.
+- [ ] Taskurile si notificarile automate apar doar pentru discrepante blocante.
+- [ ] Fluxul este demonstrabil cap-coada in max. 5 minute in fata clientului.
+
 ---
 
 ## Comenzi utile (server)
