@@ -222,6 +222,15 @@ class EnterpriseExportsTest extends TestCase
         $response = $this->actingAs($user)->get('/exports/preview?export_type=resource-comparison&global_search=aviz');
 
         $response->assertOk();
+        $response->assertJsonStructure([
+            'export_type',
+            'title',
+            'rows_count',
+            'summary',
+            'sample',
+            'active_filters',
+            'generated_at',
+        ]);
         $response->assertJsonFragment([
             'export_type' => 'resource-comparison',
             'title' => 'Materiale & Avize comparative',

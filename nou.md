@@ -258,6 +258,25 @@ Legenda status:
 - Validare:
 	- `npm run build` -> passed.
 	- `DashboardFinancialInsightsTest` + `ProjectAiToolsTest` -> 4/4 passed (93 assertions).
+
+### 2026-07-09 - Checkpoint exporturi enterprise si audit operational
+- Etapa: extindere exporturi enterprise si clarificare trasabilitate operativa.
+- Livrat:
+	- Butonul de stergere din resource orders a fost stabilizat cu UX de loading, refresh explicit si handling de eroare.
+	- Istoric audit pentru resource orders: cine a creat, confirmat, atasat documente si sters documente/comenzi.
+	- Pagina exporturi a primit filtre rapide, preview si template-uri one-click.
+	- Lista de exporturi a fost reorganizata in tab-uri pe domenii pentru navigare mai clara.
+	- A fost adaugat raportul comparativ `Materiale & Avize comparative` cu date despre comandat, livrat, receptionat, consumat, returnat si diferente din documente.
+	- Exporturile enterprise, preview-ul si abonarea pe email sunt acoperite de teste feature si build validat.
+- Validare:
+	- `tests/Feature/ResourceOrdersTest.php` -> passed.
+	- `tests/Unit/ExportFilterTest.php` -> passed.
+	- `tests/Feature/EnterpriseExportsTest.php` -> passed.
+	- `npm run build` -> passed.
+- Ce ramane:
+	- Tab-uri dedicate pentru rapoarte pe domenii avansate, cu subfiltre per categorie.
+	- Extindere pentru rapoarte comparatives suplimentare pe costuri, utilaje si etape.
+	- Optimizare vizuala suplimentara pentru layout-ul exporturilor daca apar noi blocuri functionale.
 - Ce ramane:
 	- Optional: calibrare scoruri predictive cu istoric real si feedback din productie.
 

@@ -173,6 +173,80 @@
                             >{{ JSON.stringify(sample, null, 2) }}</pre>
                         </div>
                     </div>
+
+                    <div v-if="isResourceComparisonPreview" class="mt-5 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div class="rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-orange-700">Comenzi analizate</div>
+                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.orders_count) }}</div>
+                            </div>
+                            <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-emerald-700">Comandat total</div>
+                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.ordered_quantity_total) }}</div>
+                            </div>
+                            <div class="rounded-xl border border-sky-100 bg-sky-50/60 p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-sky-700">Receptionat total</div>
+                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_quantity_total) }}</div>
+                            </div>
+                            <div class="rounded-xl border border-violet-100 bg-violet-50/60 p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-violet-700">Diferenta receptionare</div>
+                                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.received_delta_total) }}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Consum total</div>
+                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.consumed_quantity_total) }}</div>
+                            </div>
+                            <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Returnat total</div>
+                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.returned_quantity_total) }}</div>
+                            </div>
+                            <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                <div class="text-[11px] uppercase tracking-wide text-gray-500">Linkuri documente</div>
+                                <div class="mt-1 text-lg font-semibold text-gray-900">{{ formatNumber(resourceComparisonSummary.document_links_total) }}</div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 overflow-hidden">
+                            <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                                <div class="text-sm font-semibold text-gray-800">Mostre comparative</div>
+                                <div class="text-xs text-gray-500">Vizualizare rapida a comenzilor cu avize si diferente</div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-gray-500 border-b">
+                                            <th class="py-2 px-4">Proiect</th>
+                                            <th class="py-2 px-4">Resursa</th>
+                                            <th class="py-2 px-4">Comandat</th>
+                                            <th class="py-2 px-4">Receptionat</th>
+                                            <th class="py-2 px-4">Consum</th>
+                                            <th class="py-2 px-4">Returnat</th>
+                                            <th class="py-2 px-4">Avize</th>
+                                            <th class="py-2 px-4">Dif. doc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(row, index) in previewComparisonRows" :key="index" class="border-b last:border-0">
+                                            <td class="py-2 px-4 text-gray-700">{{ row.project || '-' }}</td>
+                                            <td class="py-2 px-4">
+                                                <div class="font-medium text-gray-800">{{ row.material || '-' }}</div>
+                                                <div class="text-[11px] text-gray-500">{{ row.resource_label || row.resource_type || '-' }}</div>
+                                            </td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.ordered_quantity) }} {{ row.ordered_unit || '' }}</td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.received_quantity) }} {{ row.ordered_unit || '' }}</td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.consumed_quantity) }} {{ row.ordered_unit || '' }}</td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.returned_quantity) }} {{ row.ordered_unit || '' }}</td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.document_links_count) }}</td>
+                                            <td class="py-2 px-4 text-gray-700">{{ formatNumber(row.document_difference_quantity) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -555,6 +629,21 @@ const previewState = reactive({
     result: null,
 });
 
+const resourceComparisonSummary = computed(() => previewState.result?.summary ?? {
+    orders_count: 0,
+    ordered_quantity_total: 0,
+    received_quantity_total: 0,
+    consumed_quantity_total: 0,
+    returned_quantity_total: 0,
+    document_links_total: 0,
+    document_difference_total: 0,
+    received_delta_total: 0,
+});
+
+const isResourceComparisonPreview = computed(() => previewState.result?.export_type === 'resource-comparison');
+
+const previewComparisonRows = computed(() => (isResourceComparisonPreview.value ? (previewState.result?.sample ?? []) : []));
+
 function routeWithFilters(routeName) {
     return route(routeName, {
         ...filters,
@@ -664,6 +753,21 @@ function toggleSubscription(subscription) {
 function formatDateTime(value) {
     if (!value) return '-';
     return new Date(value).toLocaleString('ro-RO');
+}
+
+function formatNumber(value) {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+        return String(value);
+    }
+
+    return new Intl.NumberFormat('ro-RO', {
+        maximumFractionDigits: 2,
+    }).format(numeric);
 }
 
 function formatExportType(value) {

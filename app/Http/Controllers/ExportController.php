@@ -486,6 +486,20 @@ class ExportController extends Controller
             ->take(3)
             ->map(fn ($row) => $this->normalizePreviewRow($row))
             ->values();
+        $summary = null;
+
+        if ($validated['export_type'] === 'resource-comparison') {
+            $summary = [
+                'orders_count' => $rows->count(),
+                'ordered_quantity_total' => round((float) $rows->sum('ordered_quantity'), 2),
+                'received_quantity_total' => round((float) $rows->sum('received_quantity'), 2),
+                'consumed_quantity_total' => round((float) $rows->sum('consumed_quantity'), 2),
+                'returned_quantity_total' => round((float) $rows->sum('returned_quantity'), 2),
+                'document_links_total' => (int) $rows->sum('document_links_count'),
+                'document_difference_total' => round((float) $rows->sum('document_difference_quantity'), 2),
+                'received_delta_total' => round((float) $rows->sum('received_delta'), 2),
+            ];
+        }
 
         ExportAudit::log('preview', 'system', $filters, [
             'status' => 'success',
@@ -496,6 +510,7 @@ class ExportController extends Controller
             'export_type' => $validated['export_type'],
             'title' => (string) ($dataset['meta']['title'] ?? ucfirst($validated['export_type'])),
             'rows_count' => $rows->count(),
+            'summary' => $summary,
             'sample' => $sample,
             'active_filters' => collect($filters)
                 ->reject(fn ($value) => $value === null || $value === '' || $value === [] || $value === false)
