@@ -282,4 +282,4 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - [x] editare comerciala tenant + validari + istoric audit.
 
 ### In lucru / urmatorii pasi
-- [ ] cleanup final: eliminare dependinte ramase pe billing user-level.
+- [x] cleanup final: eliminare dependinte ramase pe billing user-level.

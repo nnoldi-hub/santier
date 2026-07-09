@@ -27,25 +27,46 @@ class AdminController extends Controller
         $this->ensureAdmin($request);
 
         $defaults = config('platform.defaults', []);
+        $users = User::query()
+            ->with([
+                'currentTenant:id,billing_plan,billing_trial_ends_at',
+                'tenant:id,billing_plan,billing_trial_ends_at',
+            ])
+            ->orderByDesc('created_at')
+            ->get([
+                'id',
+                'name',
+                'email',
+                'tenant_id',
+                'current_tenant_id',
+                'billing_plan',
+                'billing_trial_ends_at',
+                'onboarding_completed_at',
+                'created_at',
+            ])
+            ->map(function (User $user): array {
+                $tenant = $user->currentTenant ?: $user->tenant;
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'billing_plan' => $tenant?->billing_plan ?: $user->billing_plan,
+                    'billing_trial_ends_at' => optional($tenant?->billing_trial_ends_at ?: $user->billing_trial_ends_at)?->toDateString(),
+                    'onboarding_completed_at' => optional($user->onboarding_completed_at)?->toDateString(),
+                    'created_at' => optional($user->created_at)?->toDateString(),
+                ];
+            })
+            ->values();
 
         return Inertia::render('Admin/Index', [
             'plans' => config('pricing.plans', []),
             'settings' => AppSetting::allWithDefaults($defaults),
-            'users' => User::query()
-                ->orderByDesc('created_at')
-                ->get([
-                    'id',
-                    'name',
-                    'email',
-                    'billing_plan',
-                    'billing_trial_ends_at',
-                    'onboarding_completed_at',
-                    'created_at',
-                ]),
+            'users' => $users,
             'metrics' => [
-                'users_total' => User::query()->count(),
-                'users_paid' => User::query()->whereIn('billing_plan', ['starter', 'pro', 'enterprise'])->count(),
-                'users_on_trial' => User::query()->whereNotNull('billing_trial_ends_at')->whereDate('billing_trial_ends_at', '>=', now()->toDateString())->count(),
+                'users_total' => $users->count(),
+                'users_paid' => $users->whereIn('billing_plan', self::PAID_PLANS)->count(),
+                'users_on_trial' => $users->filter(fn (array $user) => ! empty($user['billing_trial_ends_at']) && $user['billing_trial_ends_at'] >= now()->toDateString())->count(),
                 'monthly_mrr_estimate' => $this->estimateMonthlyRevenue(),
                 'admin_count' => User::query()
                     ->where('is_superadmin', true)

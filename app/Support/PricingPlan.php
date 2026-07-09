@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 
 class PricingPlan
 {
@@ -14,6 +15,18 @@ class PricingPlan
         $plan = $tenant?->billing_plan ?: ($user->billing_plan ?? 'free');
 
         return array_key_exists($plan, config('pricing.plans', [])) ? $plan : 'free';
+    }
+
+    public static function trialEndsAt(User $user): ?Carbon
+    {
+        $tenant = self::tenant($user);
+        $value = $tenant?->billing_trial_ends_at ?: $user->billing_trial_ends_at;
+
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        return $value ? Carbon::parse((string) $value) : null;
     }
 
     public static function label(User $user): string
@@ -75,7 +88,7 @@ class PricingPlan
         };
     }
 
-    private static function tenant(User $user): ?Tenant
+    public static function tenant(User $user): ?Tenant
     {
         return $user->currentTenant ?: $user->tenant;
     }

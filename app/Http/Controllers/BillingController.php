@@ -31,7 +31,7 @@ class BillingController extends Controller
 
         $user = $request->user();
         $tenant = $user?->currentTenant ?: $user?->tenant;
-        $previousPlan = $tenant?->billing_plan ?: $user->billing_plan;
+        $previousPlan = PricingPlan::current($user);
 
         if ($tenant instanceof Tenant) {
             $tenant->update([

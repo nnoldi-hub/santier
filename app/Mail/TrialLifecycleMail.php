@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\User;
+use App\Support\PricingPlan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -39,7 +40,7 @@ class TrialLifecycleMail extends Mailable
             with: [
                 'user' => $this->user,
                 'campaignKey' => $this->campaignKey,
-                'trialEndsAt' => $this->user->billing_trial_ends_at,
+                'trialEndsAt' => PricingPlan::trialEndsAt($this->user),
             ],
         );
     }

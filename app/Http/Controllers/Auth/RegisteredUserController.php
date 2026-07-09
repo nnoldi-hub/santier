@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use App\Support\AnalyticsTracker;
+use App\Support\PricingPlan;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,7 +85,7 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         AnalyticsTracker::track($request, 'register_completed', [
-            'billing_plan' => $user->billing_plan,
+            'billing_plan' => PricingPlan::current($user),
         ], oncePerUser: true);
 
         return redirect(route('onboarding.show', absolute: false));
