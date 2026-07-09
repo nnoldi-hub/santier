@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -235,6 +236,7 @@ class ResourceOrderController extends Controller
             'timeline' => $timeline,
             'discrepancySummary' => $discrepancySummary,
             'reconciliation' => $reconciliation,
+            'resourceDocumentTypes' => ResourceOrder::$documentTypeLabels,
         ]);
     }
 
@@ -262,30 +264,7 @@ class ResourceOrderController extends Controller
             ]);
 
             $this->persistLinkedDocuments($order, $documents, $request, $tenantId);
-
-            $order->load(['documentLinks', 'deliveries']);
-            $reconciliation = $this->buildReconciliationSummary(
-                $order,
-                $order->documentLinks->map(fn (ResourceDocumentLink $link) => [
-                    'role' => $link->document_role,
-                    'declared_quantity' => (float) $link->declared_quantity,
-                    'delivered_quantity' => (float) $link->delivered_quantity,
-                    'difference_quantity' => (float) $link->difference_quantity,
-                ]),
-                $order->deliveries->map(fn ($delivery) => [
-                    'declared_quantity' => (float) ($delivery->declared_quantity ?? 0),
-                    'received_quantity' => (float) ($delivery->received_quantity ?? 0),
-                    'equipment_reported_quantity' => (float) ($delivery->equipment_reported_quantity ?? 0),
-                    'consumed_quantity' => (float) ($delivery->consumed_quantity ?? 0),
-                    'returned_quantity' => (float) ($delivery->returned_quantity ?? 0),
-                ])
-            );
-
-            if (($reconciliation['is_blocked'] ?? false) === true) {
-                $order->update(['status' => 'blocked_payment']);
-            }
-
-            $this->createDiscrepancyFollowUp($order->fresh(['responsibleUser', 'project']), $tenantId, $actorId, $reconciliation);
+            $this->reconcileOrderState($order, $actorId);
         });
 
         return redirect()->route('resource-orders.index')->with('success', 'Documentul de resursa a fost inregistrat.');
@@ -344,6 +323,136 @@ class ResourceOrderController extends Controller
         return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Confirmarea a fost actualizata.');
     }
 
+    public function storeDocument(Request $request, ResourceOrder $resource_order): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $resource_order->tenant_id === $tenantId, 404);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'in:' . implode(',', array_keys(ResourceOrder::$documentTypeLabels))],
+            'document_number' => ['nullable', 'string', 'max:120'],
+            'attachment' => ['required', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:10240'],
+            'declared_quantity' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'delivered_quantity' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        DB::transaction(function () use ($resource_order, $validated, $tenantId, $request): void {
+            $file = $request->file('attachment');
+
+            if ($file === null) {
+                return;
+            }
+
+            $declaredQuantity = (float) ($validated['declared_quantity'] ?? 0);
+            $deliveredQuantity = (float) ($validated['delivered_quantity'] ?? 0);
+
+            $document = Document::create([
+                'tenant_id' => $tenantId,
+                'project_id' => $resource_order->project_id,
+                'stage_id' => $resource_order->phase_id,
+                'contractor_id' => null,
+                'type' => $validated['type'],
+                'amount' => $validated['type'] === 'resource_invoice'
+                    ? (float) (($resource_order->unit_price ?? 0) * ($resource_order->ordered_quantity ?? 0))
+                    : 0,
+                'issued_at' => $resource_order->delivery_date ?? now()->toDateString(),
+                'payment_status' => $validated['type'] === 'resource_invoice' ? 'unpaid' : 'paid',
+                'title' => $validated['title'],
+                'invoice_number' => $validated['document_number'] ?? null,
+                'file_path' => $file->store('documents', 'local'),
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+                'file_size' => $file->getSize(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            ResourceDocumentLink::create([
+                'tenant_id' => $tenantId,
+                'resource_order_id' => $resource_order->id,
+                'document_id' => $document->id,
+                'document_role' => $validated['type'],
+                'document_number' => $validated['document_number'] ?? null,
+                'supplier_name' => $resource_order->supplier_name,
+                'carrier_name' => $resource_order->carrier_name,
+                'equipment_name' => $resource_order->equipment_name,
+                'declared_quantity' => $declaredQuantity,
+                'delivered_quantity' => $deliveredQuantity,
+                'difference_quantity' => $declaredQuantity - $deliveredQuantity,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $this->reconcileOrderState($resource_order, (int) ($request->user()?->id ?? 0));
+        });
+
+        return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Documentul a fost atasat.');
+    }
+
+    public function destroyDocument(Request $request, ResourceOrder $resource_order, ResourceDocumentLink $resource_document_link): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $resource_order->tenant_id === $tenantId, 404);
+        abort_unless((int) $resource_document_link->tenant_id === $tenantId, 404);
+        abort_unless((int) $resource_document_link->resource_order_id === (int) $resource_order->id, 404);
+
+        DB::transaction(function () use ($resource_order, $resource_document_link, $request): void {
+            $document = $resource_document_link->document;
+
+            $resource_document_link->delete();
+
+            if ($document instanceof Document) {
+                $hasOtherLinks = ResourceDocumentLink::query()
+                    ->where('document_id', $document->id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if (! $hasOtherLinks) {
+                    if ($document->file_path) {
+                        Storage::disk('local')->delete($document->file_path);
+                    }
+
+                    $document->delete();
+                }
+            }
+
+            $this->reconcileOrderState($resource_order, (int) ($request->user()?->id ?? 0));
+        });
+
+        return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Documentul a fost sters.');
+    }
+
+    private function reconcileOrderState(ResourceOrder $order, int $actorId): void
+    {
+        $order->load([
+            'documentLinks',
+            'deliveries',
+            'confirmations',
+            'responsibleUser',
+            'project',
+        ]);
+
+        $reconciliation = $this->buildReconciliationSummary(
+            $order,
+            $order->documentLinks->map(fn (ResourceDocumentLink $link) => [
+                'role' => $link->document_role,
+                'declared_quantity' => (float) $link->declared_quantity,
+                'delivered_quantity' => (float) $link->delivered_quantity,
+                'difference_quantity' => (float) $link->difference_quantity,
+            ]),
+            $order->deliveries->map(fn ($delivery) => [
+                'declared_quantity' => (float) ($delivery->declared_quantity ?? 0),
+                'received_quantity' => (float) ($delivery->received_quantity ?? 0),
+                'equipment_reported_quantity' => (float) ($delivery->equipment_reported_quantity ?? 0),
+                'consumed_quantity' => (float) ($delivery->consumed_quantity ?? 0),
+                'returned_quantity' => (float) ($delivery->returned_quantity ?? 0),
+            ])
+        );
+
+        $this->applyLifecycleStatus($order, $reconciliation, $order->confirmations);
+        $this->createDiscrepancyFollowUp($order, (int) $order->tenant_id, $actorId, $reconciliation);
+    }
+
     private function persistLinkedDocuments(ResourceOrder $order, array $documents, Request $request, int $tenantId): void
     {
         foreach ($documents as $index => $documentInput) {
@@ -395,13 +504,25 @@ class ResourceOrderController extends Controller
 
     private function createDiscrepancyFollowUp(ResourceOrder $order, int $tenantId, int $actorId, array $reconciliation): void
     {
-        if (($reconciliation['is_blocked'] ?? false) !== true) {
+        $maxDifference = (float) ($reconciliation['max_delta'] ?? 0);
+
+        if (($reconciliation['is_blocked'] ?? false) !== true || $maxDifference <= 0.01) {
+            $this->cancelDiscrepancyFollowUp($order);
             return;
         }
 
-        $maxDifference = (float) ($reconciliation['max_delta'] ?? 0);
+        $existingTask = $this->findActiveDiscrepancyTask($order);
+        $taskMarker = sprintf('[resource_order:%d]', (int) $order->id);
 
-        if ($maxDifference <= 0.01) {
+        if ($existingTask instanceof Task) {
+            $existingTask->update([
+                'title' => sprintf('Verifica diferenta de cantitate (%.2f %s)', $maxDifference, (string) $order->ordered_unit),
+                'description' => "Sistemul a detectat o diferenta pozitiva intre cantitatea declarata si cantitatea livrata. Verifica avizele atasate si aprobarea financiara.\n{$taskMarker}",
+                'priority' => 'high',
+                'deadline' => now()->addDay(),
+                'assigned_to' => $order->responsible_user_id,
+            ]);
+
             return;
         }
 
@@ -412,7 +533,7 @@ class ResourceOrderController extends Controller
             'assigned_to' => $order->responsible_user_id,
             'created_by' => $actorId,
             'title' => sprintf('Verifica diferenta de cantitate (%.2f %s)', $maxDifference, (string) $order->ordered_unit),
-            'description' => 'Sistemul a detectat o diferenta pozitiva intre cantitatea declarata si cantitatea livrata. Verifica avizele atasate si aprobarea financiara.',
+            'description' => "Sistemul a detectat o diferenta pozitiva intre cantitatea declarata si cantitatea livrata. Verifica avizele atasate si aprobarea financiara.\n{$taskMarker}",
             'status' => 'todo',
             'priority' => 'high',
             'deadline' => now()->addDay(),
@@ -440,6 +561,39 @@ class ResourceOrderController extends Controller
             url: route('resource-orders.show', $order),
             severity: 'high',
         ));
+    }
+
+    private function findActiveDiscrepancyTask(ResourceOrder $order): ?Task
+    {
+        $query = Task::query()
+            ->where('tenant_id', (int) $order->tenant_id)
+            ->where('project_id', $order->project_id)
+            ->where('phase_id', $order->phase_id)
+            ->whereIn('status', ['todo', 'in_progress'])
+            ->where('description', 'like', '%[resource_order:' . (int) $order->id . ']%')
+            ->latest('id');
+
+        if ($order->responsible_user_id) {
+            $query->where('assigned_to', $order->responsible_user_id);
+        } else {
+            $query->whereNull('assigned_to');
+        }
+
+        return $query->first();
+    }
+
+    private function cancelDiscrepancyFollowUp(ResourceOrder $order): void
+    {
+        $task = $this->findActiveDiscrepancyTask($order);
+
+        if (! $task instanceof Task) {
+            return;
+        }
+
+        $task->update([
+            'status' => 'cancelled',
+            'completed_at' => now(),
+        ]);
     }
 
     private function applyLifecycleStatus(ResourceOrder $order, array $reconciliation, Collection $confirmations): void

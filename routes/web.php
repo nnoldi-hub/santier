@@ -1287,6 +1287,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('equipment', EquipmentController::class)->except('show');
         Route::resource('resource-orders', ResourceOrderController::class)->only(['index', 'create', 'store', 'show']);
         Route::patch('resource-orders/{resource_order}/confirmations', [ResourceOrderController::class, 'updateConfirmation'])->name('resource-orders.confirmations.update');
+        Route::post('resource-orders/{resource_order}/documents', [ResourceOrderController::class, 'storeDocument'])->name('resource-orders.documents.store');
+        Route::delete('resource-orders/{resource_order}/documents/{resource_document_link}', [ResourceOrderController::class, 'destroyDocument'])->name('resource-orders.documents.destroy');
         Route::resource('documents', DocumentController::class)->except('show');
         Route::middleware('plan:document_branding')->group(function () {
             Route::get('documente/configurare', [DocumentBrandingController::class, 'index'])->name('documents.branding.index');

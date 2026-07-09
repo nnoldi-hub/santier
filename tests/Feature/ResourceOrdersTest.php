@@ -384,6 +384,103 @@ class ResourceOrdersTest extends TestCase
         $this->assertSame('blocked_payment', (string) $order->status);
     }
 
+    public function test_document_can_be_attached_from_resource_order_detail_page(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createOnboardedUser();
+        [$project, $phase, $material] = $this->seedContext($user);
+
+        $order = ResourceOrder::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'resource_type' => 'material',
+            'material_id' => $material->id,
+            'ordered_quantity' => 10,
+            'ordered_unit' => 'mc',
+            'unit_price' => 500,
+            'status' => 'ordered',
+            'responsible_user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->post('/resource-orders/' . $order->id . '/documents', [
+            'title' => 'Factura beton iulie',
+            'type' => 'resource_invoice',
+            'document_number' => 'INV-100',
+            'declared_quantity' => 10,
+            'delivered_quantity' => 9,
+            'attachment' => UploadedFile::fake()->create('factura-beton.pdf', 120, 'application/pdf'),
+            'notes' => 'Factura pentru turnare placa',
+        ]);
+
+        $response->assertRedirect('/resource-orders/' . $order->id);
+
+        $this->assertDatabaseHas('resource_document_links', [
+            'resource_order_id' => $order->id,
+            'document_number' => 'INV-100',
+            'document_role' => 'resource_invoice',
+        ]);
+
+        $order->refresh();
+        $this->assertSame('blocked_payment', (string) $order->status);
+    }
+
+    public function test_linked_document_can_be_deleted_from_resource_order_detail_page(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createOnboardedUser();
+        [$project, $phase, $material] = $this->seedContext($user);
+
+        $order = ResourceOrder::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'resource_type' => 'material',
+            'material_id' => $material->id,
+            'ordered_quantity' => 10,
+            'ordered_unit' => 'mc',
+            'unit_price' => 500,
+            'status' => 'ordered',
+            'responsible_user_id' => $user->id,
+        ]);
+
+        $document = Document::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'stage_id' => $phase->id,
+            'type' => 'delivery_note',
+            'amount' => 0,
+            'issued_at' => now()->toDateString(),
+            'payment_status' => 'paid',
+            'title' => 'Aviz livrare',
+            'file_path' => UploadedFile::fake()->create('aviz.pdf', 80, 'application/pdf')->store('documents', 'local'),
+            'file_name' => 'aviz.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 80 * 1024,
+        ]);
+
+        $link = ResourceDocumentLink::create([
+            'tenant_id' => 1,
+            'resource_order_id' => $order->id,
+            'document_id' => $document->id,
+            'document_role' => 'delivery_note',
+            'declared_quantity' => 10,
+            'delivered_quantity' => 8,
+            'difference_quantity' => 2,
+        ]);
+
+        $this->actingAs($user)->delete('/resource-orders/' . $order->id . '/documents/' . $link->id)
+            ->assertRedirect('/resource-orders/' . $order->id);
+
+        $this->assertSoftDeleted('resource_document_links', ['id' => $link->id]);
+        $this->assertSoftDeleted('documents', ['id' => $document->id]);
+
+        $order->refresh();
+        $this->assertSame('ordered', (string) $order->status);
+    }
+
     public function test_resource_order_rejects_phase_that_does_not_belong_to_project(): void
     {
         $user = $this->createOnboardedUser();

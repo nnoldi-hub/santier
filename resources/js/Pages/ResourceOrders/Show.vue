@@ -73,6 +73,48 @@
                         </div>
 
                         <h3 class="text-sm font-semibold text-gray-800 mb-3">Documente atasate</h3>
+                        <form @submit.prevent="submitDocument" class="mb-4 rounded-lg border border-gray-200 p-3 bg-gray-50">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Adauga document nou pe aceasta comanda</div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Titlu *</label>
+                                    <input v-model="addDocumentForm.title" type="text" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+                                    <div v-if="addDocumentForm.errors.title" class="text-[11px] text-red-600 mt-1">{{ addDocumentForm.errors.title }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Tip document *</label>
+                                    <select v-model="addDocumentForm.type" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs">
+                                        <option v-for="(label, key) in resourceDocumentTypes" :key="key" :value="key">{{ label }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Numar document</label>
+                                    <input v-model="addDocumentForm.document_number" type="text" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Fisier *</label>
+                                    <input type="file" @change="onDetailDocumentFileChange" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" accept=".pdf,.png,.jpg,.jpeg" />
+                                    <div v-if="addDocumentForm.errors.attachment" class="text-[11px] text-red-600 mt-1">{{ addDocumentForm.errors.attachment }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Cantitate declarata</label>
+                                    <input v-model.number="addDocumentForm.declared_quantity" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Cantitate livrata</label>
+                                    <input v-model.number="addDocumentForm.delivered_quantity" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs text-gray-600 mb-1">Observatii</label>
+                                    <textarea v-model="addDocumentForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button :disabled="addDocumentForm.processing" class="text-xs bg-orange-500 text-white rounded px-3 py-1.5 hover:bg-orange-600 disabled:opacity-60">
+                                    {{ addDocumentForm.processing ? 'Se salveaza...' : 'Adauga document' }}
+                                </button>
+                            </div>
+                        </form>
                         <div v-if="linkedDocuments.length === 0" class="text-sm text-gray-500">Nu exista documente legate de aceasta inregistrare.</div>
                         <div v-else class="space-y-3">
                             <div v-for="item in linkedDocuments" :key="item.id" class="rounded-lg border border-gray-200 p-3">
@@ -81,7 +123,10 @@
                                         <div class="text-sm font-semibold text-gray-800">{{ item.title }}</div>
                                         <div class="text-xs text-gray-500">{{ item.role_label }}<span v-if="item.document_number"> · #{{ item.document_number }}</span></div>
                                     </div>
-                                    <div class="text-xs text-gray-500">{{ item.created_at }}</div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-gray-500">{{ item.created_at }}</div>
+                                        <button type="button" @click="destroyDocument(item.id)" class="mt-1 text-[11px] border border-red-200 text-red-600 rounded px-2 py-0.5 hover:bg-red-50">Sterge</button>
+                                    </div>
                                 </div>
                                 <div class="text-xs text-gray-600 mt-2">
                                     Declarata: {{ Number(item.declared_quantity || 0).toFixed(2) }} · Livrata: {{ Number(item.delivered_quantity || 0).toFixed(2) }} · Diferenta: {{ Number(item.difference_quantity || 0).toFixed(2) }}
@@ -146,7 +191,7 @@
 
 <script setup>
 import { computed, reactive } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -157,6 +202,7 @@ const props = defineProps({
     timeline: Array,
     discrepancySummary: Object,
     reconciliation: Object,
+    resourceDocumentTypes: Object,
 });
 
 const confirmationNotes = reactive(
@@ -167,12 +213,51 @@ const entityLabel = computed(() => {
     return props.order?.material?.name || props.order?.equipment?.name || props.order?.equipment_name || 'Resursa';
 });
 
+const addDocumentForm = useForm({
+    title: '',
+    type: 'delivery_note',
+    document_number: '',
+    attachment: null,
+    declared_quantity: Number(props.order?.ordered_quantity || 0),
+    delivered_quantity: Number(props.order?.ordered_quantity || 0),
+    notes: '',
+});
+
 function submitConfirmation(role, status) {
     router.patch(route('resource-orders.confirmations.update', props.order.id), {
         confirmation_role: role,
         status,
         notes: confirmationNotes[role] || '',
     }, { preserveScroll: true });
+}
+
+function onDetailDocumentFileChange(event) {
+    const [file] = event.target.files || [];
+    addDocumentForm.attachment = file || null;
+}
+
+function submitDocument() {
+    addDocumentForm.post(route('resource-orders.documents.store', { resource_order: props.order.id }), {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            addDocumentForm.reset();
+            addDocumentForm.type = 'delivery_note';
+            addDocumentForm.declared_quantity = Number(props.order?.ordered_quantity || 0);
+            addDocumentForm.delivered_quantity = Number(props.order?.ordered_quantity || 0);
+        },
+    });
+}
+
+function destroyDocument(documentLinkId) {
+    if (!window.confirm('Confirmi stergerea documentului atasat?')) {
+        return;
+    }
+
+    router.delete(route('resource-orders.documents.destroy', {
+        resource_order: props.order.id,
+        resource_document_link: documentLinkId,
+    }), { preserveScroll: true });
 }
 
 function formatQuantity(value, unit) {

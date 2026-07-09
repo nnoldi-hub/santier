@@ -1134,3 +1134,21 @@ Template de evaluare plusuri / minusuri:
 	- `npm run build` -> passed.
 - Ce ramane:
 	- optional v2: pagina dedicata `Taskuri comerciale` cu board pe stadii (`todo/in_progress/done/cancelled`) si SLA pe owner.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (detaliu: adaugare/stergere document)
+- Etapa: completare workflow operational direct din pagina de detaliu a comenzii.
+- Dovezi:
+	- `resource-orders.show` include acum formular inline `Adauga document nou` (tip, numar, fisier, cantitati, note);
+	- endpoint nou `resource-orders.documents.store` pentru atasare document pe comanda existenta;
+	- endpoint nou `resource-orders.documents.destroy` pentru stergere document legat salvat gresit;
+	- fiecare document listat in detaliu are actiune `Sterge`;
+	- la adaugare/stergere document se recalculeaza automat:
+		- reconcilierea cantitatilor,
+		- statusul lifecycle (`ordered/verified/financial_review/approved/rejected/blocked_payment`),
+		- taskul de discrepanta (creare/update/anulare) fara duplicate pe aceeasi comanda.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (11/11).
+	- `npm run build` -> passed.
+	- `get_errors` pe controller/show/test/routes -> fara erori.
+- Ce ramane:
+	- optional v2: jurnal audit explicit pe actiunile de stergere document (cine/ora/motiv) in timeline.
