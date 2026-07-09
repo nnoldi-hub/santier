@@ -72,6 +72,7 @@ class NotificationCenterController extends Controller
                 'equipment_parallel',
                 'material_low_stock',
                 'subcontractor_parallel',
+                'resource_discrepancy',
             ],
         ]);
     }

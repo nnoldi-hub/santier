@@ -865,3 +865,232 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe fisierele afectate -> fara erori.
 - Ce ramane:
 	- Optional: predictor AI de intarziere pe baza blocajelor si resurselor indisponibile.
+
+### 2026-07-09 - Plan Initiativa (Trasabilitate resurse + automatizari comerciale)
+- Etapa: planificare extensie enterprise peste modulele deja existente `materials`, `equipment`, `documents`, `material_invoices`, `quality_checks`, `tasks`, `stage_tasks`, `pilot_invites`.
+- Problema rezolvata:
+	- astazi exista evidenta de materiale, utilaje, facturi, verificari si taskuri, dar nu exista un lant unic de trasabilitate intre comanda -> livrare -> confirmari -> factura -> plata;
+	- diferentele de cantitate si valoare nu sunt detectate automat;
+	- partea comerciala are owner + follow-up + next step, dar nu are inca taskuri/reminder-uri comerciale generate sistemic.
+- Decizie de arhitectura:
+	- fisierele raman pe infrastructura existenta din `documents` pentru upload/download/PDF si permisiuni;
+	- pentru trasabilitate introducem entitati dedicate, nu supraincarcam `documents` sau `material_invoices` cu logica de workflow;
+	- taskurile si notificarile automate se bazeaza pe infrastructura existenta `tasks` + `OperationalReminderNotification`, extinsa cu evenimente comerciale si de diferente resurse.
+
+#### Workstream A - Resurse: documente, trasabilitate, diferente
+
+##### Faza R1 - Fundatie date + tipuri documente
+- Scop: definim backbone-ul de date pentru trasabilitatea unui material/utilaj.
+- Livrabile:
+	- extindere tipuri documente pentru: `delivery_note`, `carrier_note`, `pump_note`, `resource_invoice`, `site_photo`, `receipt_confirmation`, `quantity_confirmation`, `quality_confirmation`;
+	- tabel nou `resource_orders` pentru comanda de material/utilaj: proiect, etapa, resursa, furnizor, transportator, utilaj, cantitate comandata, pret, data livrare, responsabil, status;
+	- tabel nou `resource_document_links` sau echivalent pentru a lega mai multe documente de o singura comanda/livrare;
+	- tabel nou `resource_deliveries` pentru cantitatea declarata, cantitatea receptionata, cantitatea pompata/utilizata si observatii operative;
+	- tabel nou `resource_confirmations` pentru confirmari separate: sef santier, responsabil executie, responsabil calitate, responsabil financiar.
+- Criteriu de acceptare:
+	- o singura comanda de beton poate avea atasate minim 4 documente diferite si 4 confirmari distincte, toate tenant-scoped.
+
+##### Faza R2 - UI nou in Resurse: tab Documente
+- Scop: introducere rapida si controlata a documentelor reale din santier.
+- Livrabile:
+	- tab nou `Documente` in zona Resurse, cu filtre pe proiect, etapa, material, utilaj, furnizor, status verificare, diferenta detectata;
+	- formular unificat pentru upload document + metadata: numar aviz, furnizor, transportator, utilaj, cantitate declarata, cantitate livrata, observatii, poze;
+	- workflow UI pentru `Confirmare receptie`, `Confirmare cantitate`, `Confirmare calitate`, `Validare financiara`;
+	- timeline vizual pe fiecare livrare/comanda cu stare: creat -> livrat -> receptionat -> verificat -> validat financiar.
+- Criteriu de acceptare:
+	- se poate inregistra cap-coada cazul de beton: comanda 10 mc, aviz statie 10 mc, aviz pompa 8.5 mc, receptie santier 8.5 mc.
+
+##### Faza R3 - Submodul Trasabilitate Materiale
+- Scop: vizibilitate completa pe fluxul unui material.
+- Livrabile:
+	- pagina dedicata `Trasabilitate materiale` cu timeline si card de reconciliere;
+	- legatura intre `resource_orders`, documente, consumuri din taskuri/rapoarte de etapa si facturi materiale;
+	- sumar automat: comandat, livrat, pompat/utilizat, consumat, returnat, facturat, platit;
+	- badge-uri de stare: `conform`, `in verificare`, `cu diferente`, `blocat la plata`.
+- Criteriu de acceptare:
+	- pentru un material se poate vedea dintr-un singur ecran daca diferenta este de livrare, consum sau facturare.
+
+##### Faza R4 - Submodul Trasabilitate Utilaje
+- Scop: reconciliere intre rezervare, ore lucrate si cost.
+- Livrabile:
+	- pagina dedicata `Trasabilitate utilaje` construita peste `equipment` + `stage_equipment`;
+	- campuri noi pentru ore confirmate, cost/ora negociat, cost total confirmat, aviz utilaj/pompa si confirmari duale (sef santier + executie);
+	- conectare cu cost tracking pentru vizibilitate in dashboard financiar.
+- Criteriu de acceptare:
+	- pentru un utilaj rezervat se poate compara rezervarea initiala cu orele confirmate si costul final aprobat.
+
+##### Faza R5 - Motor automat de diferente + blocaje de plata
+- Scop: detectie automata a pierderilor si erorilor financiare.
+- Livrabile:
+	- serviciu dedicat `ResourceDiscrepancyService` sau echivalent pentru reguli:
+		- cantitate comandata != cantitate livrata;
+		- cantitate livrata != cantitate pompa/utilaj;
+		- cantitate pompa/utilaj != cantitate consumata;
+		- aviz != factura;
+		- factura != buget / plafon etapa;
+	- tabel nou `resource_discrepancies` cu severitate, cauza probabila, owner si status de rezolvare;
+	- creare automata de task intern + notificare responsabil la fiecare diferenta critica;
+	- blocaj soft sau hard pe validarea financiara atunci cand diferenta depaseste pragul configurat.
+- Criteriu de acceptare:
+	- cazul 10 mc comandati / 8.5 mc pompati genereaza automat alerta, task si status `blocat la plata` pana la justificare.
+
+##### Faza R6 - PDF si raportare executiva
+- Scop: auditabilitate si raportare pentru management/client.
+- Livrabile:
+	- raport PDF `Trasabilitate resursa` cu timeline, documente, confirmari, diferente, poze si decizie financiara;
+	- export CSV/XLSX pentru diferente deschise si reconciliere pe proiect/etapa/furnizor;
+	- widget nou in dashboard/raportare: `Pierderi evitate`, `livrari cu diferente`, `facturi blocate`, `utilaje fara confirmare completa`.
+- Criteriu de acceptare:
+	- orice livrare poate fi exportata intr-un raport PDF unic pentru audit intern sau control client.
+
+#### Workstream B - Comercial: actiuni automate, reminder-uri, taskuri
+
+##### Faza C1 - Model comercial operational
+- Scop: mutam CRM-ul comercial din stare informativa in stare executabila.
+- Livrabile:
+	- tabel nou `commercial_actions` pentru log de actiuni: apel, email, demo, oferta, follow-up, negociere, inchidere;
+	- tabel nou `commercial_tasks` sau reutilizare `tasks` cu `category=commercial`, `entity_type=pilot_invite|tenant`, `entity_id`, `due_at`, `automation_source`;
+	- reguli de owner comercial clare: owner implicit, fallback owner, reasignare.
+- Criteriu de acceptare:
+	- fiecare lead/comercial record poate avea istoric de actiuni si taskuri deschise urmaribile separat de taskurile operationale.
+
+##### Faza C2 - Automatizari comerciale
+- Scop: sistemul creeaza urmatorul pas fara interventie manuala la fiecare schimbare.
+- Livrabile:
+	- la `commercial_stage = contacted` fara `follow_up_at` -> generam reminder automat in 48h;
+	- la `demo` programat -> generam task `pregatire demo` si reminder in ziua demo-ului;
+	- la `trial` fara activare / onboarding incomplet -> task automat pentru owner comercial;
+	- la `negotiation` fara actualizare X zile -> alerta de stagnare;
+	- la `won` -> task automat de handoff catre onboarding/operational;
+	- la `lost` -> reminder de reactivare optional la 30/60/90 zile.
+- Criteriu de acceptare:
+	- schimbarea etapei comerciale produce automat task/reminder-ul corect fara edit manual suplimentar.
+
+##### Faza C3 - Inbox comercial + raportare
+- Scop: vizibilitate clara pe ce trebuie facut azi de echipa comerciala.
+- Livrabile:
+	- widget nou in dashboard comercial: `Taskuri azi`, `follow-up restante`, `oportunitati stagnante`, `handoff-uri catre onboarding`;
+	- filtre noi in `PilotInvites/Index`: doar cu reminder azi, doar fara next step, doar stagnante;
+	- notificari centralizate in Notification Center pentru reminder-urile comerciale.
+- Criteriu de acceptare:
+	- owner-ul comercial poate intra dimineata si vedea direct lista de actiuni obligatorii, fara inspectie manuala lead cu lead.
+
+#### Ordine recomandata de implementare
+- Lot 1: R1 + R2.
+	- motiv: introduce datele corecte si UI-ul minim pentru santier.
+- Lot 2: R5 (partial, doar reguli comandat/livrat/facturat) + C1.
+	- motiv: aduce valoare financiara imediata si baza comuna de taskuri automate.
+- Lot 3: R3 + C2.
+	- motiv: inchide fluxul materiale si comercialul automatizat.
+- Lot 4: R4 + R6 + C3.
+	- motiv: finalizeaza partea enterprise, audit si dashboard executiv.
+
+#### Dependente si observatii de implementare
+- Refolosim storage-ul din `DocumentController`, dar metadatele de trasabilitate trebuie mutate in request-uri si modele dedicate.
+- `MaterialInvoice` ramane registrul financiar principal, dar are nevoie de legatura explicita catre livrare/comanda sau document-sursa.
+- `QualityCheck` trebuie extins cu mod `materials` orientat pe receptie material, inclusiv poze si verdict de conformitate.
+- `SendOperationalRemindersCommand` trebuie extins sau dublat cu un scheduler pentru reminder-uri comerciale si alerte de discrepanta.
+- Pentru loturile cu upload foto/PDF trebuie pastrat acelasi model de permisiuni/policies si aceeasi validare de build/test ca la modulele recente.
+
+#### Definitie de succes pentru initiativa
+- zero plata fara reconciliere minima comanda -> documente -> confirmari -> factura;
+- orice diferenta materiala/financiara critica devine alerta + task + responsabil;
+- comercialul nu mai depinde de memorie individuala pentru follow-up;
+- Modulia capata un flux auditabil enterprise de la lead pana la receptie si plata.
+
+#### Urmatorul pas recomandat
+- kickoff implementare cu Lot 1 (`R1 + R2`) pentru ca are cel mai bun raport impact / risc si foloseste maximum din infrastructura deja existenta.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 1)
+- Etapa: fundatie date pentru trasabilitate resurse.
+- Dovezi:
+	- extinse tipurile `Document` pentru avize, confirmari si documente de resursa (`delivery_note`, `carrier_note`, `pump_note`, `resource_invoice`, `site_photo`, `receipt_confirmation`, `quantity_confirmation`, `quality_confirmation`);
+	- adaugate modelele si migrarile noi pentru backbone-ul de trasabilitate:
+		- `resource_orders`
+		- `resource_deliveries`
+		- `resource_confirmations`
+		- `resource_document_links`
+	- legaturi Eloquent minime adaugate in `Project`, `ProjectPhase`, `Material`, `Equipment`.
+	- test nou dedicat: `ResourceTraceabilityFoundationTest` pentru:
+		- salvare `delivery_note` in registrul existent de documente;
+		- relatie comanda -> livrare -> confirmare -> document sursa.
+- Validare:
+	- `artisan test tests/Feature/ResourceTraceabilityFoundationTest.php` -> passed (2/2).
+	- `get_errors` pe modelele noi si testul dedicat -> fara erori.
+- Ce ramane:
+	- incrementul urmator din Lot 1: request-uri, controller si UI minim pentru tabul `Documente Resurse`.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 2)
+- Etapa: CRUD minim pentru registrul `Documente Resurse`.
+- Dovezi:
+	- controller nou `ResourceOrderController` cu primele actiuni `index`, `create`, `store`;
+	- request nou `StoreResourceOrderRequest` cu validari pentru proiect, etapa si selectie corecta material/utilaj;
+	- ruta noua `resource-orders.*` si intrare noua in meniul lateral `Resurse -> Documente resurse`;
+	- pagini Inertia noi:
+		- `ResourceOrders/Index`
+		- `ResourceOrders/Create`
+	- test nou `ResourceOrdersTest` pentru listare, creare si validarea relatiei proiect-etapa.
+- Validare:
+	- `npm run build` -> passed.
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (3/3).
+	- `get_errors` pe controller, rute, pagini Vue si test -> fara erori.
+- Ce ramane:
+	- incrementul urmator: formularul de documente efective (aviz livrare / transportator / pompa) si legarea acestora in `resource_document_links`.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 3)
+- Etapa: atasare documente reale in fluxul `Documente Resurse`.
+- Dovezi:
+	- `ResourceOrder` extins cu lista centralizata de tipuri documente permise pentru trasabilitate;
+	- `StoreResourceOrderRequest` accepta acum `documents[]` cu titlu, tip, numar document, cantitati, observatii si fisier PDF/poza;
+	- `ResourceOrderController` salveaza tranzactional comanda + documentele asociate in `documents` si `resource_document_links`;
+	- formularul `ResourceOrders/Create` permite adaugarea dinamica de documente atasate direct din registrul resurse;
+	- `ResourceOrders/Index` afiseaza si numarul de documente legate pe fiecare inregistrare;
+	- `ResourceOrdersTest` acopera si scenariul cu upload de document si calcul automat al diferentei declarata vs livrata.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (4/4).
+	- `npm run build` -> in rulare / de confirmat in checkpointul curent.
+	- `get_errors` pe model, request, controller, pagini Vue si test -> fara erori.
+- Ce ramane:
+	- incrementul urmator: detalierea confirmarii de receptie / cantitate / calitate si primul ecran de reconciliere pe livrare.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 4)
+- Etapa: detaliu livrare + confirmari workflow + alerta automata.
+- Dovezi:
+	- `resource-orders.show` implementat cu pagina noua `ResourceOrders/Show` (timeline, documente legate, sumar discrepanta, date logistice);
+	- endpoint nou `resource-orders.confirmations.update` pentru confirmarile rolurilor: sef santier, executie, calitate, financiar;
+	- `ResourceOrders/Index` include acces direct catre pagina de detaliu;
+	- automatizare la discrepanta: la diferenta pozitiva detectata in documente se genereaza task cu prioritate `high` + notificare `resource_discrepancy` catre responsabil;
+	- `NotificationCenterController` include evenimentul nou `resource_discrepancy` in filtrele centrului de notificari;
+	- testele `ResourceOrdersTest` acopera:
+		- pagina de detaliu cu timeline/confirmari,
+		- upload documente + calcul diferenta,
+		- creare task + notificare automata,
+		- update confirmare pe rol.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (6/6).
+	- `npm run build` -> passed (manifest actualizat cu `ResourceOrders/Show.vue`).
+	- `get_errors` pe controller, pagina `Show` si test -> fara erori.
+- Ce ramane:
+	- incrementul urmator: reconciliere extinsa (comandat vs livrat vs pompa vs consum) cu praguri configurabile si status `blocat la plata`.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (Lot 1 / increment 5)
+- Etapa: reconciliere extinsa cu prag de toleranta si blocare automata la plata.
+- Dovezi:
+	- status nou `blocked_payment` in `ResourceOrder` cu eticheta "Blocat la plata";
+	- configurare noua `config/resources.php` cu `quantity_tolerance` (default `0.20`, configurabil din env);
+	- `ResourceOrderController` calculeaza reconcilierea pe mai multe axe:
+		- declarat vs livrat (din documente legate),
+		- comandat vs livrat,
+		- livrat vs pompa,
+		- pompa vs consum,
+	  aplicand regulile doar cand sursele necesare exista;
+	- daca orice verificare depaseste pragul, comanda trece automat in `blocked_payment`;
+	- task + notificare de discrepanta se emit doar pentru discrepante blocante (nu pentru abateri minore sub prag);
+	- UI `ResourceOrders/Show` include panou de reconciliere, prag afisat si banner explicit cand plata este blocata;
+	- UI `ResourceOrders/Index` coloreaza distinct statusul `blocked_payment`.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (7/7).
+	- `npm run build` -> passed.
+	- `get_errors` pe controller/page/test -> fara erori.
+- Ce ramane:
+	- urmatorul pas: tranzitii de status pe flux de confirmari (`ordered` -> `verified` -> `financial_review` -> `approved`) cu reguli explicite pe roluri.

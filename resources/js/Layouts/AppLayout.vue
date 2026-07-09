@@ -89,6 +89,7 @@
                         <NavItem :href="routeOrFallback('contractors.index')" :disabled="routeMissing('contractors.index')" icon="🤝" label="Subcontractori" />
                         <NavItem :href="routeOrFallback('equipment.index')" :disabled="routeMissing('equipment.index')" icon="🚜" label="Utilaje" />
                         <NavItem :href="routeOrFallback('materials.index')" :disabled="routeMissing('materials.index')" icon="📦" label="Materiale" />
+                        <NavItem :href="routeOrFallback('resource-orders.index')" :disabled="routeMissing('resource-orders.index')" icon="🧾" label="Documente resurse" />
                     </div>
                 </div>
 
