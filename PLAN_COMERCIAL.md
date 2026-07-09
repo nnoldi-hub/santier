@@ -264,7 +264,7 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - [x] venit estimat lunar pe planuri;
 - [x] forecast simplu pe 30/60/90 zile;
 - [x] risc churn / trial neactivat / onboarding incomplet (scor complet live in dashboard comercial);
-- [ ] export management CSV/XLSX pentru board/comercial (partial: CSV live).
+- [x] export management CSV/XLSX pentru board/comercial.
 
 ### Primul slice livrabil
 - [x] livram acum Etapa 1 - `Firme & Abonamente` ca fundatie pentru toate celelalte module.
@@ -275,11 +275,10 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - [x] landing comercial extins (video, cum functioneaza, audienta, testimoniale, social);
 - [x] setari admin pentru landing (video direct/file + social links);
 - [x] backoffice superadmin: Firme & Abonamente;
-- [x] dashboard comercial: KPI + funnel + forecast + riscuri trial + export CSV;
+- [x] dashboard comercial: KPI + funnel + forecast + riscuri trial + export CSV/XLSX;
 - [x] CRM pilot: owner, follow-up, next-step, note, update inline;
 - [x] unificare initiala billing pe tenant (signup/onboarding/billing/pricing);
 - [x] editare comerciala tenant + validari + istoric audit.
 
 ### In lucru / urmatorii pasi
-- [ ] export XLSX pentru board/comercial;
 - [ ] cleanup final: eliminare dependinte ramase pe billing user-level.

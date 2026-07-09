@@ -17,6 +17,9 @@
                         <a :href="route('admin.commercial-dashboard.export')" class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition">
                             Export CSV management
                         </a>
+                        <a :href="route('admin.commercial-dashboard.export-xlsx')" class="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition">
+                            Export XLSX board
+                        </a>
                         <Link :href="route('admin.tenants.index')" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
                             Firme & Abonamente
                         </Link>

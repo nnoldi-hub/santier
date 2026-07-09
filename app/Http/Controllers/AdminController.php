@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CommercialDashboardWorkbookExport;
 use App\Models\AppSetting;
 use App\Models\AccessAuditLog;
 use App\Models\PilotInvite;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
@@ -184,6 +186,22 @@ class AdminController extends Controller
     {
         $this->ensureAdmin($request);
 
+        return Inertia::render('Admin/CommercialDashboard', $this->buildCommercialDashboardPayload());
+    }
+
+    public function exportCommercialXlsx(Request $request)
+    {
+        $this->ensureAdmin($request);
+
+        return Excel::download(
+            new CommercialDashboardWorkbookExport($this->buildCommercialDashboardPayload()),
+            'dashboard-comercial-board.xlsx'
+        );
+    }
+
+    private function buildCommercialDashboardPayload(): array
+    {
+
         $plans = config('pricing.plans', []);
         $today = Carbon::today();
         $currentMrr = (int) Tenant::query()->get(['billing_plan'])->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0));
@@ -353,7 +371,7 @@ class AdminController extends Controller
             ->take(8)
             ->values();
 
-        return Inertia::render('Admin/CommercialDashboard', [
+        return [
             'kpis' => [
                 'current_mrr' => $forecast['current_mrr'],
                 'tenants_paid' => $tenantStats['tenants_paid'],
@@ -370,7 +388,7 @@ class AdminController extends Controller
             'riskOverview' => $riskOverview,
             'riskScoredTenants' => $riskScoredTenants->take(8)->values(),
             'topPipelineOpportunities' => $topPipelineOpportunities,
-        ]);
+        ];
     }
 
     public function exportCommercialCsv(Request $request): StreamedResponse

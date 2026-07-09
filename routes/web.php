@@ -1261,6 +1261,7 @@ Route::middleware('auth')->group(function () {
         Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
         Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
         Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
+        Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');
         Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
         Route::patch('admin/tenants/{tenant}/commercial', [AdminController::class, 'updateTenantCommercial'])->name('admin.tenants.commercial.update');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
