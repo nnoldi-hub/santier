@@ -115,6 +115,13 @@
                             </div>
                             <div class="text-2xl font-black text-amber-900">{{ tenantStats.tenants_at_risk }}</div>
                         </div>
+                        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-semibold text-rose-900">Risc ridicat (scor complet)</div>
+                                <div class="text-xs text-rose-700">Trial + onboarding + semnal churn</div>
+                            </div>
+                            <div class="text-2xl font-black text-rose-900">{{ riskOverview.high_risk_count }}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -206,6 +213,70 @@
                     </div>
                 </div>
             </section>
+
+            <section class="rounded-3xl border border-rose-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-rose-100 px-5 py-4 bg-rose-50/70">
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-rose-700">Scor risc complet</div>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Top firme la risc comercial</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                    <div class="rounded-xl bg-white border border-slate-200 p-3">
+                        <div class="text-xs text-slate-500">Risc ridicat</div>
+                        <div class="mt-1 text-xl font-black text-rose-700">{{ riskOverview.high_risk_count }}</div>
+                    </div>
+                    <div class="rounded-xl bg-white border border-slate-200 p-3">
+                        <div class="text-xs text-slate-500">Risc mediu</div>
+                        <div class="mt-1 text-xl font-black text-amber-700">{{ riskOverview.medium_risk_count }}</div>
+                    </div>
+                    <div class="rounded-xl bg-white border border-slate-200 p-3">
+                        <div class="text-xs text-slate-500">Gap onboarding</div>
+                        <div class="mt-1 text-xl font-black text-slate-900">{{ riskOverview.tenants_with_onboarding_gap }}</div>
+                    </div>
+                    <div class="rounded-xl bg-white border border-slate-200 p-3">
+                        <div class="text-xs text-slate-500">Semnal churn</div>
+                        <div class="mt-1 text-xl font-black text-slate-900">{{ riskOverview.tenants_with_churn_signal }}</div>
+                    </div>
+                </div>
+
+                <div v-if="riskScoredTenants.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
+                    Nu exista semnale de risc active in acest moment.
+                </div>
+
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-[0.15em]">
+                            <tr>
+                                <th class="px-5 py-3 text-left">Firma</th>
+                                <th class="px-5 py-3 text-left">Scor</th>
+                                <th class="px-5 py-3 text-left">Factori</th>
+                                <th class="px-5 py-3 text-left">Trial</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="tenant in riskScoredTenants" :key="tenant.id">
+                                <td class="px-5 py-4">
+                                    <div class="font-semibold text-slate-900">{{ tenant.name }}</div>
+                                    <div class="text-xs text-slate-500">Plan {{ tenant.billing_plan }} · {{ tenant.active_memberships_count }} utilizatori activi</div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold" :class="riskTone(tenant.risk_level)">
+                                        {{ tenant.risk_score }} / 100
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-slate-700">
+                                    <div class="text-xs">Onboarding incomplet: {{ tenant.onboarding_incomplete_memberships_count }}</div>
+                                    <div class="text-xs">Semnal churn: {{ tenant.churn_signal ? 'Da' : 'Nu' }}</div>
+                                </td>
+                                <td class="px-5 py-4 text-slate-700">
+                                    <div class="text-xs">{{ tenant.trial_expiring_soon ? 'Expira curand' : 'Stabil' }}</div>
+                                    <div class="text-xs text-slate-500">{{ formatDate(tenant.trial_ends_at) }}</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </AppLayout>
 </template>
@@ -224,6 +295,8 @@ const props = defineProps({
     tenantStats: { type: Object, required: true },
     recentCommercialSignals: { type: Array, default: () => [] },
     trialRiskTenants: { type: Array, default: () => [] },
+    riskOverview: { type: Object, default: () => ({}) },
+    riskScoredTenants: { type: Array, default: () => [] },
     topPipelineOpportunities: { type: Array, default: () => [] },
 });
 
@@ -293,5 +366,17 @@ function labelPlan(plan) {
         enterprise: 'Enterprise',
         free: 'Demo',
     }[plan] || plan;
+}
+
+function riskTone(level) {
+    if (level === 'high') {
+        return 'bg-rose-100 text-rose-700';
+    }
+
+    if (level === 'medium') {
+        return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-emerald-100 text-emerald-700';
 }
 </script>

@@ -263,7 +263,7 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 ### Etapa 4 - Operare si forecast
 - [x] venit estimat lunar pe planuri;
 - [x] forecast simplu pe 30/60/90 zile;
-- [ ] risc churn / trial neactivat / onboarding incomplet (partial: trial risk live);
+- [x] risc churn / trial neactivat / onboarding incomplet (scor complet live in dashboard comercial);
 - [ ] export management CSV/XLSX pentru board/comercial (partial: CSV live).
 
 ### Primul slice livrabil
@@ -281,6 +281,5 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - [x] editare comerciala tenant + validari + istoric audit.
 
 ### In lucru / urmatorii pasi
-- [ ] scor risc complet (trial neactivat + onboarding incomplet + semnal churn);
 - [ ] export XLSX pentru board/comercial;
 - [ ] cleanup final: eliminare dependinte ramase pe billing user-level.

@@ -290,6 +290,63 @@ class AdminController extends Controller
             ->sortBy('days_left')
             ->values();
 
+        $riskScoredTenants = Tenant::query()
+            ->where('status', 'active')
+            ->withCount([
+                'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
+                'memberships as onboarding_incomplete_memberships_count' => fn ($query) => $query
+                    ->where('status', 'active')
+                    ->whereHas('user', fn ($userQuery) => $userQuery->whereNull('onboarding_completed_at')),
+            ])
+            ->get()
+            ->map(function (Tenant $tenant) use ($today): array {
+                $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
+                $trialExpiring = $trialEndsAt
+                    && ! in_array($tenant->billing_plan, self::PAID_PLANS, true)
+                    && $trialEndsAt->greaterThanOrEqualTo($today)
+                    && $trialEndsAt->lessThanOrEqualTo($today->copy()->addDays(7));
+
+                $onboardingIncompleteCount = (int) ($tenant->onboarding_incomplete_memberships_count ?? 0);
+                $churnSignal = (int) ($tenant->active_memberships_count ?? 0) <= 1;
+
+                $score = 0;
+                if ($trialExpiring) {
+                    $score += 45;
+                }
+                if ($onboardingIncompleteCount > 0) {
+                    $score += min(35, 10 + ($onboardingIncompleteCount * 5));
+                }
+                if ($churnSignal) {
+                    $score += 20;
+                }
+
+                $score = min(100, $score);
+                $riskLevel = $score >= 70 ? 'high' : ($score >= 40 ? 'medium' : 'low');
+
+                return [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'billing_plan' => $tenant->billing_plan,
+                    'active_memberships_count' => (int) ($tenant->active_memberships_count ?? 0),
+                    'onboarding_incomplete_memberships_count' => $onboardingIncompleteCount,
+                    'trial_ends_at' => optional($trialEndsAt)->toDateString(),
+                    'trial_expiring_soon' => (bool) $trialExpiring,
+                    'churn_signal' => (bool) $churnSignal,
+                    'risk_score' => $score,
+                    'risk_level' => $riskLevel,
+                ];
+            })
+            ->filter(fn (array $tenant) => $tenant['risk_score'] > 0)
+            ->sortByDesc('risk_score')
+            ->values();
+
+        $riskOverview = [
+            'high_risk_count' => $riskScoredTenants->where('risk_level', 'high')->count(),
+            'medium_risk_count' => $riskScoredTenants->where('risk_level', 'medium')->count(),
+            'tenants_with_onboarding_gap' => $riskScoredTenants->where('onboarding_incomplete_memberships_count', '>', 0)->count(),
+            'tenants_with_churn_signal' => $riskScoredTenants->where('churn_signal', true)->count(),
+        ];
+
         $topPipelineOpportunities = $qualifiedInvites
             ->filter(fn (array $invite) => in_array($invite['status'], ['contacted', 'demo_scheduled', 'trial_started'], true))
             ->sortByDesc('recommended_mrr')
@@ -310,6 +367,8 @@ class AdminController extends Controller
             'tenantStats' => $tenantStats,
             'recentCommercialSignals' => $recentCommercialSignals,
             'trialRiskTenants' => $trialRiskTenants,
+            'riskOverview' => $riskOverview,
+            'riskScoredTenants' => $riskScoredTenants->take(8)->values(),
             'topPipelineOpportunities' => $topPipelineOpportunities,
         ]);
     }
