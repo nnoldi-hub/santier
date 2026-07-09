@@ -76,8 +76,11 @@
                     </div>
                     <div v-if="order.notes" class="text-xs text-gray-600 mt-2">{{ order.notes }}</div>
                 </div>
-                <div class="shrink-0 text-sm font-medium text-gray-700">{{ formatCurrency(order.unit_price) }}</div>
-                <Link :href="order.show_url" class="shrink-0 text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Detalii</Link>
+                    <div class="shrink-0 text-sm font-medium text-gray-700">{{ formatCurrency(order.unit_price) }}</div>
+                    <div class="shrink-0 flex items-center gap-2">
+                        <Link :href="order.show_url" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Detalii</Link>
+                        <button type="button" @click="destroyOrder(order.id)" class="text-xs border border-red-200 rounded px-2 py-1 text-red-600 hover:bg-red-50">Sterge</button>
+                    </div>
             </div>
         </div>
     </AppLayout>
@@ -113,6 +116,16 @@ function resetFilters() {
     filterForm.status = '';
     filterForm.project_id = '';
     applyFilters();
+}
+
+function destroyOrder(orderId) {
+    if (!window.confirm('Confirmi stergerea acestei inregistrari?')) {
+        return;
+    }
+
+    router.delete(route('resource-orders.destroy', { resource_order: orderId }), {
+        preserveScroll: true,
+    });
 }
 
 function entityLabel(order) {

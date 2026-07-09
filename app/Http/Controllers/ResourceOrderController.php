@@ -323,6 +323,16 @@ class ResourceOrderController extends Controller
         return redirect()->route('resource-orders.show', $resource_order)->with('success', 'Confirmarea a fost actualizata.');
     }
 
+    public function destroy(Request $request, ResourceOrder $resource_order): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $resource_order->tenant_id === $tenantId, 404);
+
+        $resource_order->delete();
+
+        return redirect()->route('resource-orders.index')->with('success', 'Inregistrarea a fost stearsa.');
+    }
+
     public function storeDocument(Request $request, ResourceOrder $resource_order): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());

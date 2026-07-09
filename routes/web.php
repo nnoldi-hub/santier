@@ -1285,7 +1285,7 @@ Route::middleware('auth')->group(function () {
         Route::get('resource-calendar', [ResourceCalendarController::class, 'index'])->name('resource-calendar.index');
         Route::resource('contractors', ContractorController::class)->except('show');
         Route::resource('equipment', EquipmentController::class)->except('show');
-        Route::resource('resource-orders', ResourceOrderController::class)->only(['index', 'create', 'store', 'show']);
+        Route::resource('resource-orders', ResourceOrderController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::patch('resource-orders/{resource_order}/confirmations', [ResourceOrderController::class, 'updateConfirmation'])->name('resource-orders.confirmations.update');
         Route::post('resource-orders/{resource_order}/documents', [ResourceOrderController::class, 'storeDocument'])->name('resource-orders.documents.store');
         Route::delete('resource-orders/{resource_order}/documents/{resource_document_link}', [ResourceOrderController::class, 'destroyDocument'])->name('resource-orders.documents.destroy');

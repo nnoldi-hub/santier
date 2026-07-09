@@ -1152,3 +1152,15 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe controller/show/test/routes -> fara erori.
 - Ce ramane:
 	- optional v2: jurnal audit explicit pe actiunile de stergere document (cine/ora/motiv) in timeline.
+
+### 2026-07-09 - Checkpoint Trasabilitate Resurse (index: stergere inregistrare)
+- Etapa: optimizare operare rapida direct din registru.
+- Dovezi:
+	- buton nou `Sterge` in lista `Documente resurse`, langa `Detalii`;
+	- endpoint nou `resource-orders.destroy` activ in routing pentru stergere din index;
+	- `ResourceOrderController@destroy` aplicat tenant-scoped (fara acces cross-tenant);
+	- confirmare UI inainte de stergere pentru prevenirea actiunilor accidentale.
+- Validare:
+	- `artisan test tests/Feature/ResourceOrdersTest.php` -> passed (12/12).
+	- `npm run build` -> passed.
+	- `get_errors` pe index/controller/routes/test -> fara erori.

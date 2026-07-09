@@ -517,6 +517,29 @@ class ResourceOrdersTest extends TestCase
         $response->assertSessionHasErrors('phase_id');
     }
 
+    public function test_resource_order_can_be_deleted_from_index_list(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project, $phase, $material] = $this->seedContext($user);
+
+        $order = ResourceOrder::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'resource_type' => 'material',
+            'material_id' => $material->id,
+            'ordered_quantity' => 10,
+            'ordered_unit' => 'mc',
+            'status' => 'ordered',
+        ]);
+
+        $this->actingAs($user)
+            ->delete('/resource-orders/' . $order->id)
+            ->assertRedirect('/resource-orders');
+
+        $this->assertSoftDeleted('resource_orders', ['id' => $order->id]);
+    }
+
     private function seedContext(User $user): array
     {
         $client = Client::create([
