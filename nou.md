@@ -271,6 +271,7 @@ Legenda status:
 - Polish vizual recent:
 	- Preview-ul raportului comparativ a fost refacut in stil dashboard, cu header accent, KPI cards si mostre lizibile pe randuri.
 	- Fallback-ul pentru celelalte preview-uri a fost uniformizat in carduri key/value, ca sa nu mai existe JSON brut in UI.
+	- Tab-urile pe domenii au primit descrieri si contori, astfel incat navigarea exporturilor sa fie mai explicita.
 - Validare:
 	- `tests/Feature/ResourceOrdersTest.php` -> passed.
 	- `tests/Unit/ExportFilterTest.php` -> passed.

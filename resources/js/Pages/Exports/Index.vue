@@ -100,6 +100,46 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="mt-6 rounded-xl border border-gray-200 bg-white p-4 md:p-5 space-y-4">
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-for="domain in exportDomains"
+                            :key="domain.key"
+                            type="button"
+                            class="rounded-full border px-3 py-1.5 text-xs transition"
+                            :class="activeExportDomain === domain.key ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
+                            @click="activeExportDomain = domain.key"
+                        >
+                            <span>{{ domain.label }}</span>
+                            <span class="ml-2 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold" :class="activeExportDomain === domain.key ? 'text-orange-700' : 'text-gray-500'">
+                                {{ domainCounts[domain.key] ?? 0 }}
+                            </span>
+                        </button>
+                    </div>
+
+                    <div v-if="activeDomainInfo" class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <div class="text-sm font-semibold text-gray-800">{{ activeDomainInfo.label }}</div>
+                                <div class="text-xs text-gray-500">{{ activeDomainInfo.description }}</div>
+                            </div>
+                            <div class="text-xs font-medium text-gray-600">{{ domainCounts[activeExportDomain] ?? 0 }} rapoarte</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <a
+                            v-for="card in filteredExportCards"
+                            :key="card.route"
+                            :href="routeWithFilters(card.route)"
+                            class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block"
+                        >
+                            <div class="text-sm font-semibold text-gray-800">{{ card.title }}</div>
+                            <div class="text-xs text-gray-500 mt-1">{{ card.description }}</div>
+                        </a>
+                    </div>
+                </div>
             </div>
 
                 <div v-if="previewState.result" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -401,12 +441,12 @@ const exportTypeOptions = [
 const exportTypeLabels = Object.fromEntries(exportTypeOptions.map((option) => [option.value, option.label]));
 
 const exportDomains = [
-    { key: 'all', label: 'Toate rapoartele' },
-    { key: 'project', label: 'Proiect & Etape' },
-    { key: 'operational', label: 'Operare & Echipe' },
-    { key: 'resources', label: 'Resurse & Utilaje' },
-    { key: 'quality', label: 'Calitate' },
-    { key: 'financial', label: 'Financiar' },
+    { key: 'all', label: 'Toate rapoartele', description: 'Toate exporturile enterprise disponibile' },
+    { key: 'project', label: 'Proiect & Etape', description: 'WBS, progres si rapoarte de etapa' },
+    { key: 'operational', label: 'Operare & Echipe', description: 'Taskuri, rapoarte si responsabilitati' },
+    { key: 'resources', label: 'Resurse & Utilaje', description: 'Materiale, utilaje si comparatii de resurse' },
+    { key: 'quality', label: 'Calitate', description: 'Defecte si fluxuri de verificare' },
+    { key: 'financial', label: 'Financiar', description: 'Oferte, costuri si documente financiare' },
 ];
 
 const exportCards = [
@@ -491,6 +531,14 @@ const exportCards = [
 ];
 
 const activeExportDomain = ref('all');
+
+const domainCounts = computed(() => exportCards.reduce((accumulator, card) => {
+    accumulator[card.domain] = (accumulator[card.domain] || 0) + 1;
+    accumulator.all = (accumulator.all || 0) + 1;
+    return accumulator;
+}, {}));
+
+const activeDomainInfo = computed(() => exportDomains.find((domain) => domain.key === activeExportDomain.value) ?? null);
 
 const filteredExportCards = computed(() => {
     if (activeExportDomain.value === 'all') {
