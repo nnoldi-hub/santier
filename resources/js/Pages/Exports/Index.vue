@@ -140,6 +140,16 @@
                         </a>
                     </div>
                 </div>
+
+                <div v-if="previewState.loading || previewState.error" class="mt-6 rounded-xl border border-gray-200 bg-white p-4 md:p-5">
+                    <div v-if="previewState.loading" class="flex items-center gap-3 text-sm text-gray-600">
+                        <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500"></span>
+                        Se genereaza preview-ul raportului...
+                    </div>
+                    <div v-else class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {{ previewState.error }}
+                    </div>
+                </div>
             </div>
 
                 <div v-if="previewState.result" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
