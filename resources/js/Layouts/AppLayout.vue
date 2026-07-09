@@ -24,6 +24,7 @@
                 <NavItem :href="routeOrFallback('dashboard')" :disabled="routeMissing('dashboard')" icon="📊" label="Dashboard" />
                 <NavItem :href="routeOrFallback('help.index')" :disabled="routeMissing('help.index')" icon="❓" label="Ajutor" />
                 <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" icon="🛠️" label="Administrare" />
+                <NavItem v-if="isPlatformAdmin" :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" icon="🏢" label="Firme & Abonamente" />
 
                 <div class="pt-3">
                     <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors" :class="sectionButtonClass('projects')" @click="toggleSection('projects')">

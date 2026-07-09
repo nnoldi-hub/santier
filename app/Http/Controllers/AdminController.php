@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\PilotInvite;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +15,8 @@ use Inertia\Response;
 
 class AdminController extends Controller
 {
+    private const PAID_PLANS = ['starter', 'pro', 'enterprise'];
+
     public function index(Request $request): Response
     {
         $this->ensureAdmin($request);
@@ -42,6 +46,101 @@ class AdminController extends Controller
                     ->where('is_superadmin', true)
                     ->orWhereIn('email', config('platform.admin_emails', []))
                     ->count(),
+            ],
+        ]);
+    }
+
+    public function tenantsIndex(Request $request): Response
+    {
+        $this->ensureAdmin($request);
+
+        $filters = [
+            'search' => trim((string) $request->string('search')->toString()),
+            'plan' => trim((string) $request->string('plan')->toString()),
+            'status' => trim((string) $request->string('status')->toString()),
+        ];
+
+        $today = Carbon::today();
+        $plans = config('pricing.plans', []);
+
+        $tenantQuery = Tenant::query()
+            ->withCount([
+                'memberships as total_memberships_count' => fn ($query) => $query,
+                'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
+            ])
+            ->withMax('users as latest_trial_ends_at', 'billing_trial_ends_at')
+            ->orderByDesc('created_at');
+
+        if ($filters['search'] !== '') {
+            $tenantQuery->where(function ($query) use ($filters): void {
+                $query
+                    ->where('name', 'like', "%{$filters['search']}%")
+                    ->orWhere('slug', 'like', "%{$filters['search']}%");
+            });
+        }
+
+        if ($filters['plan'] !== '' && array_key_exists($filters['plan'], $plans)) {
+            $tenantQuery->where('billing_plan', $filters['plan']);
+        }
+
+        if ($filters['status'] !== '' && in_array($filters['status'], ['active', 'suspended'], true)) {
+            $tenantQuery->where('status', $filters['status']);
+        }
+
+        $tenants = $tenantQuery
+            ->paginate(12)
+            ->through(function (Tenant $tenant) use ($plans, $today): array {
+                $trialEndsAt = $tenant->latest_trial_ends_at ? Carbon::parse((string) $tenant->latest_trial_ends_at) : null;
+                $commercialStatus = $this->resolveTenantCommercialStatus($tenant, $trialEndsAt, $today);
+
+                return [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'slug' => $tenant->slug,
+                    'billing_plan' => $tenant->billing_plan,
+                    'billing_plan_label' => $plans[$tenant->billing_plan]['label'] ?? $tenant->billing_plan,
+                    'status' => $tenant->status,
+                    'commercial_status' => $commercialStatus,
+                    'trial_ends_at' => optional($trialEndsAt)->toDateString(),
+                    'active_memberships_count' => (int) ($tenant->active_memberships_count ?? 0),
+                    'total_memberships_count' => (int) ($tenant->total_memberships_count ?? 0),
+                    'estimated_mrr' => (int) ($plans[$tenant->billing_plan]['price'] ?? 0),
+                    'created_at' => optional($tenant->created_at)->toDateString(),
+                ];
+            })
+            ->withQueryString();
+
+        $metrics = [
+            'tenants_total' => Tenant::query()->count(),
+            'tenants_paid' => Tenant::query()->whereIn('billing_plan', self::PAID_PLANS)->where('status', 'active')->count(),
+            'tenants_trial' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->whereHas('users', fn ($query) => $query->whereDate('billing_trial_ends_at', '>=', $today->toDateString()))
+                ->count(),
+            'monthly_mrr_estimate' => (int) Tenant::query()->get(['billing_plan'])->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0)),
+        ];
+
+        $pilotInvitesTotal = PilotInvite::query()->count();
+        $pilotWon = PilotInvite::query()->where('status', 'closed_won')->count();
+
+        $pipeline = [
+            'pilot_invites_total' => $pilotInvitesTotal,
+            'demo_scheduled' => PilotInvite::query()->where('status', 'demo_scheduled')->count(),
+            'trial_started' => PilotInvite::query()->where('status', 'trial_started')->count(),
+            'closed_won' => $pilotWon,
+            'pilot_to_paid_rate' => $pilotInvitesTotal > 0 ? round(($pilotWon / $pilotInvitesTotal) * 100, 2) : 0,
+        ];
+
+        return Inertia::render('Admin/TenantsIndex', [
+            'tenants' => $tenants,
+            'metrics' => $metrics,
+            'pipeline' => $pipeline,
+            'filters' => $filters,
+            'planOptions' => collect($plans)->map(fn (array $plan, string $key) => ['value' => $key, 'label' => $plan['label'] ?? $key])->values(),
+            'statusOptions' => [
+                ['value' => 'active', 'label' => 'Active'],
+                ['value' => 'suspended', 'label' => 'Suspendate'],
             ],
         ]);
     }
@@ -195,5 +294,22 @@ class AdminController extends Controller
     private function isDirectVideoPath(string $path): bool
     {
         return (bool) preg_match('/\.(mp4|webm|ogg)(\?.*)?$/i', $path);
+    }
+
+    private function resolveTenantCommercialStatus(Tenant $tenant, ?Carbon $trialEndsAt, Carbon $today): string
+    {
+        if ($tenant->status === 'suspended') {
+            return 'Suspendata';
+        }
+
+        if (in_array($tenant->billing_plan, self::PAID_PLANS, true)) {
+            return 'Platitoare';
+        }
+
+        if ($trialEndsAt && $trialEndsAt->greaterThanOrEqualTo($today)) {
+            return 'Trial activ';
+        }
+
+        return 'Free';
     }
 }

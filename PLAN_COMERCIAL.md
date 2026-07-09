@@ -230,3 +230,40 @@ Obiectiv: crestere rata de conversie din trafic in solicitari demo calificate.
 - rata de completare formular demo peste 4%;
 - demo-show rate peste 60%;
 - trial-to-paid initial peste 12%.
+
+## 14) Roadmap backoffice platforma
+
+Obiectiv: separarea clara intre operarea unei firme in platforma si administrarea business-ului Modulia la nivel global.
+
+### Principii de implementare
+- ancora principala pentru backoffice global este `tenant` (firma), nu `user`;
+- panoul de superadmin trebuie sa raspunda la 3 intrebari: cine foloseste, ce plan are, cat poate produce comercial;
+- datele comerciale trebuie sa poata fi urmarite din lead pana la trial si apoi la paid;
+- implementarea se face incremental, cu slice-uri mici, testabile si usor de validat live.
+
+### Etapa 1 - Firme & Abonamente
+- [ ] pagina noua `Firme & Abonamente` in Admin;
+- [ ] lista cu toate firmele (`tenants`), plan activ, status, numar utilizatori, trial end estimat;
+- [ ] carduri de sinteza: firme totale, firme trial, firme platitoare, MRR estimat;
+- [ ] filtre minime: cautare, status, plan.
+
+### Etapa 2 - Dashboard Comercial
+- [ ] agregare pilot invites -> demo -> trial -> paid;
+- [ ] KPI comerciali centrali: MRR, trial active, conversie pilot->paid, forecast simplu;
+- [ ] top firme dupa utilizare / potential comercial;
+- [ ] alerta pentru trial-uri aproape de expirare.
+
+### Etapa 3 - CRM Comercial
+- [ ] lead board pentru firme pilot;
+- [ ] statusuri comerciale extinse: nou, contactat, demo, follow-up, trial, negociere, castigat, pierdut;
+- [ ] owner comercial, note, urmator pas, data follow-up;
+- [ ] istoric de actiuni comerciale.
+
+### Etapa 4 - Operare si forecast
+- [ ] venit estimat lunar pe planuri;
+- [ ] forecast simplu pe 30/60/90 zile;
+- [ ] risc churn / trial neactivat / onboarding incomplet;
+- [ ] export management CSV/XLSX pentru board/comercial.
+
+### Primul slice livrabil
+- [ ] livram acum Etapa 1 - `Firme & Abonamente` ca fundatie pentru toate celelalte module.

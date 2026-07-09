@@ -275,6 +275,38 @@
                 </div>
             </section>
 
+            <section v-if="socialLinksToRender.length" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+                <div class="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-[var(--brand-blue)] p-8 sm:p-10 text-white overflow-hidden relative">
+                    <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
+                    <div class="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-[var(--brand-orange)]/20 blur-2xl"></div>
+                    <div class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="max-w-2xl">
+                            <span class="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Social & Comunitate</span>
+                            <h2 class="mt-3 text-2xl sm:text-3xl font-black">Urmareste Modulia pe canalele publice</h2>
+                            <p class="mt-3 text-sm sm:text-base text-white/80">
+                                Publicam demo-uri, update-uri de produs, exemple de folosire si continut util pentru firmele din constructii si renovari.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto">
+                            <a
+                                v-for="link in socialLinksToRender"
+                                :key="`social-section-${link.label}`"
+                                :href="link.url"
+                                target="_blank"
+                                rel="noopener"
+                                @click="trackCtaClick('social_section', `open_${link.key}`)"
+                                class="group rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur hover:bg-white/15 hover:-translate-y-0.5 transition"
+                            >
+                                <div class="text-xs uppercase tracking-[0.2em] text-white/60">{{ link.shortLabel }}</div>
+                                <div class="mt-2 text-base font-bold">{{ link.label }}</div>
+                                <div class="mt-1 text-sm text-white/70 group-hover:text-white/90">Deschide canalul</div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="solicita-demo" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20 pb-20">
                 <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-6 items-stretch">
                     <div class="rounded-3xl border border-slate-200 bg-gradient-to-r from-white via-orange-50 to-blue-50 p-8 sm:p-10">
