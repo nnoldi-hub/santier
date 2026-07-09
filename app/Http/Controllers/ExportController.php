@@ -22,13 +22,31 @@ use App\Support\ExportFilter;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    private const SUPPORTED_EXPORT_TYPES = [
+        'projects',
+        'quotes',
+        'materials',
+        'costs',
+        'teams',
+        'tasks',
+        'defects',
+        'wbs',
+        'equipment',
+        'documents',
+        'stage-reports',
+        'stage-tasks',
+        'stage-progress',
+    ];
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -454,6 +472,37 @@ class ExportController extends Controller
         );
     }
 
+    public function preview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'export_type' => ['required', 'in:' . implode(',', self::SUPPORTED_EXPORT_TYPES)],
+        ]);
+
+        $filters = ExportFilter::fromRequest($request);
+        $dataset = ExportDatasetBuilder::build($validated['export_type'], $filters);
+        $rows = $dataset['rows'] instanceof Collection ? $dataset['rows'] : collect($dataset['rows']);
+        $sample = $rows
+            ->take(3)
+            ->map(fn ($row) => $this->normalizePreviewRow($row))
+            ->values();
+
+        ExportAudit::log('preview', 'system', $filters, [
+            'status' => 'success',
+            'notes' => 'Preview for export type: ' . $validated['export_type'],
+        ]);
+
+        return response()->json([
+            'export_type' => $validated['export_type'],
+            'title' => (string) ($dataset['meta']['title'] ?? ucfirst($validated['export_type'])),
+            'rows_count' => $rows->count(),
+            'sample' => $sample,
+            'active_filters' => collect($filters)
+                ->reject(fn ($value) => $value === null || $value === '' || $value === [] || $value === false)
+                ->all(),
+            'generated_at' => now()->toDateTimeString(),
+        ]);
+    }
+
     public function workbook(Request $request)
     {
         $filters = ExportFilter::fromRequest($request);
@@ -652,5 +701,23 @@ class ExportController extends Controller
         }, $fileName, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    private function normalizePreviewRow(mixed $row): array
+    {
+        $payload = is_array($row)
+            ? $row
+            : (method_exists($row, 'toArray') ? $row->toArray() : (array) $row);
+
+        return collect($payload)
+            ->take(8)
+            ->map(function ($value) {
+                if (is_scalar($value) || $value === null) {
+                    return $value;
+                }
+
+                return json_encode($value, JSON_UNESCAPED_UNICODE);
+            })
+            ->all();
     }
 }

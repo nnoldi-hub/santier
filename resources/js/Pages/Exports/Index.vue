@@ -129,6 +129,53 @@
                 </a>
             </div>
 
+            <div class="bg-white border border-gray-200 rounded-xl p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">Preview inainte de export</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Tip raport</label>
+                        <select v-model="previewState.export_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option v-for="option in exportTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button
+                            type="button"
+                            class="w-full bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-60"
+                            :disabled="previewState.loading"
+                            @click="generatePreview"
+                        >
+                            {{ previewState.loading ? 'Se genereaza...' : 'Genereaza preview' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="previewState.error" class="mt-3 text-sm text-red-600">{{ previewState.error }}</div>
+
+                <div v-if="previewState.result" class="mt-4 rounded-lg border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-800">{{ previewState.result.title }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Randuri estimate: {{ previewState.result.rows_count }} · Generat: {{ formatDateTime(previewState.result.generated_at) }}</div>
+
+                    <div class="mt-3">
+                        <div class="text-xs font-semibold text-gray-700 mb-1">Filtre active</div>
+                        <div class="text-xs text-gray-600">
+                            {{ formatActiveFilters(previewState.result.active_filters) }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3" v-if="(previewState.result.sample || []).length > 0">
+                        <div class="text-xs font-semibold text-gray-700 mb-1">Sample (primele randuri)</div>
+                        <div class="space-y-2">
+                            <pre
+                                v-for="(sample, index) in previewState.result.sample"
+                                :key="index"
+                                class="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-700 overflow-x-auto"
+                            >{{ JSON.stringify(sample, null, 2) }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <a :href="routeWithFilters('exports.workbook')" class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block">
                     <div class="text-sm font-semibold text-gray-800">Export XLSX multi-sheet</div>
@@ -334,11 +381,49 @@ const subscriptionForm = useForm({
     recipientsText: '',
 });
 
+const previewState = reactive({
+    export_type: 'projects',
+    loading: false,
+    error: '',
+    result: null,
+});
+
 function routeWithFilters(routeName) {
     return route(routeName, {
         ...filters,
         q: filters.global_search || undefined,
     });
+}
+
+async function generatePreview() {
+    previewState.loading = true;
+    previewState.error = '';
+
+    try {
+        const url = route('exports.preview', {
+            export_type: previewState.export_type,
+            ...filters,
+            q: filters.global_search || undefined,
+        });
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Preview indisponibil pentru filtrele curente.');
+        }
+
+        previewState.result = await response.json();
+    } catch (error) {
+        previewState.error = error instanceof Error ? error.message : 'Nu am putut genera preview-ul.';
+        previewState.result = null;
+    } finally {
+        previewState.loading = false;
+    }
 }
 
 function downloadProjectPackage() {
@@ -395,5 +480,26 @@ function formatDateTime(value) {
 
 function formatExportType(value) {
     return exportTypeLabels[value] ?? value;
+}
+
+function formatActiveFilters(filtersPayload) {
+    if (!filtersPayload || typeof filtersPayload !== 'object') {
+        return '-';
+    }
+
+    const parts = Object.entries(filtersPayload)
+        .map(([key, value]) => {
+            if (Array.isArray(value)) {
+                return `${key}: ${value.join(',')}`;
+            }
+
+            if (typeof value === 'object' && value !== null) {
+                return `${key}: ${JSON.stringify(value)}`;
+            }
+
+            return `${key}: ${value}`;
+        });
+
+    return parts.length > 0 ? parts.join(' | ') : '-';
 }
 </script>

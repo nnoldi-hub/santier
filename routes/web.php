@@ -1322,6 +1322,7 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('plan:exports_csv')->group(function () {
             Route::get('exports', [ExportController::class, 'index'])->name('exports.index');
+            Route::get('exports/preview', [ExportController::class, 'preview'])->name('exports.preview');
             Route::get('exports/projects', [ExportController::class, 'projectsCsv'])->name('exports.projects');
             Route::get('exports/quotes', [ExportController::class, 'quotesCsv'])->name('exports.quotes');
             Route::get('exports/materials', [ExportController::class, 'materialsCsv'])->name('exports.materials');

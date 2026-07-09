@@ -182,6 +182,35 @@ class EnterpriseExportsTest extends TestCase
         ]);
     }
 
+    public function test_exports_preview_returns_summary_and_writes_audit_log(): void
+    {
+        $user = $this->createOnboardedUser();
+        $this->seedExportData($user);
+
+        $response = $this->actingAs($user)->get('/exports/preview?export_type=tasks&global_search=turnare');
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'export_type',
+            'title',
+            'rows_count',
+            'sample',
+            'active_filters',
+            'generated_at',
+        ]);
+        $response->assertJsonFragment([
+            'export_type' => 'tasks',
+        ]);
+
+        $this->assertDatabaseHas('export_logs', [
+            'tenant_id' => 1,
+            'user_id' => $user->id,
+            'export_type' => 'preview',
+            'format' => 'system',
+            'status' => 'success',
+        ]);
+    }
+
     public function test_subscription_creation_persists_data_and_audit_log(): void
     {
         $user = $this->createOnboardedUser();
