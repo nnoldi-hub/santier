@@ -21,15 +21,15 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Conturi totale</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Operatori listati</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_total }}</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Conturi platite</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Firme cu plan platit</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_paid }}</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Trial activ</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Firme in trial</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_on_trial }}</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -43,11 +43,11 @@
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Centru de administrare</div>
                         <h2 class="mt-2 text-2xl font-black text-slate-900">Alege zona pe care vrei sa o gestionezi</h2>
-                        <p class="mt-2 text-sm text-slate-600">Conturile si documentele sunt separate vizual, ca sa fie clar ce configurezi si unde.</p>
+                        <p class="mt-2 text-sm text-slate-600">Abonamentele sunt prezentate in context de firma, iar utilizatorul afisat este operatorul principal din acel cont.</p>
                     </div>
                     <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
                         <button type="button" @click="activeAdminTab = 'accounts'" class="rounded-xl px-4 py-2 text-sm font-semibold transition" :class="activeAdminTab === 'accounts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'">
-                            Conturi si abonamente
+                            Firme si abonamente
                         </button>
                         <button type="button" @click="activeAdminTab = 'documents'" class="rounded-xl px-4 py-2 text-sm font-semibold transition" :class="activeAdminTab === 'documents' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'">
                             Documente emise
@@ -57,7 +57,7 @@
 
                 <div v-if="activeAdminTab === 'accounts'" class="mt-6 grid gap-4 xl:grid-cols-[1fr_1.1fr]">
                     <div class="rounded-2xl border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 border-b border-slate-200">Lista conturi</div>
+                        <div class="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 border-b border-slate-200">Lista firme si operator principal</div>
                         <div class="max-h-[520px] overflow-auto divide-y divide-slate-100">
                             <button
                                 v-for="user in users"
@@ -69,38 +69,43 @@
                             >
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
-                                        <div class="font-semibold text-slate-900">{{ user.name }}</div>
-                                        <div class="text-xs text-slate-500">{{ user.email }}</div>
+                                        <div class="font-semibold text-slate-900">{{ user.tenant_name || 'Firma fara nume' }}</div>
+                                        <div class="text-xs text-slate-500">Operator: {{ user.name }} · {{ user.email }}</div>
                                     </div>
                                     <span class="rounded-full px-2 py-1 text-[11px] font-semibold" :class="planTone(user.billing_plan)">
                                         {{ plans[user.billing_plan]?.label || user.billing_plan }}
                                     </span>
                                 </div>
                                 <div class="mt-2 text-xs text-slate-500">
-                                    Trial: {{ formatDate(user.billing_trial_ends_at) }} · Onboarding: {{ user.onboarding_completed_at ? 'finalizat' : 'in lucru' }}
+                                    Trial firma: {{ formatDate(user.billing_trial_ends_at) }} · Onboarding operator: {{ user.onboarding_completed_at ? 'finalizat' : 'in lucru' }}
                                 </div>
                             </button>
                         </div>
                     </div>
 
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div class="text-sm font-semibold text-slate-700">Cont selectat</div>
+                        <div class="text-sm font-semibold text-slate-700">Firma selectata</div>
                         <div v-if="selectedUser" class="mt-4 space-y-4">
                             <div>
-                                <div class="text-lg font-bold text-slate-900">{{ selectedUser.name }}</div>
-                                <div class="text-sm text-slate-500">{{ selectedUser.email }}</div>
+                                <div class="text-lg font-bold text-slate-900">{{ selectedUser.tenant_name || 'Firma fara nume' }}</div>
+                                <div class="text-sm text-slate-500">Operator principal: {{ selectedUser.name }} · {{ selectedUser.email }}</div>
+                                <div v-if="selectedUser.tenant_slug" class="text-xs text-slate-400 mt-1">Slug firma: {{ selectedUser.tenant_slug }}</div>
+                            </div>
+
+                            <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                                Editezi planul firmei din contextul tenant. Valorile de trial si abonament nu mai sunt tratate ca proprietati ale utilizatorului.
                             </div>
 
                             <form class="space-y-4" @submit.prevent="saveSubscription">
                                 <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Plan</label>
+                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Plan firma</label>
                                     <select v-model="subscriptionForm.billing_plan" class="w-full rounded-xl border-slate-300 bg-white px-3 py-2 text-sm">
                                         <option v-for="(plan, key) in plans" :key="key" :value="key">{{ plan.label }} - {{ formatMoney(plan.price) }}</option>
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Trial ends</label>
+                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Trial firma pana la</label>
                                     <input v-model="subscriptionForm.billing_trial_ends_at" type="date" class="w-full rounded-xl border-slate-300 bg-white px-3 py-2 text-sm" />
                                 </div>
 
@@ -110,7 +115,7 @@
                                 </label>
 
                                 <button type="submit" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60" :disabled="subscriptionForm.processing">
-                                    Salveaza contul
+                                    Salveaza firma
                                 </button>
                             </form>
                         </div>

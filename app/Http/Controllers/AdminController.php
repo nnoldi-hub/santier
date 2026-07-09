@@ -29,8 +29,8 @@ class AdminController extends Controller
         $defaults = config('platform.defaults', []);
         $users = User::query()
             ->with([
-                'currentTenant:id,billing_plan,billing_trial_ends_at',
-                'tenant:id,billing_plan,billing_trial_ends_at',
+                'currentTenant:id,name,slug,billing_plan,billing_trial_ends_at',
+                'tenant:id,name,slug,billing_plan,billing_trial_ends_at',
             ])
             ->orderByDesc('created_at')
             ->get([
@@ -51,6 +51,9 @@ class AdminController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'tenant_id' => $tenant?->id,
+                    'tenant_name' => $tenant?->name,
+                    'tenant_slug' => $tenant?->slug,
                     'billing_plan' => $tenant?->billing_plan ?: $user->billing_plan,
                     'billing_trial_ends_at' => optional($tenant?->billing_trial_ends_at ?: $user->billing_trial_ends_at)?->toDateString(),
                     'onboarding_completed_at' => optional($user->onboarding_completed_at)?->toDateString(),
