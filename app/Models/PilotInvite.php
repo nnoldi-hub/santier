@@ -16,6 +16,7 @@ class PilotInvite extends Model
         'contact_email',
         'contact_phone',
         'status',
+        'commercial_stage',
         'invited_at',
         'demo_scheduled_at',
         'follow_up_at',

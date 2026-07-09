@@ -17,10 +17,14 @@ class PilotInviteController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         $status = $request->string('status')->toString();
+        $commercialStage = $request->string('commercial_stage')->toString();
         $customization = $request->string('customization')->toString();
         $sort = $request->string('sort')->toString();
         if (! in_array($sort, ['users_desc', 'latest'], true)) {
             $sort = 'users_desc';
+        }
+        if (! array_key_exists($commercialStage, $this->stageLabels()) && $commercialStage !== '') {
+            $commercialStage = '';
         }
         $scopeLabels = $this->scopeLabels();
         $selectedScopeLabel = $scopeLabels[$customization] ?? null;
@@ -29,6 +33,7 @@ class PilotInviteController extends Controller
             ->where('tenant_id', $tenantId)
             ->with('owner:id,name,email')
             ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($commercialStage !== '', fn ($query) => $query->where('commercial_stage', $commercialStage))
             ->when($selectedScopeLabel, fn ($query) => $query->where('notes', 'like', '%Personalizare dorita: '.$selectedScopeLabel.'%'))
             ->latest('id')
             ->paginate(20)
@@ -43,6 +48,7 @@ class PilotInviteController extends Controller
                     'contact_email' => $invite->contact_email,
                     'contact_phone' => $invite->contact_phone,
                     'status' => $invite->status,
+                    'commercial_stage' => $this->resolveCommercialStage($invite),
                     'invited_at' => $invite->invited_at,
                     'demo_scheduled_at' => $invite->demo_scheduled_at,
                     'follow_up_at' => $invite->follow_up_at,
@@ -63,6 +69,7 @@ class PilotInviteController extends Controller
                 ->get(['id', 'name', 'email']),
             'filters' => [
                 'status' => $status,
+                'commercial_stage' => $commercialStage,
                 'customization' => $customization,
                 'sort' => $sort,
             ],
@@ -74,6 +81,7 @@ class PilotInviteController extends Controller
                 'closed_won',
                 'closed_lost',
             ],
+            'stageOptions' => $this->stageLabels(),
             'customizationOptions' => $scopeLabels,
         ]);
     }
@@ -96,6 +104,7 @@ class PilotInviteController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', 'in:invited,contacted,demo_scheduled,trial_started,closed_won,closed_lost'],
+            'commercial_stage' => ['nullable', 'string', 'in:prospecting,contacted,follow_up,demo,trial,negotiation,won,lost'],
             'owner_id' => ['nullable', 'integer', 'exists:users,id'],
             'demo_scheduled_at' => ['nullable', 'date'],
             'follow_up_at' => ['nullable', 'date'],
@@ -103,8 +112,14 @@ class PilotInviteController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $commercialStage = $this->normalizeCommercialStage(
+            $validated['status'],
+            $validated['commercial_stage'] ?? $pilotInvite->commercial_stage
+        );
+
         $updates = [
             'status' => $validated['status'],
+            'commercial_stage' => $commercialStage,
             'owner_id' => $validated['owner_id'] ?? $pilotInvite->owner_id,
             'follow_up_at' => $validated['follow_up_at'] ?? null,
             'next_step' => trim((string) ($validated['next_step'] ?? '')) ?: null,
@@ -143,10 +158,59 @@ class PilotInviteController extends Controller
             'tenant_id' => $tenantId,
             'owner_id' => $validated['owner_id'] ?? $ownerId,
             'status' => 'invited',
+            'commercial_stage' => 'prospecting',
             'invited_at' => now(),
             'follow_up_at' => $validated['follow_up_at'] ?? null,
             'next_step' => trim((string) ($validated['next_step'] ?? '')) ?: null,
         ]);
+    }
+
+    private function stageLabels(): array
+    {
+        return [
+            'prospecting' => 'Prospectare',
+            'contacted' => 'Contactat',
+            'follow_up' => 'Follow-up',
+            'demo' => 'Demo',
+            'trial' => 'Trial',
+            'negotiation' => 'Negociere',
+            'won' => 'Castigat',
+            'lost' => 'Pierdut',
+        ];
+    }
+
+    private function resolveCommercialStage(PilotInvite $invite): string
+    {
+        return $invite->commercial_stage ?: $this->normalizeCommercialStage($invite->status, null);
+    }
+
+    private function normalizeCommercialStage(string $status, ?string $requestedStage): string
+    {
+        $fallbackByStatus = [
+            'invited' => 'prospecting',
+            'contacted' => 'contacted',
+            'demo_scheduled' => 'demo',
+            'trial_started' => 'trial',
+            'closed_won' => 'won',
+            'closed_lost' => 'lost',
+        ];
+
+        $allowedByStatus = [
+            'invited' => ['prospecting'],
+            'contacted' => ['contacted', 'follow_up'],
+            'demo_scheduled' => ['demo', 'follow_up'],
+            'trial_started' => ['trial', 'negotiation'],
+            'closed_won' => ['won'],
+            'closed_lost' => ['lost'],
+        ];
+
+        $target = $requestedStage ?: ($fallbackByStatus[$status] ?? 'prospecting');
+
+        if (! in_array($target, $allowedByStatus[$status] ?? ['prospecting'], true)) {
+            return $fallbackByStatus[$status] ?? 'prospecting';
+        }
+
+        return $target;
     }
 
     private function buildSalesNotes(array $validated): ?string

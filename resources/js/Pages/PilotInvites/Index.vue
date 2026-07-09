@@ -83,6 +83,13 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-600 mb-1">Filtru etapa comerciala</label>
+                        <select v-model="commercialStageFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">Toate</option>
+                            <option v-for="(label, key) in stageOptions" :key="key" :value="key">{{ label }}</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-600 mb-1">Filtru personalizare</label>
                         <select v-model="customizationFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
                             <option value="">Toate</option>
@@ -139,12 +146,20 @@
                                         High value
                                     </span>
                                 </div>
+                                <div class="mt-1 text-xs">
+                                    <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700">
+                                        {{ labelStage(inviteDrafts[invite.id]?.commercial_stage || invite.commercial_stage) }}
+                                    </span>
+                                </div>
                                 <div class="mt-1 text-xs text-gray-500">{{ invite.customization_scope_label || '-' }}</div>
                             </td>
                             <td class="px-4 py-3 text-gray-600">
                                 <div class="space-y-2">
                                     <select v-model="inviteDrafts[invite.id].status" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
                                         <option v-for="status in statusOptions" :key="status" :value="status">{{ labelStatus(status) }}</option>
+                                    </select>
+                                    <select v-model="inviteDrafts[invite.id].commercial_stage" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                                        <option v-for="(label, key) in stageOptions" :key="key" :value="key">{{ label }}</option>
                                     </select>
                                     <input v-model="inviteDrafts[invite.id].demo_scheduled_at" type="datetime-local" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" />
                                 </div>
@@ -188,10 +203,12 @@ const props = defineProps({
     owners: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     statusOptions: { type: Array, default: () => [] },
+    stageOptions: { type: Object, default: () => ({}) },
     customizationOptions: { type: Object, default: () => ({}) },
 });
 
 const statusFilter = ref(props.filters?.status || '');
+const commercialStageFilter = ref(props.filters?.commercial_stage || '');
 const customizationFilter = ref(props.filters?.customization || '');
 const sortBy = ref(props.filters?.sort || 'users_desc');
 const updatingInviteId = ref(null);
@@ -236,6 +253,7 @@ function createInvite() {
 function applyFilter() {
     router.get(route('pilot-invites.index'), {
         status: statusFilter.value,
+        commercial_stage: commercialStageFilter.value,
         customization: customizationFilter.value,
         sort: sortBy.value,
     }, { preserveState: true, preserveScroll: true });
@@ -243,6 +261,7 @@ function applyFilter() {
 
 function resetFilter() {
     statusFilter.value = '';
+    commercialStageFilter.value = '';
     customizationFilter.value = '';
     sortBy.value = 'users_desc';
     applyFilter();
@@ -254,6 +273,7 @@ function saveInvite(invite) {
 
     router.patch(route('pilot-invites.status', invite.id), {
         status: draft.status,
+        commercial_stage: draft.commercial_stage || null,
         owner_id: draft.owner_id || null,
         demo_scheduled_at: draft.demo_scheduled_at || null,
         follow_up_at: draft.follow_up_at || null,
@@ -288,6 +308,10 @@ function labelStatus(status) {
     }[status] || status;
 }
 
+function labelStage(stage) {
+    return props.stageOptions?.[stage] || stage || '-';
+}
+
 function isHighValue(estimatedUsers) {
     return Number(estimatedUsers || 0) >= 50;
 }
@@ -295,12 +319,26 @@ function isHighValue(estimatedUsers) {
 function buildInviteDrafts(invites) {
     return Object.fromEntries((invites || []).map((invite) => [invite.id, {
         status: invite.status,
+        commercial_stage: invite.commercial_stage || inferStageFromStatus(invite.status),
         owner_id: invite.owner?.id ?? '',
         demo_scheduled_at: formatDateInput(invite.demo_scheduled_at),
         follow_up_at: formatDateInput(invite.follow_up_at),
         next_step: invite.next_step || '',
         notes: invite.notes || '',
     }]));
+}
+
+function inferStageFromStatus(status) {
+    const map = {
+        invited: 'prospecting',
+        contacted: 'contacted',
+        demo_scheduled: 'demo',
+        trial_started: 'trial',
+        closed_won: 'won',
+        closed_lost: 'lost',
+    };
+
+    return map[status] || 'prospecting';
 }
 
 function formatDateInput(value) {

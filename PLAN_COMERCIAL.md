@@ -256,7 +256,7 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 
 ### Etapa 3 - CRM Comercial
 - [x] lead board pentru firme pilot;
-- [ ] statusuri comerciale extinse: nou, contactat, demo, follow-up, trial, negociere, castigat, pierdut;
+- [x] statusuri comerciale extinse: nou, contactat, demo, follow-up, trial, negociere, castigat, pierdut (implementare sigura prin `commercial_stage`, fara schimbare riscanta pe enum status);
 - [x] owner comercial, note, urmator pas, data follow-up;
 - [x] istoric de actiuni comerciale (audit pentru modificari comerciale tenant).
 
@@ -281,7 +281,6 @@ Obiectiv: separarea clara intre operarea unei firme in platforma si administrare
 - [x] editare comerciala tenant + validari + istoric audit.
 
 ### In lucru / urmatorii pasi
-- [ ] extindere statusuri CRM comerciale (follow-up, negociere etc.) fara risc pe date live;
 - [ ] scor risc complet (trial neactivat + onboarding incomplet + semnal churn);
 - [ ] export XLSX pentru board/comercial;
 - [ ] cleanup final: eliminare dependinte ramase pe billing user-level.
