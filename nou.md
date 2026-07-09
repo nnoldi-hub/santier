@@ -1237,6 +1237,84 @@ Could (Q3):
 
 ### 13.3. Faze propuse (8 saptamani)
 
+## 14. Plan Imbunatatiri Premium Exporturi (2026-07-09)
+
+Obiectiv: ridicam pagina `Exporturi` la nivel ERP premium, pastrand viteza operationala si compatibilitatea cu fluxurile actuale.
+
+### 14.1. Scope confirmat (din cerinta)
+1. Carduri rapoarte mai moderne (vizual + KPI + actiuni clare).
+2. `Favorite Reports` (rapoarte + filtre + intervale preferate).
+3. `Saved Filters` reutilizabile instant.
+4. `Export rapid` (CTA principal in dreapta).
+5. Grafice in preview.
+6. `Raport Managerial Avansat` (PDF premium).
+7. `Raport pe interval` (saptamanal/lunar/trimestrial/anual).
+8. Extindere pachet `Materiale & Avize` cu 3 rapoarte noi.
+
+### 14.2. Livrare pe faze (fara regressii)
+
+Faza A (Sprint 1) - UX premium carduri + Export rapid
+1. Refacere grid carduri: dimensiune mai mare, iconite, accent color pe domeniu, micro-KPI (ex: volum estimat, ultima rulare).
+2. Actiuni vizibile pe card: `XLSX`, `PDF`, `CSV`, `Preview` cu prioritate clara.
+3. Buton mare `Export rapid` in partea dreapta sus (presets: proiect complet, financiar complet, calitate complet).
+4. Criteriu acceptare: orice manager lanseaza un export in max 2 click-uri.
+
+Faza B (Sprint 2) - Favorite Reports + Saved Filters
+1. Tabel nou `report_favorites` (tenant, user, report_key, payload filtre, sort_order).
+2. Tabel nou `saved_export_filters` (tenant, user, nume, payload filtre, ultima folosire).
+3. Tab nou `Favorite` in pagina exporturi + buton `Salveaza filtru curent`.
+4. Criteriu acceptare: un utilizator poate salva minim 10 filtre si minim 10 favorite per cont.
+
+Faza C (Sprint 3) - Preview vizual cu grafice
+1. Preview cu grafice (bar/line): progres etape, costuri, defecte, taskuri, riscuri.
+2. Endpoint preview extins cu structura `charts` (labels + series) pe tip de raport.
+3. Fallback tabelar pentru seturi fara date.
+4. Criteriu acceptare: preview afiseaza minim 1 KPI + 1 grafic pentru rapoartele manageriale.
+
+Faza D (Sprint 4) - Raport Managerial Avansat + Raport pe interval
+1. PDF premium multi-sectiune: KPI, grafice, progres, costuri, riscuri, defecte, taskuri, timeline.
+2. Generator pe interval: saptamanal/lunar/trimestrial/anual.
+3. Abonare automata pe interval in aceeasi pagina.
+4. Criteriu acceptare: un PDF complet pe interval se genereaza fara interventie manuala suplimentara.
+
+Faza E (Sprint 5) - Materiale & Avize advanced pack
+1. Raport nou `Diferente materiale`: comandat/livrat/receptionat/consumat/diferente/avize/facturi/costuri.
+2. Raport nou `Trasabilitate materiale`: timeline complet documente + actori + status.
+3. Raport nou `Utilaje & consum materiale`: consum pe utilaj (pompa/macara/buldo etc.) + corelare etapa.
+4. Criteriu acceptare: toate cele 3 rapoarte exportabile in CSV/XLSX/PDF + preview.
+
+### 14.3. Backlog tehnic pe componente
+1. Backend:
+	- extindere `ExportDatasetBuilder` pentru noile agregari;
+	- endpoint preview cu `summary + sample + charts`;
+	- export PDF avansat dedicat (view + generator);
+	- audit obligatoriu pe toate exporturile noi.
+2. Frontend:
+	- redesign carduri export;
+	- tab-uri `Favorite` si `Saved Filters`;
+	- componente grafice preview;
+	- CTA `Export rapid` persistent.
+3. Data:
+	- migrari pentru favorite/filtre salvate;
+	- indexare pe `tenant_id`, `user_id`, `created_at`.
+
+### 14.4. Validare si quality gate
+1. Teste feature Laravel pentru favorite/filtre/export rapid/noi rapoarte.
+2. Teste unit pentru builder-ele noi de agregare materiale/avize.
+3. `npm run build` verde la fiecare faza.
+4. Verificare manuala pe tenant demo + tenant productie controlat.
+
+### 14.5. Status initial
+1. Faza A: `NEINCEPUT`.
+2. Faza B: `NEINCEPUT`.
+3. Faza C: `NEINCEPUT`.
+4. Faza D: `NEINCEPUT`.
+5. Faza E: `NEINCEPUT`.
+
+### 14.6. Urmatorul pas imediat (propunere executie)
+1. Pornim cu Faza A in urmatorul commit: redesign carduri + buton `Export rapid`.
+2. Inchidem Faza A doar dupa `npm run build` + screenshot comparativ + update in acest tracker.
+
 Faza A (Sapt. 1-2) - Foundation UX + Query Layer
 1. Search bar global in pagina exporturi (query unificata peste module).
 2. Preset interval rapid: today, last_7d, last_30d, last_90d, this_year.
