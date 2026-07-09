@@ -112,6 +112,7 @@
                                 <th class="px-5 py-3 text-left">Utilizatori</th>
                                 <th class="px-5 py-3 text-left">Trial end</th>
                                 <th class="px-5 py-3 text-left">MRR estimat</th>
+                                <th class="px-5 py-3 text-left">Actiuni</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -121,19 +122,70 @@
                                     <div class="text-xs text-slate-500">{{ tenant.slug }}</div>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="planTone(tenant.billing_plan)">
+                                    <select
+                                        v-if="isEditing(tenant.id)"
+                                        v-model="editForm.billing_plan"
+                                        class="rounded-lg border-slate-300 px-2 py-1 text-xs"
+                                    >
+                                        <option v-for="option in planOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                                    </select>
+                                    <span v-else class="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="planTone(tenant.billing_plan)">
                                         {{ tenant.billing_plan_label }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="tenant.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
+                                    <select
+                                        v-if="isEditing(tenant.id)"
+                                        v-model="editForm.status"
+                                        class="rounded-lg border-slate-300 px-2 py-1 text-xs"
+                                    >
+                                        <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                                    </select>
+                                    <span v-else class="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="tenant.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
                                         {{ tenant.status === 'active' ? 'Activa' : 'Suspendata' }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">{{ tenant.commercial_status }}</td>
                                 <td class="px-5 py-4 text-slate-700">{{ tenant.active_memberships_count }} / {{ tenant.total_memberships_count }}</td>
-                                <td class="px-5 py-4 text-slate-700">{{ formatDate(tenant.trial_ends_at) }}</td>
+                                <td class="px-5 py-4 text-slate-700">
+                                    <input
+                                        v-if="isEditing(tenant.id)"
+                                        v-model="editForm.billing_trial_ends_at"
+                                        type="date"
+                                        class="rounded-lg border-slate-300 px-2 py-1 text-xs"
+                                    />
+                                    <span v-else>{{ formatDate(tenant.trial_ends_at) }}</span>
+                                </td>
                                 <td class="px-5 py-4 font-semibold text-slate-900">{{ formatMoney(tenant.estimated_mrr) }}</td>
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            v-if="!isEditing(tenant.id)"
+                                            type="button"
+                                            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                            @click="startEdit(tenant)"
+                                        >
+                                            Editeaza
+                                        </button>
+                                        <template v-else>
+                                            <button
+                                                type="button"
+                                                class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                                                :disabled="editForm.processing"
+                                                @click="saveEdit(tenant.id)"
+                                            >
+                                                Salveaza
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                                @click="cancelEdit"
+                                            >
+                                                Renunta
+                                            </button>
+                                        </template>
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -156,8 +208,8 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { computed, reactive, ref } from 'vue';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -173,6 +225,13 @@ const filterForm = reactive({
     search: props.filters.search || '',
     plan: props.filters.plan || '',
     status: props.filters.status || '',
+});
+
+const editingTenantId = ref(null);
+const editForm = useForm({
+    billing_plan: '',
+    status: 'active',
+    billing_trial_ends_at: '',
 });
 
 const metricCards = computed(() => [
@@ -208,6 +267,31 @@ function goToPage(url) {
     router.visit(url, {
         preserveScroll: true,
         preserveState: true,
+    });
+}
+
+function isEditing(tenantId) {
+    return editingTenantId.value === tenantId;
+}
+
+function startEdit(tenant) {
+    editingTenantId.value = tenant.id;
+    editForm.billing_plan = tenant.billing_plan || 'free';
+    editForm.status = tenant.status || 'active';
+    editForm.billing_trial_ends_at = tenant.trial_ends_at || '';
+}
+
+function cancelEdit() {
+    editingTenantId.value = null;
+    editForm.reset();
+}
+
+function saveEdit(tenantId) {
+    editForm.patch(route('admin.tenants.commercial.update', tenantId), {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelEdit();
+        },
     });
 }
 

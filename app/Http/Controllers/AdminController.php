@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -355,6 +356,39 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', 'Abonamentul contului a fost actualizat.');
+    }
+
+    public function updateTenantCommercial(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $planKeys = array_keys(config('pricing.plans', []));
+
+        $validated = $request->validate([
+            'billing_plan' => ['required', 'string', Rule::in($planKeys)],
+            'status' => ['required', 'string', Rule::in(['active', 'suspended'])],
+            'billing_trial_ends_at' => ['nullable', 'date'],
+        ]);
+
+        $tenant->update([
+            'billing_plan' => $validated['billing_plan'],
+            'status' => $validated['status'],
+            'billing_trial_ends_at' => $validated['billing_trial_ends_at'] ?? null,
+        ]);
+
+        // Compat mode: keep user-level billing fields aligned while legacy screens still read them.
+        $tenantUserIds = $tenant->memberships()->pluck('user_id');
+
+        if ($tenantUserIds->isNotEmpty()) {
+            User::query()
+                ->whereIn('id', $tenantUserIds)
+                ->update([
+                    'billing_plan' => $validated['billing_plan'],
+                    'billing_trial_ends_at' => $validated['billing_trial_ends_at'] ?? null,
+                ]);
+        }
+
+        return back()->with('success', 'Firma a fost actualizata.');
     }
 
     public function updateSettings(Request $request): RedirectResponse
