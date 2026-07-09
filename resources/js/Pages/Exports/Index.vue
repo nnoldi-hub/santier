@@ -26,6 +26,30 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs text-gray-600 mb-1">Interval de la</label>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 class="font-semibold text-gray-800 mb-1">Rapoarte predefinite (one-click)</h3>
+                    <p class="text-xs text-gray-500 mb-4">Template-uri profesionale pentru manageri. Se aplica automat filtrele active de mai sus.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        <div v-for="template in reportTemplates" :key="template.key" class="rounded-lg border border-gray-200 p-3">
+                            <div class="text-sm font-semibold text-gray-800">{{ template.label }}</div>
+                            <div class="text-xs text-gray-500 mt-1">{{ template.description }}</div>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <a :href="templateWorkbookUrl(template)" class="text-xs border border-green-200 text-green-700 rounded px-2 py-1 hover:bg-green-50">XLSX</a>
+                                <a :href="templatePdfUrl(template)" class="text-xs border border-red-200 text-red-700 rounded px-2 py-1 hover:bg-red-50">PDF</a>
+                                <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="text-xs border border-sky-200 text-sky-700 rounded px-2 py-1 hover:bg-sky-50">CSV</a>
+                                <button
+                                    type="button"
+                                    class="text-xs border border-gray-300 text-gray-700 rounded px-2 py-1 hover:bg-gray-50"
+                                    @click="previewTemplate(template)"
+                                >
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                         <input v-model="filters.from" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
                     <div>
@@ -346,6 +370,65 @@ const exportTypeOptions = [
 
 const exportTypeLabels = Object.fromEntries(exportTypeOptions.map((option) => [option.value, option.label]));
 
+const reportTemplates = [
+    {
+        key: 'project-complete',
+        label: 'Proiect complet',
+        description: 'Imagine completa proiect: WBS, taskuri, defecte, progres, documente.',
+        types: ['projects', 'wbs', 'tasks', 'defects', 'stage-progress', 'documents'],
+        previewType: 'projects',
+        primaryCsvRoute: 'exports.projects',
+    },
+    {
+        key: 'financial-complete',
+        label: 'Financiar complet',
+        description: 'Costuri, documente financiare, devize si comparativ buget.',
+        types: ['costs', 'documents', 'quotes', 'stage-progress'],
+        previewType: 'costs',
+        primaryCsvRoute: 'exports.costs',
+    },
+    {
+        key: 'quality-defects',
+        label: 'Calitate & Defecte',
+        description: 'Defecte, taskuri corective si progres operational pe etape.',
+        types: ['defects', 'tasks', 'stage-tasks', 'stage-reports'],
+        previewType: 'defects',
+        primaryCsvRoute: 'exports.defects',
+    },
+    {
+        key: 'equipment-resources',
+        label: 'Utilaje & Resurse',
+        description: 'Rezervari utilaje, materiale si stadiu pe etape.',
+        types: ['equipment', 'materials', 'stage-progress'],
+        previewType: 'equipment',
+        primaryCsvRoute: 'exports.equipment',
+    },
+    {
+        key: 'tasks-progress',
+        label: 'Taskuri & Progres',
+        description: 'Taskuri generale + taskuri etapa + progres executie.',
+        types: ['tasks', 'stage-tasks', 'stage-progress'],
+        previewType: 'tasks',
+        primaryCsvRoute: 'exports.tasks',
+    },
+    {
+        key: 'cost-vs-budget',
+        label: 'Cost vs Buget',
+        description: 'Comparativ costuri reale/estimate, devieri si risc bugetar.',
+        types: ['costs', 'quotes', 'documents'],
+        previewType: 'costs',
+        primaryCsvRoute: 'exports.costs',
+    },
+    {
+        key: 'materials-notes',
+        label: 'Materiale & Avize',
+        description: 'Materiale, documente financiare si trasabilitate avize.',
+        types: ['materials', 'documents', 'stage-reports'],
+        previewType: 'materials',
+        primaryCsvRoute: 'exports.materials',
+    },
+];
+
 const quickRangeOptions = [
     { value: 'today', label: 'Today' },
     { value: 'last_7d', label: 'Last 7 days' },
@@ -393,6 +476,27 @@ function routeWithFilters(routeName) {
         ...filters,
         q: filters.global_search || undefined,
     });
+}
+
+function templateWorkbookUrl(template) {
+    return route('exports.workbook', {
+        ...filters,
+        q: filters.global_search || undefined,
+        types: template.types.join(','),
+    });
+}
+
+function templatePdfUrl(template) {
+    return route('exports.managerial-pdf', {
+        ...filters,
+        q: filters.global_search || undefined,
+        types: template.types.join(','),
+    });
+}
+
+function previewTemplate(template) {
+    previewState.export_type = template.previewType;
+    generatePreview();
 }
 
 async function generatePreview() {

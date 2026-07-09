@@ -1181,3 +1181,168 @@ Template de evaluare plusuri / minusuri:
 	- `get_errors` pe fisierele modificate -> fara erori.
 - Ce ramane:
 	- optional v2: filtru dedicat in pagina globala de audit pentru `resource_order.*` + export audit punctual pe comanda.
+
+## 13. Plan Enterprise Rapoarte & Exporturi (v2) - propunere executabila
+
+Obiectiv: sa ridicam modulul actual de exporturi de la nivel bun la nivel enterprise, fara regressii in fluxurile existente.
+
+### 13.1. Principii de livrare
+1. Livrare incrementala pe faze mici, fiecare faza cu valoare directa in productie.
+2. Compatibilitate 100% cu exporturile existente (CSV/XLSX/PDF/pachet complet/email).
+3. Toate exporturile noi trebuie auditate automat (actor, filtru, proiect, perioada, format).
+4. Rapoartele critice pentru materiale/avize au prioritate maxima.
+
+### 13.2. Prioritati (Must / Should / Could)
+
+Must (Q1):
+1. Cautare globala unificata pe rapoarte.
+2. Template-uri predefinite one-click.
+3. Intervale rapide (Today/7/30/90/Year).
+4. Audit complet exporturi.
+5. Rapoarte materiale & avize.
+
+Should (Q2):
+1. Preview inainte de export.
+2. Tab-uri dedicate pe tip de raport (proiect/etapa/echipa/contractor/resurse/utilaje/calitate/financiar).
+3. Fluxuri automate email cu atasamente multiple + mesaj personalizat.
+
+Could (Q3):
+1. PDF managerial cu grafice avansate multi-pagina si branding extins per tenant.
+2. Biblioteca de template-uri custom per companie.
+
+### 13.3. Faze propuse (8 saptamani)
+
+Faza A (Sapt. 1-2) - Foundation UX + Query Layer
+1. Search bar global in pagina exporturi (query unificata peste module).
+2. Preset interval rapid: today, last_7d, last_30d, last_90d, this_year.
+3. Standardizare contract filtre (aceleasi chei pentru CSV/XLSX/PDF/email).
+4. KPI header: nr. rezultate, module incluse, ultima rulare.
+
+Definition of Done:
+1. Cautarea globala filtreaza toate cardurile/modulele dintr-un singur input.
+2. Intervalele rapide functioneaza identic pe toate exporturile.
+
+Faza B (Sapt. 3-4) - Template-uri predefinite one-click
+1. Introducere template-uri:
+	- Proiect complet
+	- Financiar complet
+	- Calitate & Defecte
+	- Utilaje & Resurse
+	- Taskuri & Progres
+	- Cost vs Buget
+	- Materiale & Avize
+2. Model de date pentru template (slug, descriere, module incluse, format implicit).
+3. Buton one-click: genereaza export fara configurare manuala.
+
+Definition of Done:
+1. Fiecare template ruleaza dintr-un click.
+2. Rezultatele sunt consistente intre rulare manuala si template.
+
+Faza C (Sapt. 5) - Audit exporturi complet automat
+1. Log obligatoriu la fiecare export:
+	- cine a exportat
+	- ce a exportat (tip/template)
+	- cand
+	- ce filtre a folosit
+	- ce proiect/tenant/interval
+2. Filtre noi in Audit pentru `export.*` + preset rapid.
+3. Export CSV pentru audit exporturi.
+
+Definition of Done:
+1. 100% din exporturile noi/vechi lasa urme in audit.
+2. Se poate reconstrui complet contextul unui export din log.
+
+Faza D (Sapt. 6) - Materiale & Avize (verticala critica)
+1. Raport Materiale comandate vs livrate.
+2. Raport Avize statie vs avize pompa.
+3. Raport Cantitate livrata vs consumata.
+4. Raport Diferente materiale (cu prag de alerta).
+5. Raport Costuri materiale vs buget.
+6. Raport Utilaje pe etape cu cost real.
+
+Definition of Done:
+1. Rapoartele se exporta in CSV/XLSX/PDF.
+2. Diferentele se pot urmari pe proiect, etapa si perioada.
+
+Faza E (Sapt. 7) - Preview + Layout enterprise
+1. Preview inainte de export (rezumat date + module incluse + volum estimat).
+2. Tab-uri dedicate pe tip raport:
+	- Proiect, Etapa, Echipa, Contractor, Resurse, Utilaje, Calitate, Financiar.
+3. Carduri vizuale cu KPI-uri (status, risc, cost, progres).
+
+Definition of Done:
+1. Utilizatorul poate valida ce exporta inainte de generare.
+2. Navigarea pe rapoarte devine orientata pe business, nu pe format.
+
+Faza F (Sapt. 8) - Automatizari email avansate
+1. Fluxuri multiple per tenant (zilnic/saptamanal/lunar).
+2. Atasamente multiple PDF + XLSX in acelasi email.
+3. Mesaj custom si branding companie per sablon.
+4. Rapoarte combinate in acelasi job programat.
+
+Definition of Done:
+1. Scheduler genereaza si livreaza rapoarte fara interventie manuala.
+2. Brandul companiei este aplicat coerent in toate livrarile.
+
+### 13.4. Arhitectura functionala (recomandare)
+1. `ReportingQueryService` - unifica filtrele si agregarile pe module.
+2. `ReportTemplateRegistry` - mapare template -> set de module + formate.
+3. `ReportPreviewBuilder` - calculeaza preview (count/KPI/estimare dimensiune).
+4. `ExportAuditLogger` - punct unic de audit pentru toate exporturile.
+5. `ScheduledReportRunner` - executa joburile automate de email/export.
+
+### 13.5. Backlog tehnic minim
+1. Backend:
+	- API/filter contract unificat,
+	- endpoint preview,
+	- endpoint run template,
+	- extindere audit metadata pentru exporturi.
+2. Frontend:
+	- search global,
+	- quick ranges,
+	- preset cards,
+	- tabs pe domenii,
+	- preview modal.
+3. Testing:
+	- feature tests pe template-uri,
+	- snapshot tests pentru PDF,
+	- contract tests pentru filtre,
+	- audit assertions obligatorii per export.
+
+### 13.6. KPI de succes
+1. Timp mediu generare raport redus cu minim 40% prin template-uri one-click.
+2. Minim 95% exporturi cu audit complet (target operational 100%).
+3. Minim 70% utilizare pe template-uri predefinite vs export manual.
+4. Zero incidente de "export neauditat" in productie.
+
+### 13.7. Primii 5 pasi imediati (start implementare)
+1. Definim schema unica de filtre + intervale rapide (contract backend/frontend).
+2. Implementam search bar global in UI exporturi.
+3. Livram template-ul critic `Materiale & Avize` primul.
+4. Adaugam audit complet pe toate actiunile de export (inclusiv scheduled).
+5. Introducem preview simplu (numar inregistrari + module incluse) inainte de export.
+
+### 2026-07-09 - Checkpoint Exporturi Enterprise (Faza A incremental)
+- Etapa: livrare foundation UX pe exporturi (quick ranges + global search + preview + one-click templates).
+- Dovezi:
+	- filtru `quick_range` standardizat in backend (`today`, `last_7d`, `last_30d`, `last_90d`, `this_year`) cu fallback pe `from/to`;
+	- cautare globala unificata (`global_search`) compatibila cu alias legacy `q`;
+	- endpoint nou `exports.preview` cu payload de preview (`rows_count`, sample, filtre active, timestamp);
+	- audit automat la preview (`export_type=preview`, `format=system`);
+	- sectiune noua UI `Rapoarte predefinite (one-click)` cu template-uri:
+		- Proiect complet,
+		- Financiar complet,
+		- Calitate & Defecte,
+		- Utilaje & Resurse,
+		- Taskuri & Progres,
+		- Cost vs Buget,
+		- Materiale & Avize;
+	- actiuni one-click per template: XLSX, PDF, CSV, Preview.
+- Validare:
+	- `artisan test tests/Unit/ExportFilterTest.php` -> passed.
+	- `artisan test tests/Feature/EnterpriseExportsTest.php` -> passed.
+	- `npm run build` -> passed.
+- Ce ramane (urmatorul increment):
+	- tab-uri dedicate pe domenii de raportare (proiect/etapa/echipa/contractor/resurse/utilaje/calitate/financiar);
+	- extindere scheduler pentru fluxuri multiple cu atasamente combinate;
+	- raportare verticala Materiale & Avize cu indicatori comparativi dedicati (comandat vs livrat, aviz statie vs pompa, consum vs livrat).
