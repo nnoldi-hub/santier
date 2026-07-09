@@ -142,6 +142,7 @@
                                 <tr>
                                     <th class="px-5 py-3 text-left">Firma</th>
                                     <th class="px-5 py-3 text-left">Status</th>
+                                    <th class="px-5 py-3 text-left">Etapa comerciala</th>
                                     <th class="px-5 py-3 text-left">Utilizatori</th>
                                     <th class="px-5 py-3 text-left">Personalizare</th>
                                     <th class="px-5 py-3 text-left">Data</th>
@@ -151,6 +152,7 @@
                                 <tr v-for="signal in recentCommercialSignals" :key="signal.id">
                                     <td class="px-5 py-4 font-semibold text-slate-900">{{ signal.company_name }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ labelStatus(signal.status) }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ labelStage(signal.commercial_stage) }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ signal.estimated_users ?? '-' }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ signal.customization_scope_label || '-' }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ formatDateTime(signal.created_at) }}</td>
@@ -197,6 +199,7 @@
                             <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-[0.15em]">
                                 <tr>
                                     <th class="px-5 py-3 text-left">Status</th>
+                                    <th class="px-5 py-3 text-left">Etapa comerciala</th>
                                     <th class="px-5 py-3 text-left">Utilizatori</th>
                                     <th class="px-5 py-3 text-left">Personalizare</th>
                                     <th class="px-5 py-3 text-left">Plan recomandat</th>
@@ -206,6 +209,7 @@
                             <tbody class="divide-y divide-slate-100">
                                 <tr v-for="(item, index) in topPipelineOpportunities" :key="`${item.status}-${item.recommended_plan}-${index}`">
                                     <td class="px-5 py-4 text-slate-700">{{ labelStatus(item.status) }}</td>
+                                    <td class="px-5 py-4 text-slate-700">{{ labelStage(item.commercial_stage) }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ item.estimated_users ?? '-' }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ item.customization_scope_label || '-' }}</td>
                                     <td class="px-5 py-4 text-slate-700">{{ labelPlan(item.recommended_plan) }}</td>
@@ -369,6 +373,19 @@ function labelPlan(plan) {
         enterprise: 'Enterprise',
         free: 'Demo',
     }[plan] || plan;
+}
+
+function labelStage(stage) {
+    return {
+        prospecting: 'Prospectare',
+        contacted: 'Contactat',
+        follow_up: 'Follow-up',
+        demo: 'Demo',
+        trial: 'Trial',
+        negotiation: 'Negociere',
+        won: 'Castigat',
+        lost: 'Pierdut',
+    }[stage] || stage || '-';
 }
 
 function riskTone(level) {

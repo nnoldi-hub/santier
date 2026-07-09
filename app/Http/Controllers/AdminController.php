@@ -246,6 +246,7 @@ class AdminController extends Controller
 
             return [
                 'status' => $invite->status,
+                'commercial_stage' => $invite->commercial_stage,
                 'estimated_users' => $qualification['estimated_users'],
                 'customization_scope_label' => $qualification['customization_scope_label'],
                 'recommended_plan' => $recommendedPlan,
@@ -298,6 +299,7 @@ class AdminController extends Controller
                     'id' => $invite->id,
                     'company_name' => $invite->company_name,
                     'status' => $invite->status,
+                    'commercial_stage' => $invite->commercial_stage,
                     'estimated_users' => $qualification['estimated_users'],
                     'customization_scope_label' => $qualification['customization_scope_label'],
                     'created_at' => optional($invite->created_at)->toDateTimeString(),

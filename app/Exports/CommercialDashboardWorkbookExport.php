@@ -21,8 +21,8 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
             new CollectionSheetExport('Conversii', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['conversion'] ?? [], '%')),
             new CollectionSheetExport('Forecast', ['Indicator', 'Valoare'], $this->simpleRows($this->payload['forecast'] ?? [], 'RON')),
             new CollectionSheetExport('Riscuri', ['Firma', 'Plan', 'Scor risc', 'Nivel risc', 'Utilizatori activi', 'Gap onboarding', 'Semnal churn', 'Trial expira curand', 'Trial end'], $this->riskRows()),
-            new CollectionSheetExport('Oportunitati', ['Status', 'Utilizatori estimati', 'Personalizare', 'Plan recomandat', 'MRR potential'], $this->opportunityRows()),
-            new CollectionSheetExport('Semnale', ['Firma', 'Status', 'Utilizatori estimati', 'Personalizare', 'Data'], $this->signalRows()),
+            new CollectionSheetExport('Oportunitati', ['Status', 'Etapa comerciala', 'Utilizatori estimati', 'Personalizare', 'Plan recomandat', 'MRR potential'], $this->opportunityRows()),
+            new CollectionSheetExport('Semnale', ['Firma', 'Status', 'Etapa comerciala', 'Utilizatori estimati', 'Personalizare', 'Data'], $this->signalRows()),
         ];
     }
 
@@ -78,6 +78,7 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
         return collect($this->payload['topPipelineOpportunities'] ?? [])->map(function (array $item) {
             return [
                 'Status' => $item['status'] ?? '',
+                'Etapa comerciala' => $item['commercial_stage'] ?? '',
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
                 'Plan recomandat' => $item['recommended_plan'] ?? '',
@@ -92,6 +93,7 @@ class CommercialDashboardWorkbookExport implements WithMultipleSheets
             return [
                 'Firma' => $item['company_name'] ?? '',
                 'Status' => $item['status'] ?? '',
+                'Etapa comerciala' => $item['commercial_stage'] ?? '',
                 'Utilizatori estimati' => $item['estimated_users'] ?? '',
                 'Personalizare' => $item['customization_scope_label'] ?? '',
                 'Data' => $item['created_at'] ?? '',
