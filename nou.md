@@ -1973,3 +1973,42 @@ Definition of Done:
 	  exact tiparul deja validat al `isAllowedLandingVideoUrl()` din acelasi fisier.
 - Ce ramane: verificare vizuala pe live ca salvarea setarilor + upload logo functioneaza
   cap-coada.
+
+
+### 2026-07-10 - Fix preview logo + aliniere brand (Documents/Branding.vue)
+- Etapa: dupa fix-ul de validare, userul a raportat ca salvarea functioneaza, dar
+  preview-ul din "Configurare documente" nu mai arata logo-ul (iconita de imagine
+  spart). A cerut si o verificare generala a designului paginii.
+- Ce am gasit:
+	- Bug real de reactivitate: `logoPreview` era un `ref()` initializat o singura data
+	  din `props.settings.document_logo_url` si actualizat DOAR in interiorul
+	  `onLogoFileChange()`. Daca userul scria manual un URL nou in campul text (fara sa
+	  incarce un fisier) si apasa "Preview", `logoPreview` ramanea la valoarea veche -
+	  preview-ul nu reflecta niciodata ce era efectiv scris in formular in acest caz.
+	- Pagina folosea o combinatie de culori indigo/cyan pe hero, fara legatura cu paleta
+	  de brand (`#F57C00`/`#1A237E`) deja aplicata pe restul paginilor de administrare in
+	  aceasta sesiune, plus buton de submit `bg-slate-900` in loc de navy.
+- Livrat:
+	- `logoPreview` transformat in `computed()`, calculat din blob-ul fisierului incarcat
+	  (daca exista) sau, altfel, direct din `settingsForm.document_logo_url` (valoarea
+	  curenta din formular) - reflecta corect atat upload de fisier cat si URL scris
+	  manual, in orice moment.
+	- Daca imaginea nu se incarca (404/URL invalid), afisam acum o cutie discreta
+	  "Logo indisponibil - verifica URL-ul sau reincarca fisierul." in loc de iconita de
+	  imagine spart a browserului (`@error`/`@load` pe `<img>`).
+	- Hero-ul paginii aliniat la paleta de brand (fundal alb + bordura portocalie, badge
+	  cu `DocumentTextIcon` in loc de text simplu, buton "Ascunde/Preview document"
+	  neutru in loc de indigo), butonul de submit "Salveaza configurarea" -> navy
+	  (`#1A237E`), un ultim bullet indigo ramas in lista de recomandari -> portocaliu.
+	  Cutia amber de "Ajutor contextual" a ramas neschimbata (ton semantic corect pentru
+	  o zona de ajutor, consistent cu restul aplicatiei).
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane (posibil, de verificat pe live): daca logo-ul incarcat prin fisier tot nu
+  apare dupa acest fix, cauza cea mai probabila e ca simbolic-link-ul de storage
+  (`php artisan storage:link`) nu a fost rulat pe productie - fara el, orice logo
+  incarcat prin "Sau incarca logo" se salveaza corect in `storage/app/public/branding/`,
+  dar URL-ul public `/storage/branding/...` intoarce 404. Documentat deja ca pas de
+  deploy in `HOSTICO_GITHUB_DEPLOY_CHECKLIST.md`, dar necesita acces la server (SSH/
+  terminal cPanel) pentru a fi rulat sau reverificat, nu poate fi facut din acest mediu.

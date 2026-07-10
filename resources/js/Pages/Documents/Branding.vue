@@ -1,10 +1,11 @@
 <template>
     <AppLayout title="Configurare documente">
         <div class="max-w-5xl mx-auto space-y-5">
-            <section class="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 p-5">
+            <section class="rounded-2xl border border-orange-200 bg-white p-5">
                 <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <div class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                        <div class="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                            <Icon :icon="DocumentTextIcon" size="h-3.5 w-3.5" />
                             Doar conturi cu abonament platit
                         </div>
                         <h2 class="mt-2 text-2xl font-bold text-slate-900">Configurare documente profesionale</h2>
@@ -12,7 +13,7 @@
                             Setezi emitentul, logo-ul, culorile si datele companiei pentru documentele emise clientilor.
                         </p>
                     </div>
-                    <button type="button" @click="showPreview = !showPreview" class="rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                    <button type="button" @click="showPreview = !showPreview" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         {{ showPreview ? 'Ascunde preview' : 'Preview document' }}
                     </button>
                 </div>
@@ -43,7 +44,7 @@
                         <div class="text-sm font-semibold text-slate-900">Recomandari pentru preview</div>
                         <ul class="mt-2 space-y-1.5">
                             <li v-for="item in previewRecommendations" :key="item" class="flex gap-2 text-xs text-slate-700">
-                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
                                 <span>{{ item }}</span>
                             </li>
                         </ul>
@@ -57,7 +58,10 @@
                     <div class="rounded-lg border-b-4 bg-white p-4" :style="{ borderColor: settingsForm.document_brand_color }">
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <img v-if="logoPreview" :src="logoPreview" alt="Logo" class="h-12 w-auto object-contain mb-2" />
+                                <img v-if="logoPreview && !logoPreviewFailed" :src="logoPreview" alt="Logo" class="h-12 w-auto object-contain mb-2" @error="logoPreviewFailed = true" @load="logoPreviewFailed = false" />
+                                <div v-else-if="logoPreview" class="mb-2 inline-flex items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                                    Logo indisponibil - verifica URL-ul sau reincarca fisierul.
+                                </div>
                                 <div class="text-lg font-bold" :style="{ color: settingsForm.document_brand_color }">Oferta comerciala</div>
                                 <div class="text-xs text-slate-500">Document preview pentru branding</div>
                             </div>
@@ -144,7 +148,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <button type="submit" class="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60" :disabled="settingsForm.processing">
+                    <button type="submit" class="rounded-xl bg-[#1A237E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#141b5c] disabled:opacity-60" :disabled="settingsForm.processing">
                         {{ settingsForm.processing ? 'Se salveaza...' : 'Salveaza configurarea' }}
                     </button>
                     <button type="button" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="showPreview = true">
@@ -160,6 +164,8 @@
 import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import Icon from '@/Components/Icon.vue';
+import { DocumentTextIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     settings: { type: Object, required: true },
@@ -195,7 +201,9 @@ const settingsForm = useForm({
     document_brand_color: props.settings.document_brand_color || '#f97316',
 });
 
-const logoPreview = ref(props.settings.document_logo_url || '');
+const uploadedLogoPreviewUrl = ref('');
+const logoPreviewFailed = ref(false);
+const logoPreview = computed(() => uploadedLogoPreviewUrl.value || settingsForm.document_logo_url || '');
 
 const effectiveIssuer = computed(() => {
     const issuer = String(settingsForm.document_issuer_name || '').trim();
@@ -220,12 +228,7 @@ function onLogoFileChange(event) {
     const [file] = event.target.files || [];
 
     settingsForm.document_logo_file = file || null;
-
-    if (file) {
-        logoPreview.value = URL.createObjectURL(file);
-        return;
-    }
-
-    logoPreview.value = settingsForm.document_logo_url || '';
+    uploadedLogoPreviewUrl.value = file ? URL.createObjectURL(file) : '';
+    logoPreviewFailed.value = false;
 }
 </script>
