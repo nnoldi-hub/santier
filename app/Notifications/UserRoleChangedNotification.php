@@ -3,11 +3,10 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class UserRoleChangedNotification extends Notification implements ShouldQueue
+class UserRoleChangedNotification extends Notification
 {
     use Queueable;
 

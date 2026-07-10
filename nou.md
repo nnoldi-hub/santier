@@ -1630,3 +1630,29 @@ Definition of Done:
   destinatar clar). Singurul pas ramas e operational, nu de cod: rularea
   `iam:backfill-legacy-roles --apply` pe productie inainte de deploy-ul Fazei 2, ca sa nu
   ramana niciun user real blocat.
+
+### 2026-07-10 - Fix Notificari cont (eliminare ShouldQueue - livrare garantata)
+- Etapa: corectie critica dupa ce userul a raportat ca invitatia noua nu a generat email
+  vizibil in inbox.
+- Ce s-a gasit: presupunerea din checkpoint-ul Fazei 3 ("productia are queue worker activ")
+  era gresita si neverificata. Am cautat explicit in toata documentatia de deploy
+  (`HARDENING_FINAL_CHECKLIST.md`, `GO_LIVE_DAY.md`, `HOSTICO_GITHUB_DEPLOY_CHECKLIST.md`,
+  `RELEASE_CHECKLIST.md`, `RUNBOOK_OPERATIONAL.md`) si niciunul nu contine un mecanism
+  concret (cron/supervisor/systemd) care sa tina un `queue:work` pornit permanent pe
+  hosting-ul shared cPanel. Singurul cron confirmat e `schedule:run`, care NU proceseaza
+  coada (`QUEUE_CONNECTION=database`). Concluzie: cele 3 notificari noi (`UserInvitedNotification`,
+  `UserRoleChangedNotification`, `UserStatusChangedNotification`), fiind `ShouldQueue`,
+  probabil stateau neprocesate in tabela `jobs` fara sa ajunga vreodata la destinatar.
+- Livrat: eliminat `implements ShouldQueue` din toate cele 3 clase - trimit acum sincron,
+  in timpul request-ului HTTP, la fel ca `QuoteSentMail`/`TrialLifecycleMail` (pattern deja
+  folosit si functional in acest proiect). Volum mic (1-3 emailuri per actiune de admin),
+  deci latenta suplimentara e neglijabila si livrarea e garantata fara dependinta de un
+  worker extern.
+- Validare:
+	- `tests/Feature/TenantAdministrationTest.php` -> 5/5 pass (neschimbat, `Notification::fake()`
+	  intercepteaza indiferent de queued/sync).
+	- Test suplimentar (temporar, sters dupa validare) care a trimis efectiv notificarile
+	  sincron fara fake, fara nicio exceptie.
+- Ce ramane: daca se doreste in viitor trimitere prin coada (volum mare), trebuie intai
+  configurat si verificat concret un worker persistent pe cPanel (ex: cron la fiecare minut
+  cu `queue:work --stop-when-empty --max-time=55`), nu doar presupus.
