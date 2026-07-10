@@ -2073,3 +2073,37 @@ Definition of Done:
 - Ce ramane: verificare pe live dupa migratie - salvezi logo-ul pe /documente/configurare,
   navighezi in alta parte, revii - logo-ul trebuie sa ramana, indiferent ce se salveaza
   separat pe pagina de superadmin /admin.
+
+
+### 2026-07-10 - Fix logo lipsa in PDF-uri generate (documente/oferte/rapoarte)
+- Etapa: dupa fix-ul de izolare pe tenant, userul a generat un "Proces verbal de receptie"
+  si logo-ul nu aparea in PDF (doar textul alt "Modulia logo", imaginea nu se incarca).
+- Ce am gasit: `document_logo_url` salvat in baza de date e o cale relativa fata de
+  domeniu (`/brand/logo_modulia.png` sau `/storage/branding/xxx.png`) - corecta pentru
+  randare in browser (Vue rezolva automat relativ la domeniul curent), dar `dompdf`
+  (motorul care genereaza PDF-urile) nu stie sa incarce un `<img src="/...">` fara
+  host - are nevoie fie de un URL complet (`https://...`), fie de o cale reala pe disc.
+  Toate cele 3 sabloane PDF (`documents/pdf.blade.php`, `quotes/pdf.blade.php`,
+  `exports/managerial-pdf.blade.php`) foloseau direct valoarea din baza de date ca
+  `src`, fara nicio normalizare.
+- Livrat:
+	- `app/Support/DocumentBranding.php` (nou): helper static `resolveLogoPath()` care
+	  transforma valoarea salvata intr-o cale utilizabila de dompdf - URL complet ramane
+	  neschimbat, o cale `/storage/...` se rezolva direct la fisierul real din
+	  `storage/app/public/...` (fara sa depinda de simlink-ul `public/storage`, care ar
+	  putea sa nu existe pe productie), orice alta cale relativa (`/brand/...`) se
+	  rezolva prin `public_path()`.
+	- Aplicat la toate cele 4 locuri unde branding-ul e folosit efectiv pentru generare
+	  PDF: `DocumentController::pdf()`, `QuoteController::pdf()` si `send()`,
+	  `ExportController::managerialPdf()`. NU am atins `ExportController::index()` (acolo
+	  `branding` e trimis catre pagina Vue de exporturi ca prop obisnuit, unde valoarea
+	  relativa e corecta pentru randare in browser) si nici `workbook()` (XLSX-ul nu
+	  foloseste deloc `document_logo_url`, confirmat prin verificare in
+	  `EnterpriseWorkbookExport`).
+- Validare:
+	- Cod revizuit manual (fara mediu PHP CLI accesibil in acest shell, aceeasi limitare
+	  documentata anterior).
+- Operational: dupa `git pull` pe productie, fisierul nou `app/Support/DocumentBranding.php`
+  necesita `composer dump-autoload` (nu doar `php artisan optimize:clear`) daca
+  autoloader-ul e optimizat cu classmap (`composer install --optimize-autoloader`) -
+  altfel clasa noua nu e gasita pana la urmatorul `composer install`/`dump-autoload`.

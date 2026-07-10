@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\DemoScope;
+use App\Support\DocumentBranding;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -254,6 +255,7 @@ class DocumentController extends Controller
             'contractor:id,name',
         ]);
         $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $document->tenant_id);
+        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
 
         $fileName = sprintf('%s-%d.pdf', str($document->title)->slug('-'), $document->id);
 

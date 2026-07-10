@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\QuoteTemplate;
+use App\Support\DocumentBranding;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -256,6 +257,7 @@ class QuoteController extends Controller
         $this->ensureTenantAccess($quote);
         $quote->loadMissing(['project:id,name', 'creator:id,name', 'items']);
         $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
+        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
 
         [$displayNotes, $breakdown] = $this->extractBreakdownFromNotes((string) ($quote->notes ?? ''));
 
@@ -305,6 +307,7 @@ class QuoteController extends Controller
         }
 
         $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
+        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
         $meta = is_array($quote->meta) ? $quote->meta : [];
 
         $pdfBinary = Pdf::loadView('quotes.pdf', [

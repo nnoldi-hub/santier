@@ -16,6 +16,7 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\DemoScope;
+use App\Support\DocumentBranding;
 use App\Support\ExportAudit;
 use App\Support\ExportDatasetBuilder;
 use App\Support\ExportFilter;
@@ -576,6 +577,7 @@ class ExportController extends Controller
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
         $branding = AppSetting::allForTenant(config('platform.defaults', []), TenantContext::id($request->user()));
+        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
 
         if (empty($types)) {
             $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison'];
