@@ -73,7 +73,7 @@ class QualityCheckController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'selectedProjectId' => $projectId > 0 ? $projectId : null,
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
@@ -117,7 +117,7 @@ class QualityCheckController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
                     'id' => $phase->id,
@@ -154,6 +154,8 @@ class QualityCheckController extends Controller
 
     public function updateStatus(Request $request, QualityCheck $quality_check): RedirectResponse
     {
+        $this->authorize('update', $quality_check);
+
         $validated = $request->validate([
             'status' => ['required', 'in:pending,in_progress,passed,failed'],
         ]);

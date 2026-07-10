@@ -15,6 +15,11 @@ use Inertia\Response;
 
 class DefectController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Defect::class, 'defect');
+    }
+
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());
@@ -82,7 +87,7 @@ class DefectController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'selectedProjectId' => $projectId > 0 ? $projectId : null,
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
@@ -131,7 +136,7 @@ class DefectController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
                     'id' => $phase->id,
@@ -177,6 +182,8 @@ class DefectController extends Controller
 
     public function updateStatus(Request $request, Defect $defect): RedirectResponse
     {
+        $this->authorize('update', $defect);
+
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,resolved,rejected'],
         ]);

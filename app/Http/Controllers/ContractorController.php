@@ -13,6 +13,11 @@ use Inertia\Response;
 
 class ContractorController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Contractor::class, 'contractor');
+    }
+
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());

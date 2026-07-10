@@ -2,20 +2,20 @@
 
 namespace App\Policies;
 
-use App\Models\StageTask;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\TenantContext;
 
-class StageTaskPolicy
+class TaskPolicy
 {
     public function viewAny(User $user): bool
     {
         return $this->legacyAllow($user) || $user->can('tasks.view');
     }
 
-    public function view(User $user, StageTask $stageTask): bool
+    public function view(User $user, Task $task): bool
     {
-        return $this->sameTenant($user, $stageTask)
+        return $this->sameTenant($user, (int) $task->tenant_id)
             && ($this->legacyAllow($user) || $user->can('tasks.view'));
     }
 
@@ -24,15 +24,15 @@ class StageTaskPolicy
         return $this->legacyAllow($user) || $user->can('tasks.create');
     }
 
-    public function update(User $user, StageTask $stageTask): bool
+    public function update(User $user, Task $task): bool
     {
-        return $this->sameTenant($user, $stageTask)
+        return $this->sameTenant($user, (int) $task->tenant_id)
             && ($this->legacyAllow($user) || $user->can('tasks.edit'));
     }
 
-    public function delete(User $user, StageTask $stageTask): bool
+    public function delete(User $user, Task $task): bool
     {
-        return $this->sameTenant($user, $stageTask)
+        return $this->sameTenant($user, (int) $task->tenant_id)
             && ($this->legacyAllow($user) || $user->can('tasks.delete'));
     }
 
@@ -41,14 +41,12 @@ class StageTaskPolicy
         return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
     }
 
-    private function sameTenant(User $user, StageTask $stageTask): bool
+    private function sameTenant(User $user, int $resourceTenantId): bool
     {
         if (TenantContext::isSuperadmin($user)) {
             return true;
         }
 
-        $resourceTenantId = (int) ($stageTask->stage?->project?->tenant_id ?? 0);
-
-        return $resourceTenantId > 0 && TenantContext::id($user) === $resourceTenantId;
+        return TenantContext::id($user) === $resourceTenantId;
     }
 }

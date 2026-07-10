@@ -12,6 +12,11 @@ use Inertia\Response;
 
 class MaterialController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Material::class, 'material');
+    }
+
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());

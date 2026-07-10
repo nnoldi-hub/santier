@@ -1500,3 +1500,59 @@ Definition of Done:
 - Ce ramane:
 	- Verificare vizuala in browser (dev sau staging) pentru confirmarea finala a layout-ului.
 	- Optional: extindere ulterioara doar daca apar cerinte noi peste `design rapoarte.md` (acesta a fost acoperit integral: header, export rapid, filtre + aplica filtre, rapoarte predefinite, toate rapoartele, preview, pachet proiect, distribuire email, audit, footer).
+
+### 2026-07-10 - Checkpoint Audit izolare organizatii + IAM (Faza 1/3 - inchidere brese cross-tenant)
+- Etapa: audit de securitate pe sistemul de conturi/organizatii, cerut explicit de user
+  ("fara sa suprapuna cu alta organizatie sau superadmin"). Investigatie facuta cu 3 agenti
+  de explorare (izolare tenant, roluri/permisiuni, infrastructura email) inainte de plan.
+- Ce am gasit (brese reale, nu doar gap functional):
+	- `TaskController`, `ClientController`, `TeamController`, `ContractorController`,
+	  `MaterialController`, `DefectController` nu aveau NICIO verificare de tenant pe
+	  edit/update/destroy (+ rutele custom de status) - un user din firma A putea edita
+	  dupa ID o inregistrare din firma B (IDOR).
+	- `EquipmentPolicy`, `StageReportPolicy`, `StageTaskPolicy`, `QualityCheckPolicy` erau
+	  legate corect prin `authorizeResource()`, dar logica interna intorcea mereu `true`
+	  (autorizare no-op).
+	- Dropdown-uri de useri (Task/Team/QualityCheck create+edit, Export index) afisau useri
+	  din toate firmele, nu doar din tenantul curent.
+- Livrat (Faza 1/3, doar backend, fara schimbari UI):
+	- Policy-uri noi cu verificare `sameTenant()`: `TaskPolicy`, `ClientPolicy`, `TeamPolicy`,
+	  `ContractorPolicy`, `MaterialPolicy`, `DefectPolicy`.
+	- Policy-uri reparate (nu mai intorc `true` necontrolat): `EquipmentPolicy`,
+	  `StageReportPolicy`, `StageTaskPolicy` (tenant rezolvat prin `stage.project.tenant_id`,
+	  StageReport/StageTask nu au coloana `tenant_id` proprie), `QualityCheckPolicy`.
+	- `authorizeResource()` conectat in constructorul `TaskController`, `ClientController`,
+	  `TeamController`, `ContractorController`, `MaterialController`, `DefectController`
+	  (`QualityCheckController` avea deja) + `$this->authorize('update', ...)` explicit pe
+	  rutele custom care nu sunt in cele 7 actiuni RESTful (`tasks/{task}/status`,
+	  `defects/{defect}/status`, `quality-checks/{quality_check}/status`,
+	  `teams/{team}/members` store/remove).
+	- Dropdown-uri de useri scopate pe tenant in `TaskController`, `TeamController`,
+	  `QualityCheckController`, `ExportController`.
+	- `StoreTaskRequest` si `StoreDefectRequest`: `project_id`/`phase_id`/`assigned_to`/
+	  `material_id` validate cu `Rule::exists(...)->where('tenant_id', ...)` in loc de
+	  `exists:table,id` simplu - nu se mai poate lega un task/defect de un proiect/material
+	  din alt tenant doar pentru ca ID-ul exista in baza de date.
+	- Nota de scop: pentru Client/Team/Material/Defect/QualityCheck nu exista un modul de
+	  permisiuni dedicat in catalogul IAM (`quotes, projects, tasks, calendar, documents,
+	  finance, ai_tools, company_settings, users, reports, contractors, equipment`), asa ca
+	  Policy-urile lor verifica doar apartenenta la tenant (inchide bresa reala), fara sa
+	  adauge o restrictie noua de permisiune per-rol care nu exista azi in produs - ar
+	  insemna sa blocam silentios roluri care azi pot edita aceste resurse. Extinderea
+	  catalogului de permisiuni pentru aceste module ramane decizie de produs separata.
+- Validare:
+	- Test nou `tests/Feature/TenantIsolationTest.php` (10 teste, 33 assertions) - pentru
+	  fiecare resursa din lista de mai sus, user din tenant 2 primeste 403 la edit/update/
+	  destroy pe o inregistrare din tenant 1 -> toate 10/10 verzi.
+	- Suita completa de teste (149 teste, exclus 1 test cu nevoie de memorie mai mare decat
+	  limita CLI locala de 128M): 146/149 pass, aceleasi 3 esecuri pre-existente pe codul
+	  nemodificat (confirmat cu `git stash` inainte/dupa) - `QualityChecksTest::test_quality_check_can_be_created`
+	  (bug pre-existent, neinvestigat, in afara scopului acestei initiative),
+	  `RegistrationTest::test_new_users_can_register` (asteapta redirect `/dashboard`, aplicatia
+	  redirectioneaza acum spre `/onboarding` - drift de test, nu de securitate),
+	  `ExampleTest` (tabela `app_settings` lipseste in test boilerplate implicit din Laravel,
+	  nefolosit productiv). Niciuna dintre cele 3 nu are legatura cu schimbarile din aceasta faza.
+- Ce ramane:
+	- Faza 2/3: comanda de backfill roluri legacy + eliminare completa a bypass-ului
+	  `legacyAllow()` (decizie user: se elimina complet, nu doar se logheaza).
+	- Faza 3/3: notificari email pentru invitare/schimbare rol/suspendare-reactivare cont.

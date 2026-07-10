@@ -15,6 +15,11 @@ use Inertia\Response;
 
 class TeamController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Team::class, 'team');
+    }
+
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());
@@ -67,10 +72,12 @@ class TeamController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Teams/Create', [
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -86,21 +93,24 @@ class TeamController extends Controller
         return redirect()->route('teams.index')->with('success', 'Echipa creata cu succes!');
     }
 
-    public function show(Team $team): Response
+    public function show(Request $request, Team $team): Response
     {
+        $tenantId = TenantContext::id($request->user());
         $team->load(['leader:id,name', 'members.user:id,name']);
 
         return Inertia::render('Teams/Show', [
             'team' => $team,
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
-    public function edit(Team $team): Response
+    public function edit(Request $request, Team $team): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Teams/Edit', [
             'team' => $team,
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -120,6 +130,8 @@ class TeamController extends Controller
 
     public function storeMember(StoreTeamMemberRequest $request, Team $team): RedirectResponse
     {
+        $this->authorize('update', $team);
+
         $data = $request->validated();
 
         $exists = $team->members()->where('user_id', $data['user_id'])->whereNull('left_at')->exists();
@@ -137,6 +149,8 @@ class TeamController extends Controller
 
     public function removeMember(Team $team, TeamMember $member): RedirectResponse
     {
+        $this->authorize('update', $team);
+
         if ((int) $member->team_id !== (int) $team->id) {
             abort(404);
         }

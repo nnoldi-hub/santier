@@ -86,6 +86,7 @@ class ExportController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'users' => User::query()
+                ->where('tenant_id', $tenantId)
                 ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('id', $user->id))
                 ->orderBy('name')
                 ->get(['id', 'name']),

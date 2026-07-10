@@ -15,6 +15,11 @@ use Inertia\Response;
 
 class TaskController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Task::class, 'task');
+    }
+
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());
@@ -81,7 +86,7 @@ class TaskController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'selectedProjectId' => $projectId > 0 ? $projectId : null,
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
@@ -129,7 +134,7 @@ class TaskController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
             ]),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'phasesByProject' => $projects->mapWithKeys(fn ($project) => [
                 $project->id => $project->phases->map(fn ($phase) => [
                     'id' => $phase->id,
@@ -172,6 +177,8 @@ class TaskController extends Controller
 
     public function updateStatus(Request $request, Task $task): RedirectResponse
     {
+        $this->authorize('update', $task);
+
         $validated = $request->validate([
             'status' => ['required', 'in:todo,in_progress,done,cancelled'],
         ]);

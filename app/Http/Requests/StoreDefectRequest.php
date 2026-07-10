@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreDefectRequest extends FormRequest
 {
@@ -13,10 +15,16 @@ class StoreDefectRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenantId = TenantContext::id($this->user());
+
         return [
-            'project_id' => ['required', 'exists:projects,id'],
-            'phase_id' => ['nullable', 'exists:project_phases,id'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'project_id' => ['required', Rule::exists('projects', 'id')->where('tenant_id', $tenantId)],
+            'phase_id' => ['nullable', Rule::exists('project_phases', 'id')->where(function ($query) use ($tenantId) {
+                $query->whereIn('project_id', function ($subQuery) use ($tenantId) {
+                    $subQuery->select('id')->from('projects')->where('tenant_id', $tenantId);
+                });
+            })],
+            'assigned_to' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:4000'],
             'location' => ['nullable', 'string', 'max:255'],
