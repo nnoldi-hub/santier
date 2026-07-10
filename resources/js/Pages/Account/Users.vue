@@ -56,7 +56,7 @@
             <section class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-gray-800">Utilizatori activi si suspendati</h3>
-                    <span class="text-xs text-gray-500">{{ members.length }} inregistrari</span>
+                    <span class="text-xs text-gray-500">{{ pluralize(members.length, 'inregistrare', 'inregistrari') }}</span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -130,6 +130,7 @@
 import { reactive } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     members: { type: Array, default: () => [] },

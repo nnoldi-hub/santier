@@ -68,7 +68,7 @@
                     <div class="text-sm font-semibold text-gray-800 mb-2">Subcontractori in paralel</div>
                     <div v-if="resourceDashboard.parallelSubcontractors?.length" class="space-y-1.5">
                         <div v-for="item in resourceDashboard.parallelSubcontractors" :key="`rs-${item.contractor_id}`" class="text-xs rounded border border-purple-100 bg-purple-50 px-2.5 py-2 text-purple-900">
-                            {{ item.name }} · {{ item.parallel_projects }} proiecte · {{ item.parallel_phases }} etape
+                            {{ item.name }} · {{ pluralize(item.parallel_projects, 'proiect', 'proiecte') }} · {{ pluralize(item.parallel_phases, 'etapa', 'etape') }}
                         </div>
                     </div>
                     <div v-else class="text-xs text-gray-400">Niciun subcontractor in paralel azi.</div>
@@ -554,6 +554,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Icon from '@/Components/Icon.vue';
+import { pluralize } from '@/utils/pluralize';
 import {
     BanknotesIcon,
     BuildingOffice2Icon,

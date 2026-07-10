@@ -1,0 +1,1 @@
+function e(e,t,n){let r=Number(e)||0;return`${r} ${r===1?t:n}`}export{e as t};

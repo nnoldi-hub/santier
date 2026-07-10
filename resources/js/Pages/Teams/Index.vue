@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6 gap-3 flex-col md:flex-row md:items-center">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Echipe</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ teams.total }} echipe in total</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(teams.total, 'echipa in total', 'echipe in total') }}</p>
             </div>
             <Link :href="route('teams.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Echipa noua
@@ -81,6 +81,7 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { UsersIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     teams: Object,

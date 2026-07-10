@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Facturi materiale</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ invoices.total }} facturi inregistrate</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(invoices.total, 'factura inregistrata', 'facturi inregistrate') }}</p>
             </div>
             <Link :href="route('material-invoices.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Factura materiale
@@ -130,6 +130,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { ReceiptPercentIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     invoices: Object,

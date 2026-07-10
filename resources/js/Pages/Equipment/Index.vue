@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Utilaje</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ equipment.total }} utilaje in catalog</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(equipment.total, 'utilaj in catalog', 'utilaje in catalog') }}</p>
             </div>
             <Link :href="route('equipment.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Utilaj nou
@@ -103,6 +103,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { TruckIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     equipment: Object,

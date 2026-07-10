@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Defecte (Snag)</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ defects.total }} defecte in total</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(defects.total, 'defect in total', 'defecte in total') }}</p>
             </div>
             <Link :href="route('defects.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Defect nou
@@ -96,6 +96,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     defects: Object,

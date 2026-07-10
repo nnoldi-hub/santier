@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Documente financiare</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ documents.total }} documente inregistrate</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(documents.total, 'document inregistrat', 'documente inregistrate') }}</p>
             </div>
             <Link :href="route('documents.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Document nou
@@ -196,6 +196,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import Icon from '@/Components/Icon.vue';
 import { DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     documents: Object,

@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Proiecte</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ projects.total }} proiecte în total</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(projects.total, 'proiect în total', 'proiecte în total') }}</p>
             </div>
             <Link :href="route('projects.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Proiect nou
@@ -61,6 +61,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 defineProps({
     projects: Object,

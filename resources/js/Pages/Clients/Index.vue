@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Clienti</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ clients.total }} clienti in total</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(clients.total, 'client in total', 'clienti in total') }}</p>
             </div>
             <Link :href="route('clients.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Client nou
@@ -73,6 +73,7 @@ import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { UsersIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 defineProps({
     clients: Object,

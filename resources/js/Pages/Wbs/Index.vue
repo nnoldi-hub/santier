@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Etape de lucru (WBS)</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ phases.total }} etape inregistrate</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(phases.total, 'etapa inregistrata', 'etape inregistrate') }}</p>
             </div>
             <Link :href="route('projects.index')" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
                 Vezi proiecte
@@ -182,6 +182,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     phases: Object,

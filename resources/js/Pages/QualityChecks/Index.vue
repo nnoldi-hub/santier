@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Verificari calitate</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ checks.total }} verificari in total</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(checks.total, 'verificare in total', 'verificari in total') }}</p>
             </div>
             <Link :href="route('quality-checks.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Verificare noua
@@ -103,6 +103,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { CheckBadgeIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     checks: Object,

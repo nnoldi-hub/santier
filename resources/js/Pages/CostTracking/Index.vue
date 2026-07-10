@@ -48,7 +48,7 @@
                         <tr v-for="row in sortedProjects" :key="String(row.project_id)" class="border-b last:border-0">
                             <td class="py-2 pr-3">
                                 <div class="font-medium text-gray-800">{{ row.project_name }}</div>
-                                <div class="text-xs text-gray-500">{{ row.quotes_count }} oferte</div>
+                                <div class="text-xs text-gray-500">{{ pluralize(row.quotes_count, 'oferta', 'oferte') }}</div>
                             </td>
                             <td class="py-2 pr-3">{{ formatCurrency(row.budget) }}</td>
                             <td class="py-2 pr-3">{{ formatCurrency(row.total_gross) }}</td>
@@ -66,6 +66,7 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     projects: Array,

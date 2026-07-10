@@ -50,7 +50,7 @@
             <section class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-gray-800">Evenimente IAM</h3>
-                    <span class="text-xs text-gray-500">{{ logs.total }} inregistrari</span>
+                    <span class="text-xs text-gray-500">{{ pluralize(logs.total, 'inregistrare', 'inregistrari') }}</span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -126,6 +126,7 @@
 <script setup>
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     logs: { type: Object, required: true },

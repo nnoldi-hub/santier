@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Subcontractori si colaboratori</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ contractors.total }} inregistrari</p>
+                <p class="text-sm text-gray-500 mt-1">{{ pluralize(contractors.total, 'inregistrare', 'inregistrari') }}</p>
             </div>
             <Link :href="route('contractors.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 + Contractor nou
@@ -96,6 +96,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { HandRaisedIcon } from '@heroicons/vue/24/outline';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     contractors: Object,

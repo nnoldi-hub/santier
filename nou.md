@@ -1830,3 +1830,24 @@ Definition of Done:
 	  decorativ) ramase in `Help/Index.vue`.
 	- Fara schimbari de backend.
 - Ce ramane: Faza 5/5 (pluralizare romana la numaratori).
+
+### 2026-07-10 - Checkpoint Modernizare vizuala (Faza 5/5 - pluralizare romana)
+- Etapa: corectie gramaticala la numaratori - textul afisa mereu forma de plural
+  indiferent de numar ("1 proiecte", "1 etape inregistrate", "1 utilaje in catalog").
+- Livrat:
+	- `resources/js/utils/pluralize.js` (nou) - helper mic `pluralize(count, singular,
+	  plural)`, foloseste forma singular doar cand `count === 1`, altfel plural (inclusiv
+	  pentru 0), returneaza textul complet cu numarul inclus.
+	- Aplicat la 18 locuri (16 confirmate initial in plan + 2 gasite in plus in timpul
+	  implementarii cu aceeasi problema - `Clients/Index.vue` si `Projects/Index.vue`):
+	  `Wbs/Index.vue`, `Equipment/Index.vue`, `Contractors/Index.vue`, `Defects/Index.vue`,
+	  `Documents/Index.vue`, `Projects/Index.vue`, `Clients/Index.vue`,
+	  `MaterialInvoices/Index.vue`, `Quotes/Index.vue`, `Teams/Index.vue`,
+	  `QualityChecks/Index.vue`, `Materials/Index.vue`, `StageTasks/Index.vue`,
+	  `Tasks/Index.vue`, `Account/Users.vue`, `Account/Audit.vue`, `Dashboard.vue`
+	  (numaratorul de subcontractori in paralel), `CostTracking/Index.vue`.
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: nimic - plan "modernizare vizuala aplicatie" (5 faze) complet finalizat si
+  livrat pe live.
