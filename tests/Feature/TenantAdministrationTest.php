@@ -88,6 +88,72 @@ class TenantAdministrationTest extends TestCase
         $this->assertStringContainsString('email=' . urlencode($member->email), $mail->actionUrl);
     }
 
+    public function test_superadmin_can_resend_invite(): void
+    {
+        Notification::fake();
+
+        $this->seed(IamSeeder::class);
+
+        $superadmin = $this->createSuperadmin('superadmin.resend@santier.local');
+        $role = Role::query()->where('name', 'data_entry')->firstOrFail();
+        $member = $this->createTenantMember('reinvite.me@firma.local', 'Reinvite Me', 'Santier', 'active', $role);
+        $membership = TenantUser::query()->where('user_id', $member->id)->firstOrFail();
+
+        $this->actingAs($superadmin)
+            ->post(route('account.users.resend', $membership))
+            ->assertRedirect();
+
+        Notification::assertSentTo($member, UserInvitedNotification::class);
+        $this->assertDatabaseHas('access_audit_logs', [
+            'action' => 'iam.user.reinvited',
+            'resource_type' => 'user',
+            'resource_id' => $member->id,
+        ]);
+    }
+
+    public function test_superadmin_can_remove_member_from_tenant(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $superadmin = $this->createSuperadmin('superadmin.remove@santier.local');
+        $role = Role::query()->where('name', 'data_entry')->firstOrFail();
+        $member = $this->createTenantMember('remove.me@firma.local', 'Remove Me', 'Santier', 'active', $role);
+        $membership = TenantUser::query()->where('user_id', $member->id)->firstOrFail();
+
+        $this->actingAs($superadmin)
+            ->delete(route('account.users.destroy', $membership))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('tenant_users', ['id' => $membership->id]);
+        $this->assertDatabaseHas('users', ['id' => $member->id]);
+        $this->assertFalse($member->fresh()->hasRole('data_entry'));
+        $this->assertDatabaseHas('access_audit_logs', [
+            'action' => 'iam.user.removed',
+            'resource_type' => 'user',
+            'resource_id' => $member->id,
+        ]);
+    }
+
+    public function test_actor_cannot_remove_themselves_from_tenant(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $superadmin = $this->createSuperadmin('superadmin.self@santier.local');
+        $membership = TenantUser::query()->create([
+            'tenant_id' => 1,
+            'user_id' => $superadmin->id,
+            'status' => 'active',
+            'invited_by' => $superadmin->id,
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($superadmin)
+            ->delete(route('account.users.destroy', $membership))
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('tenant_users', ['id' => $membership->id]);
+    }
+
     public function test_superadmin_can_suspend_reactivate_and_reassign_tenant_user(): void
     {
         Notification::fake();

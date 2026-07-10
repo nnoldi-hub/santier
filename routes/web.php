@@ -1250,6 +1250,8 @@ Route::middleware('auth')->group(function () {
         Route::post('account/users/invite', [TenantUserController::class, 'invite'])->name('account.users.invite');
         Route::patch('account/users/{membership}/status', [TenantUserController::class, 'updateStatus'])->name('account.users.status.update');
         Route::patch('account/users/{membership}/role', [TenantUserController::class, 'updateRole'])->name('account.users.role.update');
+        Route::post('account/users/{membership}/resend', [TenantUserController::class, 'resend'])->name('account.users.resend');
+        Route::delete('account/users/{membership}', [TenantUserController::class, 'destroy'])->name('account.users.destroy');
 
         Route::get('account/roles', [TenantRoleController::class, 'index'])->name('account.roles.index');
         Route::post('account/roles', [TenantRoleController::class, 'store'])->name('account.roles.store');

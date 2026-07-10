@@ -1656,3 +1656,33 @@ Definition of Done:
 - Ce ramane: daca se doreste in viitor trimitere prin coada (volum mare), trebuie intai
   configurat si verificat concret un worker persistent pe cPanel (ex: cron la fiecare minut
   cu `queue:work --stop-when-empty --max-time=55`), nu doar presupus.
+
+### 2026-07-10 - Checkpoint Cont utilizatori (Reinvita + Elimina din firma)
+- Etapa: extindere pagina `Utilizatori firma` (`Account/Users`) cu doua actiuni discutate cu
+  userul - buton de reinvitare si o alternativa la stergere completa, mai sigura pentru
+  istoricul aplicatiei.
+- Decizie de design (agreata cu userul): NU se sterge userul complet - ar rupe referinte
+  istorice (proiecte create de el, documente, audit log) si ar risca erori de foreign key.
+  In loc, "Elimina din firma" sterge doar relatia din `tenant_users` si revoca rolurile
+  userului (`syncRoles([])`) daca nu mai apartine niciunui tenant - contul `User` si tot
+  istoricul lui raman intacte, doar pierde accesul.
+- Livrat:
+	- `TenantUserController::resend()` - retrimite `UserInvitedNotification` (link nou de
+	  setare parola) catre un membru existent, cu audit `iam.user.reinvited`. Ruta:
+	  `POST account/users/{membership}/resend`.
+	- `TenantUserController::destroy()` - sterge `TenantUser` (membership), revoca rolurile
+	  daca userul nu mai are nicio alta apartenenta la tenant, audit `iam.user.removed`.
+	  Blocheaza explicit auto-eliminarea actorului (`abort_if($member->id === $actor->id, 422)`).
+	  Ruta: `DELETE account/users/{membership}`.
+	- UI (`Account/Users.vue`): butoane noi "Reinvita" si "Elimina din firma" langa
+	  Suspenda/Reactiveaza pe fiecare rand din tabel, cu `confirm()` nativ pentru eliminare
+	  (consistent cu restul aplicatiei - Equipment/Materials/Contractors).
+- Validare:
+	- `tests/Feature/TenantAdministrationTest.php` extins cu 3 teste noi (reinvitare trimite
+	  notificare + audit, eliminare sterge membership + revoca rol + pastreaza userul,
+	  actorul nu se poate elimina singur) -> 8/8 pass, 53 assertions.
+	- `npm run build` -> passed.
+	- Suita completa (156 teste) -> 153/156 pass, aceleasi 3 esecuri pre-existente neschimbate.
+- Ce ramane: optional, daca userul devine multi-tenant frecvent (un cont apartine mai multor
+  firme), de revizuit ce se intampla cu `current_tenant_id` la eliminare daca era chiar
+  tenantul curent selectat - momentan nu se atinge, ramane pe ultima valoare.

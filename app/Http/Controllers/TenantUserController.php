@@ -178,6 +178,69 @@ class TenantUserController extends Controller
         return back()->with('success', 'Utilizatorul a fost adaugat in firma si i s-a atribuit rolul selectat.');
     }
 
+    public function resend(Request $request, TenantUser $membership): RedirectResponse
+    {
+        $actor = $request->user();
+        $this->authorizeUserManagement($actor);
+
+        $tenantId = TenantContext::id($actor);
+        abort_unless((int) $membership->tenant_id === $tenantId, 404);
+
+        $membership->loadMissing('user.roles');
+        abort_unless($membership->user, 404);
+
+        $roleLabel = IamLabels::roleLabel((string) ($membership->user->roles->first()->name ?? ''));
+        $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
+        $membership->user->notify(new UserInvitedNotification($tenantName, $roleLabel, (string) $actor->name));
+
+        AccessAudit::log(
+            action: 'iam.user.reinvited',
+            actor: $actor,
+            request: $request,
+            resourceType: 'user',
+            resourceId: (int) $membership->user->id,
+            metadata: [
+                'membership_id' => $membership->id,
+            ]
+        );
+
+        return back()->with('success', 'Invitatia a fost retrimisa.');
+    }
+
+    public function destroy(Request $request, TenantUser $membership): RedirectResponse
+    {
+        $actor = $request->user();
+        $this->authorizeUserManagement($actor);
+
+        $tenantId = TenantContext::id($actor);
+        abort_unless((int) $membership->tenant_id === $tenantId, 404);
+
+        $membership->loadMissing('user');
+        $member = $membership->user;
+
+        abort_if($member && $member->id === $actor->id, 422, 'Nu te poti elimina singur din firma.');
+
+        AccessAudit::log(
+            action: 'iam.user.removed',
+            actor: $actor,
+            request: $request,
+            resourceType: 'user',
+            resourceId: (int) ($member?->id ?? 0),
+            metadata: [
+                'email' => $member?->email,
+                'membership_id' => $membership->id,
+            ]
+        );
+
+        $membership->delete();
+
+        if ($member && !TenantUser::query()->where('user_id', $member->id)->exists()) {
+            $member->syncRoles([]);
+        }
+
+        return back()->with('success', 'Utilizatorul a fost eliminat din firma.');
+    }
+
     public function updateStatus(Request $request, TenantUser $membership): RedirectResponse
     {
         $actor = $request->user();

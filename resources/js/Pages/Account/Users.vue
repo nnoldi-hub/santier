@@ -92,14 +92,30 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button
-                                        type="button"
-                                        class="text-xs rounded-lg px-3 py-1.5 border"
-                                        :class="member.status === 'active' ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'"
-                                        @click="toggleStatus(member)"
-                                    >
-                                        {{ member.status === 'active' ? 'Suspenda' : 'Reactiveaza' }}
-                                    </button>
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            class="text-xs rounded-lg px-3 py-1.5 border"
+                                            :class="member.status === 'active' ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'"
+                                            @click="toggleStatus(member)"
+                                        >
+                                            {{ member.status === 'active' ? 'Suspenda' : 'Reactiveaza' }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="text-xs rounded-lg px-3 py-1.5 border border-sky-300 text-sky-700 hover:bg-sky-50"
+                                            @click="resendInvite(member)"
+                                        >
+                                            Reinvita
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="text-xs rounded-lg px-3 py-1.5 border border-red-300 text-red-700 hover:bg-red-50"
+                                            @click="removeMember(member)"
+                                        >
+                                            Elimina din firma
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -178,5 +194,19 @@ function changeRole(member, roleId) {
     }, {
         preserveScroll: true,
     });
+}
+
+function resendInvite(member) {
+    router.post(route('account.users.resend', member.membership_id), {}, {
+        preserveScroll: true,
+    });
+}
+
+function removeMember(member) {
+    if (confirm(`Elimini pe "${member.name || member.email}" din firma? Isi pierde accesul si rolurile, dar contul si istoricul lui raman.`)) {
+        router.delete(route('account.users.destroy', member.membership_id), {
+            preserveScroll: true,
+        });
+    }
 }
 </script>
