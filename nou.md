@@ -1894,3 +1894,22 @@ Definition of Done:
 	- Fara schimbari de backend.
 - Ce ramane: Faza 3/4 (aliniere PilotInvites.vue cu hero+KPI ca surorile sale), Faza 4/4
   (pluralizare "X firme" pe TenantsIndex.vue).
+
+### 2026-07-10 - Checkpoint Modernizare admin platforma (Faza 3/4 - aliniere PilotInvites.vue)
+- Etapa: `PilotInvites/Index.vue` era vizual o generatie mai veche fata de celelalte 3
+  pagini din grupul "Control platforma" - fara hero-card, fara rand de metrici KPI,
+  header simplu `text-gray-800` (stilul pre-modernizare).
+- Livrat:
+	- Adaugat hero-card identic structural cu Admin/Index, CommercialDashboard,
+	  TenantsIndex: badge kicker portocaliu cu `RocketLaunchIcon` (acelasi din nav),
+	  titlu + descriere.
+	- Adaugat rand de 4 metrici KPI sub hero: Total invitatii (numarul real, din
+	  paginarea backend), High value / Demo programate / Castigate (calculate client-side
+	  din pagina curenta de rezultate, etichetate explicit "Pe pagina curenta" ca sa nu
+	  induca in eroare - nu am modificat backend-ul pentru agregate globale).
+	- Butonul "Filtreaza" (`bg-gray-900`) -> navy (`#1A237E`), consistent cu CTA-urile
+	  principale din celelalte 3 pagini. "Adauga invitatie" ramane portocaliu (deja corect).
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: Faza 4/4 (pluralizare "X firme" pe TenantsIndex.vue).

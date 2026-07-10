@@ -1,11 +1,25 @@
 <template>
     <AppLayout title="Invitari firme pilot">
         <div class="max-w-6xl mx-auto space-y-6">
-            <div class="flex items-center justify-between">
+            <section class="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm">
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-800">Invitare primele firme pilot</h2>
-                    <p class="text-sm text-gray-500 mt-1">Gestioneaza pipeline-ul comercial: invitat -> contactat -> demo -> trial -> rezultat.</p>
+                    <div class="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                        <Icon :icon="RocketLaunchIcon" size="h-3.5 w-3.5" />
+                        Pipeline comercial
+                    </div>
+                    <h2 class="mt-3 text-3xl font-black text-slate-900">Invitare primele firme pilot</h2>
+                    <p class="mt-2 max-w-3xl text-sm text-slate-600">
+                        Gestioneaza pipeline-ul comercial: invitat -> contactat -> demo -> trial -> rezultat.
+                    </p>
                 </div>
+            </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <article v-for="card in kpiCards" :key="card.key" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">{{ card.label }}</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ card.value }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ card.note }}</div>
+                </article>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-5">
@@ -103,7 +117,7 @@
                             <option value="latest">Cele mai noi</option>
                         </select>
                     </div>
-                    <button @click="applyFilter" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">Filtreaza</button>
+                    <button @click="applyFilter" class="bg-[#1A237E] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#141b5c]">Filtreaza</button>
                     <button @click="resetFilter" class="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Reset</button>
                 </div>
             </div>
@@ -210,6 +224,8 @@
 import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import Icon from '@/Components/Icon.vue';
+import { RocketLaunchIcon } from '@heroicons/vue/24/outline';
 import { labelCommercialStage, labelCommercialStatus } from '@/Support/commercialLabels';
 
 const props = defineProps({
@@ -246,6 +262,17 @@ const inviteDrafts = ref(buildInviteDrafts(props.invites?.data || []));
 watch(() => props.invites?.data, (value) => {
     inviteDrafts.value = buildInviteDrafts(value || []);
 }, { deep: true });
+
+const kpiCards = computed(() => {
+    const rows = Array.isArray(props.invites?.data) ? props.invites.data : [];
+
+    return [
+        { key: 'total', label: 'Total invitatii', value: props.invites?.total ?? rows.length, note: 'In tot pipeline-ul' },
+        { key: 'high_value', label: 'High value', value: rows.filter((invite) => isHighValue(invite.estimated_users)).length, note: 'Pe pagina curenta' },
+        { key: 'demo', label: 'Demo programate', value: rows.filter((invite) => invite.status === 'demo_scheduled').length, note: 'Pe pagina curenta' },
+        { key: 'won', label: 'Castigate', value: rows.filter((invite) => invite.status === 'closed_won').length, note: 'Pe pagina curenta' },
+    ];
+});
 
 const displayedInvites = computed(() => {
     const source = Array.isArray(props.invites?.data) ? [...props.invites.data] : [];
