@@ -129,7 +129,7 @@
                 </div>
 
                 <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50/60 p-4 md:p-5">
-                    <h3 class="font-semibold text-gray-800 mb-1">Rapoarte predefinite (one-click)</h3>
+                    <h3 class="font-semibold text-[#1A237E] mb-1">Rapoarte predefinite (one-click)</h3>
                     <p class="text-xs text-gray-500 mb-4">Template-uri profesionale pentru manageri. Se aplica automat filtrele active de mai sus.</p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -231,10 +231,24 @@
                             v-for="card in filteredExportCards"
                             :key="card.route"
                             :href="routeWithFilters(card.route)"
-                            class="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block"
+                            class="flex items-start gap-3 bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition block"
                         >
-                            <div class="text-sm font-semibold text-gray-800">{{ card.title }}</div>
-                            <div class="text-xs text-gray-500 mt-1">{{ card.description }}</div>
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-base">{{ domainIcon(card.domain) }}</span>
+                            <div class="min-w-0">
+                                <div class="text-sm font-semibold text-gray-800">{{ card.title }}</div>
+                                <div class="text-xs text-gray-500 mt-1">{{ card.description }}</div>
+                                <span class="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700">
+                                    Export
+                                    <span class="text-gray-300">·</span>
+                                    <button
+                                        type="button"
+                                        class="text-gray-500 hover:text-orange-700"
+                                        @click.prevent.stop="previewCard(card)"
+                                    >
+                                        Preview
+                                    </button>
+                                </span>
+                            </div>
                         </a>
                     </div>
                 </div>
@@ -394,7 +408,7 @@
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Pachet complet pe proiect</h3>
+                <h3 class="font-semibold text-[#1A237E] mb-4">Pachet complet pe proiect</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                     <div class="md:col-span-2">
                         <label class="block text-xs text-gray-600 mb-1">Proiect</label>
@@ -419,7 +433,7 @@
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Distribuire automata pe email</h3>
+                <h3 class="font-semibold text-[#1A237E] mb-4">Distribuire automata pe email</h3>
                 <form @submit.prevent="createSubscription" class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs text-gray-600 mb-1">Nume flux *</label>
@@ -486,7 +500,7 @@
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Audit exporturi</h3>
+                <h3 class="font-semibold text-[#1A237E] mb-4">Audit exporturi</h3>
 
                 <div v-if="recentLogs.length > 0" class="mb-4 flex flex-wrap items-end gap-3">
                     <div>
@@ -1240,6 +1254,23 @@ function previewTemplate(template) {
 }
 
 function applyFilters() {
+    generatePreview();
+}
+
+const domainIconMap = {
+    project: '📁',
+    operational: '👥',
+    resources: '🚜',
+    quality: '✔️',
+    financial: '💰',
+};
+
+function domainIcon(domain) {
+    return domainIconMap[domain] ?? '📄';
+}
+
+function previewCard(card) {
+    previewState.export_type = card.route.replace('exports.', '');
     generatePreview();
 }
 

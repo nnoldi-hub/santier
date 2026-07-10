@@ -1488,3 +1488,15 @@ Definition of Done:
 - Ce ramane (Faza 3/3):
 	- Iconite pe cardurile din "Toate rapoartele" (13 module).
 	- Polish minor de culoare (accent navy `#1A237E` pe titlurile ramase de sectiune).
+
+### 2026-07-10 - Checkpoint Exporturi Enterprise (aliniere design - Faza 3/3, inchidere initiativa)
+- Etapa inchisa: aliniere completa a paginii `/exports` la `design rapoarte.md`.
+- Livrat:
+	- Cardurile din "Toate rapoartele" (13 module) au acum iconita pe domeniu (proiect/operare/resurse/calitate/financiar) si actiune rapida "Preview" separata de click-ul principal (Export).
+	- Accent navy (`#1A237E`) aplicat pe titlurile de sectiune ramase (Rapoarte predefinite, Pachet complet pe proiect, Distribuire automata pe email, Audit exporturi), consistent cu titlul principal si "Filtre avansate export" din Faza 2.
+	- Verificare vizuala live sarita in acest increment: `.env` local contine credentiale ce corespund productiei (`DB_DATABASE=rlwrgzez_modulia_prod`), asa ca nu am pornit `php artisan serve` local; validarea a ramas pe `npm run build` + revizuire manuala a diff-ului. Verificare vizuala in browser ramane de facut de user sau cu un `.env` de dezvoltare separat.
+- Validare:
+	- `npm run build` -> passed (Faza 1, 2 si 3).
+- Ce ramane:
+	- Verificare vizuala in browser (dev sau staging) pentru confirmarea finala a layout-ului.
+	- Optional: extindere ulterioara doar daca apar cerinte noi peste `design rapoarte.md` (acesta a fost acoperit integral: header, export rapid, filtre + aplica filtre, rapoarte predefinite, toate rapoartele, preview, pachet proiect, distribuire email, audit, footer).
