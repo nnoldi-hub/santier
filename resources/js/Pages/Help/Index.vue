@@ -1,20 +1,20 @@
 <template>
     <AppLayout title="Ajutor">
         <div class="space-y-6">
-            <section class="rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm">
+            <section class="rounded-3xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm">
                 <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-center">
                     <div>
-                        <div class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                        <div class="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-semibold text-[#F57C00]">
                             Recomandare premium 2.0
                         </div>
-                        <h2 class="mt-3 text-2xl sm:text-3xl font-black text-slate-900">Cum functioneaza Modulia in 1 minut</h2>
+                        <h2 class="mt-3 text-2xl sm:text-3xl font-black text-[#1A237E]">Cum functioneaza Modulia in 1 minut</h2>
                         <p class="mt-2 text-sm sm:text-base text-slate-600">Video scurt (30-45 sec) pentru onboarding rapid: proiect, taskuri, cost tracking si raportare.</p>
                         <div class="mt-4 flex flex-wrap gap-3">
                             <a
                                 href="https://modulia.ro/help"
                                 target="_blank"
                                 rel="noopener"
-                                class="inline-flex items-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                class="inline-flex items-center rounded-xl bg-[#F57C00] px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
                             >
                                 Vezi video onboarding
                             </a>
@@ -29,16 +29,16 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-slate-100 shadow-xl">
-                        <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Preview Video</div>
-                        <div class="mt-3 rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 to-slate-950 p-4">
+                    <div class="rounded-2xl border border-slate-200 bg-[#1A237E] p-5 text-slate-100 shadow-xl">
+                        <div class="text-xs uppercase tracking-[0.2em] text-slate-300">Preview Video</div>
+                        <div class="mt-3 rounded-xl border border-white/10 bg-gradient-to-br from-[#1A237E] to-[#0d1442] p-4">
                             <div class="text-sm font-semibold">Modulia in 1 minut</div>
                             <p class="mt-1 text-xs text-slate-300">30-45 sec • onboarding pentru utilizatori noi</p>
                             <a
                                 href="https://modulia.ro/help"
                                 target="_blank"
                                 rel="noopener"
-                                class="mt-4 inline-flex rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-600"
+                                class="mt-4 inline-flex rounded-lg bg-[#F57C00] px-4 py-2 text-xs font-semibold text-white hover:bg-orange-600"
                             >
                                 Play tutorial
                             </a>
@@ -48,13 +48,13 @@
             </section>
 
             <section class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-50 via-white to-blue-50"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-50 via-white to-slate-50"></div>
                 <div class="relative p-6 sm:p-8 lg:p-10 grid lg:grid-cols-[1.4fr_0.9fr] gap-8 items-center">
                     <div>
-                        <div class="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                        <div class="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-[#F57C00]">
                             Ghid pentru utilizatorii noi
                         </div>
-                        <h1 class="mt-4 text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+                        <h1 class="mt-4 text-3xl sm:text-4xl font-black text-[#1A237E] leading-tight">
                             Afli rapid ce face aplicatia si cum o folosesti la maxim.
                         </h1>
                         <p class="mt-4 max-w-2xl text-slate-600 text-base sm:text-lg">
@@ -63,7 +63,7 @@
                         </p>
 
                         <div class="mt-6 flex flex-wrap gap-3">
-                            <Link :href="route('dashboard')" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                            <Link :href="route('dashboard')" class="rounded-xl bg-[#F57C00] px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600">
                                 Deschide Dashboard
                             </Link>
                             <Link :href="route('projects.create')" class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
@@ -72,8 +72,8 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-slate-100 shadow-xl">
-                        <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Flux rapid</div>
+                    <div class="rounded-2xl border border-slate-200 bg-[#1A237E] p-5 text-slate-100 shadow-xl">
+                        <div class="text-xs uppercase tracking-[0.2em] text-slate-300">Flux rapid</div>
                         <div class="mt-4 space-y-3">
                             <div v-for="step in shortFlow" :key="step.title" class="rounded-xl border border-white/10 bg-white/5 p-4">
                                 <div class="text-sm font-semibold">{{ step.title }}</div>
@@ -99,7 +99,7 @@
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Module esentiale</div>
-                        <h2 class="mt-2 text-2xl font-black text-slate-900">Unde intra fiecare utilizator nou</h2>
+                        <h2 class="mt-2 text-2xl font-black text-[#1A237E]">Unde intra fiecare utilizator nou</h2>
                         <p class="mt-2 text-sm text-slate-600">Fiecare modul are un rol clar si poate fi deschis direct din meniu.</p>
                     </div>
                     <Link :href="route('help.index')" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -114,7 +114,7 @@
                                 <h3 class="text-lg font-bold text-slate-900">{{ module.name }}</h3>
                                 <p class="mt-2 text-sm text-slate-600">{{ module.summary }}</p>
                             </div>
-                            <Link :href="module.route" class="shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                            <Link :href="module.route" class="shrink-0 rounded-lg bg-[#1A237E] px-3 py-2 text-xs font-semibold text-white hover:bg-[#141b5c]">
                                 Deschide
                             </Link>
                         </div>
@@ -126,25 +126,25 @@
                 </div>
             </section>
 
-            <section class="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50 p-6 sm:p-8 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Ghiduri Focus</div>
-                        <h2 class="mt-2 text-2xl font-black text-slate-900">Ajutor pentru Deviz / Oferta si Configurare Documente</h2>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-[#F57C00]">Ghiduri Focus</div>
+                        <h2 class="mt-2 text-2xl font-black text-[#1A237E]">Ajutor pentru Deviz / Oferta si Configurare Documente</h2>
                         <p class="mt-2 text-sm text-slate-600">Checklist practic pentru ce trebuie completat, verificat si trimis catre client.</p>
                     </div>
                 </div>
 
                 <div class="mt-6 grid gap-4 lg:grid-cols-3">
-                    <div v-for="guide in focusGuides" :key="guide.title" class="rounded-2xl border border-amber-200 bg-white p-5">
+                    <div v-for="guide in focusGuides" :key="guide.title" class="rounded-2xl border border-slate-200 p-5">
                         <h3 class="text-base font-bold text-slate-900">{{ guide.title }}</h3>
                         <ul class="mt-3 space-y-2">
                             <li v-for="item in guide.items" :key="item" class="flex gap-2 text-sm text-slate-700">
-                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-[#F57C00]"></span>
                                 <span>{{ item }}</span>
                             </li>
                         </ul>
-                        <Link :href="guide.href" class="mt-4 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                        <Link :href="guide.href" class="mt-4 inline-flex rounded-lg bg-[#1A237E] px-4 py-2 text-xs font-semibold text-white hover:bg-[#141b5c]">
                             {{ guide.cta }}
                         </Link>
                     </div>
@@ -169,14 +169,14 @@
                 </div>
             </section>
 
-            <section class="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-6 sm:p-8 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Ghiduri interactive</div>
-                        <h2 class="mt-2 text-2xl font-black text-slate-900">Checklist operational cu bife</h2>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-[#F57C00]">Ghiduri interactive</div>
+                        <h2 class="mt-2 text-2xl font-black text-[#1A237E]">Checklist operational cu bife</h2>
                         <p class="mt-2 text-sm text-slate-600">Bifeaza pasii pe masura ce configurezi aplicatia. Progresul se actualizeaza instant.</p>
                     </div>
-                    <div class="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700">
+                    <div class="rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-[#F57C00]">
                         {{ checklistDoneCount }} / {{ checklistItems.length }} completat
                     </div>
                 </div>
@@ -185,9 +185,9 @@
                     <label
                         v-for="item in checklistItems"
                         :key="item.id"
-                        class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 cursor-pointer"
+                        class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 cursor-pointer"
                     >
-                        <input v-model="item.done" type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                        <input v-model="item.done" type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-[#F57C00] focus:ring-[#F57C00]" />
                         <div>
                             <div class="text-sm font-semibold text-slate-900" :class="item.done ? 'line-through text-slate-500' : ''">{{ item.title }}</div>
                             <p class="mt-1 text-xs text-slate-600">{{ item.description }}</p>
@@ -196,11 +196,11 @@
                 </div>
             </section>
 
-            <section class="rounded-3xl border border-indigo-200 bg-white p-6 sm:p-8 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Mini-tutoriale integrate</div>
-                        <h2 class="mt-2 text-2xl font-black text-slate-900">Arata-mi cum fac rapid</h2>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-[#F57C00]">Mini-tutoriale integrate</div>
+                        <h2 class="mt-2 text-2xl font-black text-[#1A237E]">Arata-mi cum fac rapid</h2>
                         <p class="mt-2 text-sm text-slate-600">Tutoriale scurte pentru actiunile cele mai frecvente in Modulia.</p>
                     </div>
                     <a href="https://modulia.ro/help" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -213,7 +213,7 @@
                         <div class="text-sm font-bold text-slate-900">{{ tutorial.title }}</div>
                         <p class="mt-2 text-sm text-slate-600">{{ tutorial.text }}</p>
                         <div class="mt-4 flex flex-wrap gap-2">
-                            <Link :href="tutorial.href" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+                            <Link :href="tutorial.href" class="rounded-lg bg-[#1A237E] px-3 py-2 text-xs font-semibold text-white hover:bg-[#141b5c]">
                                 {{ tutorial.cta }}
                             </Link>
                         </div>

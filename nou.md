@@ -1804,3 +1804,29 @@ Definition of Done:
 	- Fara schimbari de backend.
 - Ce ramane: Faza 4/5 (consistenta culori pe Ajutor + Documente), Faza 5/5 (pluralizare
   romana).
+
+### 2026-07-10 - Checkpoint Modernizare vizuala (Faza 4/5 - consistenta culori)
+- Etapa: unificare accente de culoare pe pagina Ajutor + corectie etichetare pe Documente.
+- Livrat:
+	- `Help/Index.vue`: pagina folosea 6+ accente diferite fara sens semantic (albastru,
+	  slate-900/950 generic, amber, emerald+cyan, indigo) pe sectiuni diferite ale aceleiasi
+	  pagini. Am unificat pe paleta de brand: portocaliu (`#F57C00`) pentru CTA-uri primare
+	  si etichete de sectiune, navy (`#1A237E`) pentru cardurile inchise la culoare
+	  (Preview Video, Flux rapid) si butoanele secundare din carduri (Deschide, Configureaza
+	  documente etc.), fundal alb neutru in loc de gradient-uri colorate pe sectiune (amber/
+	  emerald-cyan/indigo eliminate complet - diferentierea vizuala intre sectiuni vine acum
+	  din continut, nu din culoarea de fundal).
+	- `Documents/Index.vue`: la verificare, cele 3 cutii "ATENTIE" (galben + 2 albastre) NU
+	  erau de fapt un bug de culoare - reprezinta 3 niveluri reale de severitate diferite
+	  (`critical`/`warning`/`info`), corect colorate (rosu/amber/sky). Problema reala era ca
+	  eticheta afisata era mereu "Atentie" indiferent de nivel, ceea ce dadea impresia de
+	  inconsistenta. Am corectat eticheta sa reflecte nivelul real (`attentionToneLabel`:
+	  critical->"Urgent", warning->"Atentie", info->"De urmarit"), pastrand codul de culori
+	  existent (era deja corect). Am inlocuit si un ultim emoji ramas (⚠️ pe alerta de
+	  facturi restante) cu `ExclamationTriangleIcon`.
+- Validare:
+	- `npm run build` -> passed dupa fiecare pas.
+	- Verificare finala: 0 aparitii `blue-|indigo-|emerald-|cyan-|amber-` (ca fundal/accent
+	  decorativ) ramase in `Help/Index.vue`.
+	- Fara schimbari de backend.
+- Ce ramane: Faza 5/5 (pluralizare romana la numaratori).

@@ -96,7 +96,7 @@
                     class="rounded-xl border p-3"
                     :class="attentionToneClass(item.tone)"
                 >
-                    <div class="text-xs uppercase tracking-wider opacity-80 mb-1">Atentie</div>
+                    <div class="text-xs uppercase tracking-wider opacity-80 mb-1">{{ attentionToneLabel(item.tone) }}</div>
                     <div class="font-semibold text-sm mb-1">{{ item.title }}</div>
                     <div class="text-lg font-semibold">{{ item.value }}</div>
                     <div class="text-xs mt-1 opacity-90">{{ item.helper }}</div>
@@ -104,8 +104,9 @@
             </div>
         </div>
 
-        <div v-if="financialInsights.overdue_invoices_count > 0" class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            ⚠️ Ai {{ financialInsights.overdue_invoices_count }} facturi restante (emise de peste 30 zile si neplatite).
+        <div v-if="financialInsights.overdue_invoices_count > 0" class="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <Icon :icon="ExclamationTriangleIcon" size="h-5 w-5 shrink-0" />
+            <span>Ai {{ financialInsights.overdue_invoices_count }} facturi restante (emise de peste 30 zile si neplatite).</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
@@ -193,7 +194,8 @@ import { computed, reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
-import { DocumentTextIcon } from '@heroicons/vue/24/outline';
+import Icon from '@/Components/Icon.vue';
+import { DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     documents: Object,
@@ -289,6 +291,13 @@ function attentionToneClass(tone) {
     if (tone === 'warning') return 'border-amber-300 bg-amber-50 text-amber-700';
 
     return 'border-sky-300 bg-sky-50 text-sky-700';
+}
+
+function attentionToneLabel(tone) {
+    if (tone === 'critical') return 'Urgent';
+    if (tone === 'warning') return 'Atentie';
+
+    return 'De urmarit';
 }
 
 function applyFilters() {
