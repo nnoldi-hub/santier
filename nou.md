@@ -1686,3 +1686,30 @@ Definition of Done:
 - Ce ramane: optional, daca userul devine multi-tenant frecvent (un cont apartine mai multor
   firme), de revizuit ce se intampla cu `current_tenant_id` la eliminare daca era chiar
   tenantul curent selectat - momentan nu se atinge, ramane pe ultima valoare.
+
+### 2026-07-10 - Checkpoint Polish paginile Auth (brand Modulia)
+- Etapa: userul a semnalat ca pagina de "Reset Password" (deschisa din link-ul de invitare)
+  arata generic - Laravel Breeze implicit, in engleza, buton albastru, fara identitate
+  Modulia. Cerere: sa arate profi.
+- Investigatie: doar `Login.vue` fusese personalizat anterior (romana + header box). Restul
+  paginilor din `resources/js/Pages/Auth/` (`ForgotPassword`, `Register`, `ResetPassword`,
+  `ConfirmPassword`, `VerifyEmail`) erau boilerplate Breeze neatins, in engleza. Componentele
+  shared (`PrimaryButton`, `TextInput`, `Checkbox`) foloseau accent albastru (`#0057FF`/
+  indigo), diferit de portocaliul (`#F57C00`) si navy (`#1A237E`) folosite in restul
+  aplicatiei (sidebar, Exporturi, Cont utilizatori).
+- Livrat:
+	- `PrimaryButton.vue`, `TextInput.vue`, `Checkbox.vue` - accent schimbat din albastru/indigo
+	  in portocaliu Modulia (`#F57C00`), consistent cu restul aplicatiei.
+	- `GuestLayout.vue` - titlul "MODULIA" in navy (`#1A237E`), ring-ul cardului in portocaliu.
+	- Toate cele 6 pagini Auth (`Login`, `ForgotPassword`, `Register`, `ResetPassword`,
+	  `ConfirmPassword`, `VerifyEmail`) traduse integral in romana, cu acelasi header box
+	  ("titlu + descriere scurta pe fundal portocaliu deschis") pe fiecare, plus titluri de
+	  tab (`<Head title>`) in romana cu sufix " - Modulia".
+- Validare:
+	- `npm run build` -> passed.
+	- Teste auth (`RegistrationTest`, `PasswordReset*`, `PasswordConfirmation*`,
+	  `EmailVerification*`, `AuthenticationTest`) -> 15/16 pass, singurul esec e cel
+	  pre-existent deja cunoscut (`RegistrationTest::test_new_users_can_register`, drift
+	  `/dashboard` vs `/onboarding`, nelegat de aceasta schimbare).
+- Ce ramane: verificare vizuala live pe `/reset-password`, `/login`, `/register` etc. dupa
+  deploy (nu am putut porni serverul local din cauza .env-ului cu config de productie).

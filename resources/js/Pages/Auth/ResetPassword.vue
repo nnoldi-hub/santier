@@ -33,7 +33,12 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Reset Password" />
+        <Head title="Seteaza parola - Modulia" />
+
+        <div class="mb-5 rounded-xl border border-[#F57C00]/20 bg-orange-50 px-4 py-3">
+            <h1 class="text-base font-bold text-[#1A237E]">Seteaza-ti parola</h1>
+            <p class="mt-1 text-sm text-gray-600">Alege o parola noua ca sa-ti activezi contul Modulia.</p>
+        </div>
 
         <form @submit.prevent="submit">
             <div>
@@ -53,7 +58,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" value="Parola noua" />
 
                 <TextInput
                     id="password"
@@ -70,7 +75,7 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    value="Confirma parola"
                 />
 
                 <TextInput
@@ -93,7 +98,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Reset Password
+                    Seteaza parola
                 </PrimaryButton>
             </div>
         </form>

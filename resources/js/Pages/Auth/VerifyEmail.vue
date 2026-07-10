@@ -23,20 +23,21 @@ const verificationLinkSent = computed(
 
 <template>
     <GuestLayout>
-        <Head title="Email Verification" />
+        <Head title="Verificare email - Modulia" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
+        <div class="mb-5 rounded-xl border border-[#F57C00]/20 bg-orange-50 px-4 py-3">
+            <h1 class="text-base font-bold text-[#1A237E]">Verifica-ti adresa de email</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Multumim ca te-ai inregistrat! Apasa link-ul din emailul trimis ca sa-ti activezi contul.
+                Daca nu l-ai primit, iti trimitem cu placere altul.
+            </p>
         </div>
 
         <div
             class="mb-4 text-sm font-medium text-green-600"
             v-if="verificationLinkSent"
         >
-            A new verification link has been sent to the email address you
-            provided during registration.
+            Un nou link de verificare a fost trimis pe adresa de email folosita la inregistrare.
         </div>
 
         <form @submit.prevent="submit">
@@ -45,15 +46,15 @@ const verificationLinkSent = computed(
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Resend Verification Email
+                    Retrimite email de verificare
                 </PrimaryButton>
 
                 <Link
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >Log Out</Link
+                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F57C00] focus:ring-offset-2"
+                    >Delogare</Link
                 >
             </div>
         </form>

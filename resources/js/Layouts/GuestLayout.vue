@@ -12,12 +12,12 @@ import { Link } from '@inertiajs/vue3';
                     <img src="/brand/logo_modulia.png" alt="Modulia" class="guest-logo-crop__img" />
                 </div>
             </Link>
-            <p class="mt-3 text-xl font-extrabold tracking-wide text-[#2E2E2E]">MODULIA</p>
+            <p class="mt-3 text-xl font-extrabold tracking-wide text-[#1A237E]">MODULIA</p>
             <p class="text-sm text-gray-600">Șantierul devine clar.</p>
         </div>
 
         <div
-            class="mt-6 w-full overflow-hidden bg-white px-6 py-5 shadow-md ring-1 ring-[#0057FF]/10 sm:max-w-md sm:rounded-2xl"
+            class="mt-6 w-full overflow-hidden bg-white px-6 py-5 shadow-md ring-1 ring-[#F57C00]/10 sm:max-w-md sm:rounded-2xl"
         >
             <slot />
         </div>

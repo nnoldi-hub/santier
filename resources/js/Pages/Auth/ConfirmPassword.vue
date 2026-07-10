@@ -19,16 +19,16 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Confirm Password" />
+        <Head title="Confirma parola - Modulia" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
+        <div class="mb-5 rounded-xl border border-[#F57C00]/20 bg-orange-50 px-4 py-3">
+            <h1 class="text-base font-bold text-[#1A237E]">Confirma parola</h1>
+            <p class="mt-1 text-sm text-gray-600">Aceasta e o zona securizata - confirma parola inainte sa continui.</p>
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" value="Parola" />
                 <TextInput
                     id="password"
                     type="password"
@@ -47,7 +47,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Confirm
+                    Confirma
                 </PrimaryButton>
             </div>
         </form>

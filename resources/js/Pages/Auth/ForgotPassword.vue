@@ -23,12 +23,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Forgot Password" />
+        <Head title="Recuperare parola - Modulia" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
+        <div class="mb-5 rounded-xl border border-[#F57C00]/20 bg-orange-50 px-4 py-3">
+            <h1 class="text-base font-bold text-[#1A237E]">Ai uitat parola?</h1>
+            <p class="mt-1 text-sm text-gray-600">Introdu adresa de email si iti trimitem un link de resetare.</p>
         </div>
 
         <div
@@ -60,7 +59,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Email Password Reset Link
+                    Trimite link de resetare
                 </PrimaryButton>
             </div>
         </form>

@@ -33,8 +33,8 @@ const submit = () => {
     <GuestLayout>
         <Head title="Bine ai venit in Modulia" />
 
-        <div class="mb-5 rounded-xl border border-[#0057FF]/15 bg-[#F6F9FF] px-4 py-3">
-            <h1 class="text-base font-bold text-[#2E2E2E]">Bine ai venit in Modulia</h1>
+        <div class="mb-5 rounded-xl border border-[#F57C00]/20 bg-orange-50 px-4 py-3">
+            <h1 class="text-base font-bold text-[#1A237E]">Bine ai venit in Modulia</h1>
             <p class="mt-1 text-sm text-gray-600">Management de santier simplu, modern si masurabil.</p>
         </div>
 
@@ -87,7 +87,7 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F57C00] focus:ring-offset-2"
                 >
                     Ai uitat parola?
                 </Link>
