@@ -641,7 +641,15 @@ class AdminController extends Controller
             'social_linkedin_url' => ['nullable', 'url', 'max:500'],
             'social_tiktok_url' => ['nullable', 'url', 'max:500'],
             'social_youtube_url' => ['nullable', 'url', 'max:500'],
-            'document_logo_url' => ['nullable', 'url', 'max:500'],
+            'document_logo_url' => [
+                'nullable',
+                'max:500',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $this->isAllowedAssetUrl($value)) {
+                        $fail('Logo-ul trebuie sa fie un URL valid sau o cale relativa care incepe cu /.');
+                    }
+                },
+            ],
             'document_logo_file' => ['nullable', 'image', 'max:2048'],
             'document_brand_color' => ['nullable', 'string', 'max:32'],
             'trial_days' => ['required', 'integer', 'min:1', 'max:90'],
@@ -710,6 +718,21 @@ class AdminController extends Controller
         return (int) Tenant::query()->get(['billing_plan'])->sum(function (Tenant $tenant) use ($plans) {
             return (int) ($plans[$tenant->billing_plan]['price'] ?? 0);
         });
+    }
+
+    private function isAllowedAssetUrl(mixed $value): bool
+    {
+        $urlValue = trim((string) ($value ?? ''));
+
+        if ($urlValue === '') {
+            return true;
+        }
+
+        if (str_starts_with($urlValue, '/')) {
+            return true;
+        }
+
+        return (bool) filter_var($urlValue, FILTER_VALIDATE_URL);
     }
 
     private function isAllowedLandingVideoUrl(mixed $value): bool

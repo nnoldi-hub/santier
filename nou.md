@@ -1943,3 +1943,33 @@ Definition of Done:
 - Validare:
 	- `npm run build` -> passed.
 	- Fara schimbari de backend.
+
+### 2026-07-10 - Fix salvare setari documente (URL logo respins desi era incarcat fisier)
+- Etapa: userul a raportat ca nu poate salva setarile de documente - browserul cerea
+  "Please enter a URL" desi tocmai incarcase un logo prin campul de fisier.
+- Ce am gasit (doua bug-uri stivuite pe acelasi camp `document_logo_url`):
+	- Frontend: campul text avea `type="url"`, dar valoarea curenta era o cale relativa
+	  (`/brand/logo_modulia.png`, valoarea implicita de brand din platforma) - validarea
+	  nativa HTML5 pentru `type="url"` respinge cai relative, deci browserul bloca
+	  submisia formularului INAINTE sa ajunga la server, chiar daca userul incarcase un
+	  fisier nou prin campul separat "Sau incarca logo" (valoarea veche din campul text
+	  ramanea neschimbata si tot bloca trimiterea).
+	- Backend: regula de validare `'url'` pe `document_logo_url` in `AdminController` si
+	  `DocumentBrandingController` avea aceeasi problema - ar fi respins orice cale
+	  relativa chiar daca ar fi trecut de validarea din browser.
+	- Acelasi camp exista identic si pe pagina `Documents/Branding.vue` (ruta separata de
+	  configurare documente) - acelasi bug prezent si acolo.
+- Livrat:
+	- `Admin/Index.vue` + `Documents/Branding.vue`: `type="url"` -> `type="text"` pe
+	  campul "Logo documente (URL)".
+	- `AdminController.php` + `DocumentBrandingController.php`: regula `'url'` inlocuita
+	  cu un closure de validare nou (`isAllowedAssetUrl()`, dupa modelul deja existent
+	  `isAllowedLandingVideoUrl()`) care accepta fie un URL absolut valid, fie o cale ce
+	  incepe cu `/` (asset local din `public/`).
+- Validare:
+	- `npm run build` -> passed.
+	- Fara mediu PHP CLI disponibil in acest shell pentru `artisan test` local (nu exista
+	  teste feature existente pe aceste 2 controllere) - schimbarea e mica si urmareste
+	  exact tiparul deja validat al `isAllowedLandingVideoUrl()` din acelasi fisier.
+- Ce ramane: verificare vizuala pe live ca salvarea setarilor + upload logo functioneaza
+  cap-coada.

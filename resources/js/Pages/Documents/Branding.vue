@@ -115,7 +115,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Logo documente (URL)</label>
-                        <input v-model="settingsForm.document_logo_url" type="url" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="https://.../logo.png" />
+                        <input v-model="settingsForm.document_logo_url" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="https://.../logo.png" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Sau incarca logo</label>

@@ -35,7 +35,15 @@ class DocumentBrandingController extends Controller
             'company_address' => ['nullable', 'string', 'max:255'],
             'support_email' => ['required', 'email', 'max:255'],
             'sales_email' => ['required', 'email', 'max:255'],
-            'document_logo_url' => ['nullable', 'url', 'max:500'],
+            'document_logo_url' => [
+                'nullable',
+                'max:500',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $this->isAllowedAssetUrl($value)) {
+                        $fail('Logo-ul trebuie sa fie un URL valid sau o cale relativa care incepe cu /.');
+                    }
+                },
+            ],
             'document_logo_file' => ['nullable', 'image', 'max:2048'],
             'document_brand_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
@@ -59,5 +67,20 @@ class DocumentBrandingController extends Controller
         ]);
 
         return back()->with('success', 'Configurarea documentelor a fost actualizata.');
+    }
+
+    private function isAllowedAssetUrl(mixed $value): bool
+    {
+        $urlValue = trim((string) ($value ?? ''));
+
+        if ($urlValue === '') {
+            return true;
+        }
+
+        if (str_starts_with($urlValue, '/')) {
+            return true;
+        }
+
+        return (bool) filter_var($urlValue, FILTER_VALIDATE_URL);
     }
 }
