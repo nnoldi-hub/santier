@@ -1598,3 +1598,35 @@ Definition of Done:
 	  ecran de setare parola la invitare (in loc de parola random inutila).
 	- Operational (inainte de deploy pe productie): rulat `iam:backfill-legacy-roles --apply`
 	  pe productie pentru orice user real fara rol atribuit.
+
+### 2026-07-10 - Checkpoint Audit izolare organizatii + IAM (Faza 3/3, inchidere initiativa)
+- Etapa inchisa: notificari email pentru actiunile de cont (ultima cerinta explicita a
+  userului - "Toate notificarile sa se faca pe email").
+- Livrat:
+	- 3 clase noi `App\Notifications\*` dupa modelul existent `ProjectRoleChangedNotification`
+	  (`via() => ['database', 'mail']`, `ShouldQueue` - productia are queue worker activ):
+		- `UserInvitedNotification` - trimisa la `TenantUserController::invite()`. Inlocuieste
+		  parola random inutila (`Hash::make(Str::password(20))`, ramasa neschimbata ca fallback
+		  de securitate) cu un email real care contine un link de setare parola, generat cu
+		  `Password::createToken()` si ruta existenta `password.reset` - reutilizeaza fluxul
+		  standard Laravel de reset parola (`NewPasswordController`, pagina `Auth/ResetPassword`),
+		  fara ecran nou de UI.
+		- `UserRoleChangedNotification` - trimisa la `TenantUserController::updateRole()`.
+		- `UserStatusChangedNotification` - trimisa la `TenantUserController::updateStatus()`,
+		  text diferit pentru suspendare vs reactivare.
+	- Creare/editare/stergere rol raman doar in Audit acces, fara email (decizie user - nu
+	  exista un destinatar natural pentru o schimbare de configurare facuta de admin).
+- Validare:
+	- `tests/Feature/TenantAdministrationTest.php` extins cu 2 teste noi + assertii de
+	  notificare in cele existente (5 teste, 43 assertions) - `Notification::fake()` +
+	  `assertSentTo` pentru toate 3 notificarile, plus un test dedicat care randeaza efectiv
+	  `UserInvitedNotification::toMail()` si verifica ca link-ul de setare parola contine
+	  ruta si emailul corecte (fara fake, ca sa prindem erori reale de randare).
+	- Suita completa (153 teste, `PricingPlanLimitsTest` rulat separat) -> 150/153 + 5/5 pass,
+	  aceleasi 3 esecuri pre-existente neschimbate.
+- Inchidere initiativa audit cont/organizatii: toate cele 3 faze sunt in productie-ready
+  (Faza 1: izolare tenant reparata pe 10 resurse + teste dedicate; Faza 2: bypass legacy
+  eliminat + comanda de backfill; Faza 3: notificari email pe toate actiunile de cont cu
+  destinatar clar). Singurul pas ramas e operational, nu de cod: rularea
+  `iam:backfill-legacy-roles --apply` pe productie inainte de deploy-ul Fazei 2, ca sa nu
+  ramana niciun user real blocat.

@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Password;
+
+class UserInvitedNotification extends Notification implements ShouldQueue
+{
+    use Queueable;
+
+    public function __construct(
+        private readonly string $tenantName,
+        private readonly string $roleLabel,
+        private readonly string $actorName,
+    ) {
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function via(object $notifiable): array
+    {
+        return ['database', 'mail'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'tenant_name' => $this->tenantName,
+            'role_label' => $this->roleLabel,
+            'actor_name' => $this->actorName,
+        ];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $token = Password::createToken($notifiable);
+        $url = url(route('password.reset', ['token' => $token, 'email' => $notifiable->email], false));
+
+        return (new MailMessage)
+            ->subject('Ai fost invitat in Modulia - Șantierul devine clar')
+            ->line($this->actorName . ' te-a adaugat in firma "' . $this->tenantName . '" pe Modulia.')
+            ->line('Rolul tau: ' . $this->roleLabel . '.')
+            ->line('Apasa butonul de mai jos ca sa-ti setezi parola si sa-ti activezi contul.')
+            ->action('Seteaza-ti parola', $url)
+            ->line('Linkul expira in ' . config('auth.passwords.users.expire', 60) . ' de minute.');
+    }
+}

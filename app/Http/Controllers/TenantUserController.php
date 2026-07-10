@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
+use App\Notifications\UserInvitedNotification;
+use App\Notifications\UserRoleChangedNotification;
+use App\Notifications\UserStatusChangedNotification;
 use App\Support\AccessAudit;
 use App\Support\IamLabels;
 use App\Support\TenantContext;
@@ -125,7 +129,7 @@ class TenantUserController extends Controller
         $role = Role::query()->findOrFail((int) $data['role_id']);
         abort_unless($role->tenant_id === null || (int) $role->tenant_id === $tenantId, 422, 'Rolul ales nu este disponibil pentru tenantul curent.');
 
-        DB::transaction(function () use ($data, $tenantId, $actor, $role): void {
+        $member = DB::transaction(function () use ($data, $tenantId, $actor, $role): User {
             $email = strtolower(trim((string) $data['email']));
             $displayName = trim((string) ($data['name'] ?? ''));
 
@@ -164,7 +168,12 @@ class TenantUserController extends Controller
                     'department' => $data['department'] ?? null,
                 ]
             );
+
+            return $member;
         });
+
+        $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
+        $member->notify(new UserInvitedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name));
 
         return back()->with('success', 'Utilizatorul a fost adaugat in firma si i s-a atribuit rolul selectat.');
     }
@@ -197,6 +206,11 @@ class TenantUserController extends Controller
                 'membership_id' => $membership->id,
             ]
         );
+
+        if ($membership->user) {
+            $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
+            $membership->user->notify(new UserStatusChangedNotification($tenantName, $data['status'], (string) $actor->name));
+        }
 
         return back()->with('success', $data['status'] === 'active' ? 'Utilizator reactivat.' : 'Utilizator suspendat.');
     }
@@ -232,6 +246,11 @@ class TenantUserController extends Controller
                 'membership_id' => $membership->id,
             ]
         );
+
+        if ($membership->user) {
+            $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
+            $membership->user->notify(new UserRoleChangedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name));
+        }
 
         return back()->with('success', 'Rolul utilizatorului a fost actualizat.');
     }

@@ -4,8 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\TenantUser;
 use App\Models\User;
+use App\Notifications\UserInvitedNotification;
+use App\Notifications\UserRoleChangedNotification;
+use App\Notifications\UserStatusChangedNotification;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -18,6 +22,8 @@ class TenantAdministrationTest extends TestCase
 
     public function test_superadmin_can_invite_user_and_assign_role(): void
     {
+        Notification::fake();
+
         $this->seed(IamSeeder::class);
 
         $superadmin = $this->createSuperadmin('superadmin@santier.local');
@@ -33,6 +39,8 @@ class TenantAdministrationTest extends TestCase
             ->assertRedirect();
 
         $member = User::query()->where('email', 'nou@firma.local')->firstOrFail();
+
+        Notification::assertSentTo($member, UserInvitedNotification::class);
 
         $this->assertDatabaseHas('users', [
             'id' => $member->id,
@@ -57,8 +65,33 @@ class TenantAdministrationTest extends TestCase
         ]);
     }
 
+    public function test_invite_notification_renders_a_working_password_set_link(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $superadmin = $this->createSuperadmin('superadmin.mail@santier.local');
+        $role = Role::query()->where('name', 'data_entry')->firstOrFail();
+
+        $this->actingAs($superadmin)
+            ->post(route('account.users.invite'), [
+                'name' => 'Utilizator Mail',
+                'email' => 'mail.nou@firma.local',
+                'department' => 'Santier',
+                'role_id' => $role->id,
+            ])
+            ->assertRedirect();
+
+        $member = User::query()->where('email', 'mail.nou@firma.local')->firstOrFail();
+        $mail = (new UserInvitedNotification('Tenant implicit', 'Operator introducere date', $superadmin->name))->toMail($member);
+
+        $this->assertStringContainsString('reset-password', $mail->actionUrl);
+        $this->assertStringContainsString('email=' . urlencode($member->email), $mail->actionUrl);
+    }
+
     public function test_superadmin_can_suspend_reactivate_and_reassign_tenant_user(): void
     {
+        Notification::fake();
+
         $this->seed(IamSeeder::class);
 
         $superadmin = $this->createSuperadmin('superadmin2@santier.local');
@@ -117,6 +150,14 @@ class TenantAdministrationTest extends TestCase
             'resource_type' => 'user',
             'resource_id' => $member->id,
         ]);
+
+        Notification::assertSentTo($member, UserStatusChangedNotification::class, function ($notification) use ($member) {
+            return $notification->toArray($member)['status'] === 'suspended';
+        });
+        Notification::assertSentTo($member, UserStatusChangedNotification::class, function ($notification) use ($member) {
+            return $notification->toArray($member)['status'] === 'active';
+        });
+        Notification::assertSentTo($member, UserRoleChangedNotification::class);
     }
 
     public function test_superadmin_can_manage_custom_tenant_roles(): void
