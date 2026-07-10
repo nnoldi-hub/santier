@@ -1475,3 +1475,16 @@ Definition of Done:
 	- Filtre avansate pe 2 coloane + buton explicit "Aplica filtre" (declanseaza preview cu filtrele curente).
 	- Filtre rapide client-side pe tabelul de audit exporturi (Tip/Format/Status/Interval).
 	- Iconite pe cardurile din "Toate rapoartele", footer enterprise, polish minor de culoare (accent navy pe titluri de sectiune).
+
+### 2026-07-10 - Checkpoint Exporturi Enterprise (aliniere design - Faza 2/3)
+- Etapa: filtre avansate pe 2 coloane, buton "Aplica filtre" si audit filtrat.
+- Livrat:
+	- Sectiunea "Filtre avansate export" reflow pe 2 coloane la `lg:` (stanga = chips interval rapid, dreapta = filtrele detaliate existente).
+	- Buton nou, portocaliu, full-width, "🔍 Aplica filtre" - declanseaza preview-ul (`generatePreview`) pentru tipul curent selectat si scroll spre panoul de preview.
+	- "Audit exporturi" primeste filtre rapide client-side (Tip, Format, Status, Interval 7/30/90 zile) peste cele 20 de inregistrari deja incarcate (`computed filteredAuditLogs`, fara schimbari de backend).
+	- Footer enterprise adaugat la finalul paginii ("Rapoarte enterprise generate de Modulia. Claritate. Control. Executie.").
+- Validare:
+	- `npm run build` -> passed.
+- Ce ramane (Faza 3/3):
+	- Iconite pe cardurile din "Toate rapoartele" (13 module).
+	- Polish minor de culoare (accent navy `#1A237E` pe titlurile ramase de sectiune).

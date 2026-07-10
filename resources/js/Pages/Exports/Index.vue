@@ -49,70 +49,83 @@
             </div>
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Filtre avansate export</h3>
-                <div class="mb-4">
-                    <label class="block text-xs text-gray-600 mb-1">Interval rapid</label>
-                    <div class="flex flex-wrap gap-2">
+                <h3 class="font-semibold text-[#1A237E] mb-4">Filtre avansate export</h3>
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr]">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-2">Interval rapid</label>
+                        <div class="flex flex-row flex-wrap gap-2 lg:flex-col">
+                            <button
+                                v-for="option in quickRangeOptions"
+                                :key="option.value"
+                                type="button"
+                                class="rounded-full border px-3 py-1.5 text-xs transition lg:rounded-2xl lg:text-left"
+                                :class="filters.quick_range === option.value ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 bg-[#F5F5F5] text-gray-600 hover:bg-orange-50'"
+                                @click="setQuickRange(option.value)"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Interval de la</label>
+                                <input v-model="filters.from" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Interval pana la</label>
+                                <input v-model="filters.to" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Proiect</label>
+                                <select v-model="filters.project_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">Toate</option>
+                                    <option v-for="project in projects" :key="project.id" :value="String(project.id)">{{ project.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Echipa</label>
+                                <select v-model="filters.team_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">Toate</option>
+                                    <option v-for="team in teams" :key="team.id" :value="String(team.id)">{{ team.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Statusuri</label>
+                                <input v-model="filters.status" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: open,in_progress" />
+                                <p class="mt-1 text-[11px] text-gray-400">Mai multe valori se separa prin virgula.</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Prioritati</label>
+                                <input v-model="filters.priority" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: high,medium" />
+                                <p class="mt-1 text-[11px] text-gray-400">Util pentru taskuri, defecte si fluxuri operationale.</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Responsabili</label>
+                                <input v-model="filters.assignee_ids" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: 12,18" />
+                                <p class="mt-1 text-[11px] text-gray-400">Camp optional pentru filtre tehnice pe utilizator.</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Cautare globala</label>
+                                <input v-model="filters.global_search" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="proiect X, etapa finisaje, defecte high, utilaje pompa" />
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" v-model="filters.include_inactive" class="rounded border-gray-300 text-orange-500" />
+                                Include elemente inactive
+                            </label>
+                        </div>
+
                         <button
-                            v-for="option in quickRangeOptions"
-                            :key="option.value"
                             type="button"
-                            class="text-xs rounded-full border px-3 py-1.5"
-                            :class="filters.quick_range === option.value ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
-                            @click="setQuickRange(option.value)"
+                            class="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-[#F57C00] text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                            @click="applyFilters"
                         >
-                            {{ option.label }}
+                            🔍 Aplica filtre
                         </button>
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Interval de la</label>
-                        <input v-model="filters.from" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Interval pana la</label>
-                        <input v-model="filters.to" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Proiect</label>
-                        <select v-model="filters.project_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                            <option value="">Toate</option>
-                            <option v-for="project in projects" :key="project.id" :value="String(project.id)">{{ project.name }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Echipa</label>
-                        <select v-model="filters.team_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                            <option value="">Toate</option>
-                            <option v-for="team in teams" :key="team.id" :value="String(team.id)">{{ team.name }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Statusuri</label>
-                        <input v-model="filters.status" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: open,in_progress" />
-                        <p class="mt-1 text-[11px] text-gray-400">Mai multe valori se separa prin virgula.</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Prioritati</label>
-                        <input v-model="filters.priority" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: high,medium" />
-                        <p class="mt-1 text-[11px] text-gray-400">Util pentru taskuri, defecte si fluxuri operationale.</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Responsabili</label>
-                        <input v-model="filters.assignee_ids" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: 12,18" />
-                        <p class="mt-1 text-[11px] text-gray-400">Camp optional pentru filtre tehnice pe utilizator.</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Cautare globala</label>
-                        <input v-model="filters.global_search" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="proiect X, etapa finisaje, defecte high, utilaje pompa" />
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" v-model="filters.include_inactive" class="rounded border-gray-300 text-orange-500" />
-                        Include elemente inactive
-                    </label>
                 </div>
 
                 <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50/60 p-4 md:p-5">
@@ -474,7 +487,48 @@
 
             <div class="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">Audit exporturi</h3>
+
+                <div v-if="recentLogs.length > 0" class="mb-4 flex flex-wrap items-end gap-3">
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Tip</label>
+                        <select v-model="auditFilters.type" class="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs">
+                            <option value="">Toate</option>
+                            <option v-for="type in auditTypeOptions" :key="type" :value="type">{{ formatExportType(type) }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Format</label>
+                        <select v-model="auditFilters.format" class="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs">
+                            <option value="">Toate</option>
+                            <option v-for="format in auditFormatOptions" :key="format" :value="format">{{ String(format).toUpperCase() }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Status</label>
+                        <select v-model="auditFilters.status" class="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs">
+                            <option value="">Toate</option>
+                            <option v-for="status in auditStatusOptions" :key="status" :value="status">{{ status }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Interval</label>
+                        <div class="flex gap-1.5">
+                            <button
+                                v-for="option in auditIntervalOptions"
+                                :key="option.value"
+                                type="button"
+                                class="rounded-full border px-2.5 py-1 text-[11px] transition"
+                                :class="auditFilters.interval === option.value ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'"
+                                @click="auditFilters.interval = option.value"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-if="recentLogs.length === 0" class="text-sm text-gray-400">Nu exista inregistrari.</div>
+                <div v-else-if="filteredAuditLogs.length === 0" class="text-sm text-gray-400">Nicio inregistrare pentru filtrele curente.</div>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead>
@@ -488,7 +542,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="log in recentLogs" :key="log.id" class="border-b last:border-0">
+                            <tr v-for="log in filteredAuditLogs" :key="log.id" class="border-b last:border-0">
                                 <td class="py-2 pr-3 text-gray-600">{{ formatDateTime(log.created_at) }}</td>
                                 <td class="py-2 pr-3">{{ formatExportType(log.export_type) }}</td>
                                 <td class="py-2 pr-3">{{ log.format?.toUpperCase?.() ?? log.format }}</td>
@@ -500,6 +554,10 @@
                     </table>
                 </div>
             </div>
+
+            <footer class="py-6 text-center text-xs text-gray-400">
+                Rapoarte enterprise generate de Modulia. Claritate. Control. Executie.
+            </footer>
         </div>
     </AppLayout>
 </template>
@@ -865,6 +923,52 @@ function setQuickRange(value) {
     filters.quick_range = filters.quick_range === value ? '' : value;
 }
 
+const auditFilters = reactive({
+    type: '',
+    format: '',
+    status: '',
+    interval: '',
+});
+
+const auditIntervalOptions = [
+    { value: '', label: 'Toate' },
+    { value: '7', label: '7 zile' },
+    { value: '30', label: '30 zile' },
+    { value: '90', label: '90 zile' },
+];
+
+const auditTypeOptions = computed(() => [...new Set(props.recentLogs.map((log) => log.export_type).filter(Boolean))]);
+const auditFormatOptions = computed(() => [...new Set(props.recentLogs.map((log) => log.format).filter(Boolean))]);
+const auditStatusOptions = computed(() => [...new Set(props.recentLogs.map((log) => log.status).filter(Boolean))]);
+
+const filteredAuditLogs = computed(() => {
+    const intervalDays = auditFilters.interval ? Number(auditFilters.interval) : null;
+    const intervalStart = intervalDays ? Date.now() - intervalDays * 24 * 60 * 60 * 1000 : null;
+
+    return props.recentLogs.filter((log) => {
+        if (auditFilters.type && log.export_type !== auditFilters.type) {
+            return false;
+        }
+
+        if (auditFilters.format && log.format !== auditFilters.format) {
+            return false;
+        }
+
+        if (auditFilters.status && log.status !== auditFilters.status) {
+            return false;
+        }
+
+        if (intervalStart && log.created_at) {
+            const createdAt = new Date(log.created_at).getTime();
+            if (!Number.isNaN(createdAt) && createdAt < intervalStart) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+});
+
 const subscriptionForm = useForm({
     name: '',
     export_type: 'projects',
@@ -1132,6 +1236,10 @@ function templatePdfUrl(template) {
 
 function previewTemplate(template) {
     previewState.export_type = template.previewType;
+    generatePreview();
+}
+
+function applyFilters() {
     generatePreview();
 }
 
