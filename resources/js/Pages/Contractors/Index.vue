@@ -54,14 +54,16 @@
             </div>
         </div>
 
-        <div v-if="contractors.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">🤝</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista contractori</h3>
-            <p class="text-gray-400 text-sm mb-6">Adauga primul contractor pentru alocare pe etape.</p>
+        <EmptyState
+            v-if="contractors.data.length === 0"
+            :icon="HandRaisedIcon"
+            title="Nu exista contractori"
+            description="Adauga primul contractor pentru alocare pe etape."
+        >
             <Link :href="route('contractors.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza contractor
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="space-y-3">
             <div v-for="contractor in contractors.data" :key="contractor.id" class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between gap-4">
@@ -92,6 +94,8 @@
 import { computed, reactive, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { HandRaisedIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     contractors: Object,

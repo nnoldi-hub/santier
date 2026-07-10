@@ -10,15 +10,16 @@
             </Link>
         </div>
 
-        <!-- Empty state -->
-        <div v-if="projects.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">🏗️</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Niciun proiect</h3>
-            <p class="text-gray-400 text-sm mb-6">Creeaza primul proiect pentru a incepe.</p>
+        <EmptyState
+            v-if="projects.data.length === 0"
+            :icon="BuildingOffice2Icon"
+            title="Niciun proiect"
+            description="Creeaza primul proiect pentru a incepe."
+        >
             <Link :href="route('projects.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza proiect
             </Link>
-        </div>
+        </EmptyState>
 
         <!-- Projects grid -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -58,6 +59,8 @@
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 
 defineProps({
     projects: Object,

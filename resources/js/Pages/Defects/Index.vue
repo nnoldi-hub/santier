@@ -45,14 +45,16 @@
             </div>
         </div>
 
-        <div v-if="defects.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">🔧</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista defecte</h3>
-            <p class="text-gray-400 text-sm mb-6">Adauga primul defect pentru urmarirea remedierilor.</p>
+        <EmptyState
+            v-if="defects.data.length === 0"
+            :icon="WrenchScrewdriverIcon"
+            title="Nu exista defecte"
+            description="Adauga primul defect pentru urmarirea remedierilor."
+        >
             <Link :href="route('defects.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza defect
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="space-y-3">
             <div v-for="defect in defects.data" :key="defect.id" class="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-4">
@@ -92,6 +94,8 @@
 import { reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     defects: Object,

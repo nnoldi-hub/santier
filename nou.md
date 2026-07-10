@@ -1778,3 +1778,29 @@ Definition of Done:
   (consistenta culori pe Ajutor + Documente), Faza 5/5 (pluralizare romana). Emoji-urile
   ramase in restul aplicatiei (~70 aparitii imprastiate in alte 30+ fisiere, mai ales
   `Projects/Show.vue` si `Welcome.vue`) raman backlog, in afara scopului acestei runde.
+
+### 2026-07-10 - Checkpoint Modernizare vizuala (Faza 3/5 - componenta EmptyState)
+- Etapa: unificare stari goale ("Nu exista X") - erau copy-paste in fiecare pagina, cu emoji
+  ca iconita si markup usor diferit intre ele.
+- Livrat:
+	- `resources/js/Components/EmptyState.vue` (nou) - props `icon` (optional, componenta
+	  Heroicons), `title`, `description`, plus un slot implicit pentru butonul CTA (fiecare
+	  pagina isi pastreaza propriul `<Link>`/actiune, componenta doar unifica structura
+	  vizuala).
+	- Migrate 20 de pagini (nu cele ~18 estimate initial in plan - investigatia originala
+	  fusese "reprezentativa", nu exhaustiva; am gasit inca 2 in timpul migrarii -
+	  `Clients/Index.vue` si `Projects/Index.vue` - si le-am inclus):
+		- 11 cu iconita + CTA: Wbs, Tasks, Quotes, Teams, ResourceOrders, Materials,
+		  QualityChecks, Defects, Contractors, Clients, Projects.
+		- 5 fara iconita originala, acum cu iconita adaugata + CTA: StageReports,
+		  StageTasks, Documents, Equipment, MaterialInvoices.
+		- 4 fara iconita/CTA (vederi de calendar, doar mesaj): TeamCalendar, StageProgress,
+		  ResourceCalendar, EquipmentCalendar.
+- Validare:
+	- `npm run build` -> passed dupa fiecare pas.
+	- Verificare finala: cautare `text-5xl mb-4` / `text-3xl mb-2` (semnatura vechiului
+	  markup copy-paste) in `resources/js/Pages/` -> singurul rezultat ramas e
+	  `Projects/Show.vue` (pagina mare de detaliu proiect, backlog explicit, nu lista).
+	- Fara schimbari de backend.
+- Ce ramane: Faza 4/5 (consistenta culori pe Ajutor + Documente), Faza 5/5 (pluralizare
+  romana).

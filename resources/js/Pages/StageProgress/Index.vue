@@ -103,10 +103,11 @@
             </div>
         </div>
 
-        <div v-if="phases.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista etape pentru urmarire</h3>
-            <p class="text-gray-400 text-sm">Adauga etape din WBS pentru a vedea progresul in timp real.</p>
-        </div>
+        <EmptyState
+            v-if="phases.data.length === 0"
+            title="Nu exista etape pentru urmarire"
+            description="Adauga etape din WBS pentru a vedea progresul in timp real."
+        />
 
         <div v-else class="space-y-3">
             <div v-for="phase in phases.data" :key="phase.id" class="bg-white rounded-xl border border-gray-200 p-4">
@@ -139,6 +140,7 @@
 import { computed, reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
 
 const props = defineProps({
     phases: Object,

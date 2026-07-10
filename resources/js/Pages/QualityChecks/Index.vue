@@ -49,14 +49,16 @@
             </div>
         </div>
 
-        <div v-if="checks.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">✅</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista verificari</h3>
-            <p class="text-gray-400 text-sm mb-6">Adauga prima verificare pentru urmarirea conformitatii.</p>
+        <EmptyState
+            v-if="checks.data.length === 0"
+            :icon="CheckBadgeIcon"
+            title="Nu exista verificari"
+            description="Adauga prima verificare pentru urmarirea conformitatii."
+        >
             <Link :href="route('quality-checks.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza verificare
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="space-y-3">
             <div v-for="check in checks.data" :key="check.id" class="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-4">
@@ -99,6 +101,8 @@
 import { reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { CheckBadgeIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     checks: Object,

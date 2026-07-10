@@ -51,10 +51,11 @@
             </div>
         </div>
 
-        <div v-if="assignments.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista alocari in intervalul ales</h3>
-            <p class="text-gray-400 text-sm">Creeaza alocari din pagina unui proiect pentru a le vedea aici.</p>
-        </div>
+        <EmptyState
+            v-if="assignments.length === 0"
+            title="Nu exista alocari in intervalul ales"
+            description="Creeaza alocari din pagina unui proiect pentru a le vedea aici."
+        />
 
         <div v-else class="space-y-3">
             <div v-for="assignment in assignments" :key="assignment.id" class="bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between gap-4">
@@ -86,6 +87,7 @@
 import { reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
 
 const props = defineProps({
     assignments: Array,

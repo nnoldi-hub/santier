@@ -10,15 +10,16 @@
             </Link>
         </div>
 
-        <!-- Empty state -->
-        <div v-if="clients.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">👥</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Niciun client</h3>
-            <p class="text-gray-400 text-sm mb-6">Adauga primul client pentru a putea crea proiecte.</p>
+        <EmptyState
+            v-if="clients.data.length === 0"
+            :icon="UsersIcon"
+            title="Niciun client"
+            description="Adauga primul client pentru a putea crea proiecte."
+        >
             <Link :href="route('clients.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Adauga client
             </Link>
-        </div>
+        </EmptyState>
 
         <!-- Clients table -->
         <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -70,6 +71,8 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { UsersIcon } from '@heroicons/vue/24/outline';
 
 defineProps({
     clients: Object,

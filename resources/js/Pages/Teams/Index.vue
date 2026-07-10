@@ -39,14 +39,16 @@
             </form>
         </section>
 
-        <div v-if="teams.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">👷</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista echipe</h3>
-            <p class="text-gray-400 text-sm mb-6">Creeaza prima echipa pentru alocari pe etape.</p>
+        <EmptyState
+            v-if="teams.data.length === 0"
+            :icon="UsersIcon"
+            title="Nu exista echipe"
+            description="Creeaza prima echipa pentru alocari pe etape."
+        >
             <Link :href="route('teams.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza echipa
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Link
@@ -77,6 +79,8 @@ import { reactive } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { UsersIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     teams: Object,

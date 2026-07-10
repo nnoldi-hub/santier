@@ -53,10 +53,11 @@
             </div>
         </div>
 
-        <div v-if="events.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista evenimente in intervalul ales</h3>
-            <p class="text-gray-400 text-sm">Extinde perioada sau elimina filtrele pentru a vedea planificarea.</p>
-        </div>
+        <EmptyState
+            v-if="events.length === 0"
+            title="Nu exista evenimente in intervalul ales"
+            description="Extinde perioada sau elimina filtrele pentru a vedea planificarea."
+        />
 
         <div v-else class="space-y-3">
             <div v-for="event in events" :key="event.id" class="bg-white rounded-xl border border-gray-200 p-4">
@@ -92,6 +93,7 @@
 import { computed, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
 
 const props = defineProps({
     events: { type: Array, default: () => [] },

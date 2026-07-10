@@ -90,14 +90,16 @@
             </div>
         </div>
 
-        <div v-if="phases.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">🧩</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista etape WBS</h3>
-            <p class="text-gray-400 text-sm mb-6">Adauga etape din pagina proiectului pentru planificare operationala.</p>
+        <EmptyState
+            v-if="phases.data.length === 0"
+            :icon="PuzzlePieceIcon"
+            title="Nu exista etape WBS"
+            description="Adauga etape din pagina proiectului pentru planificare operationala."
+        >
             <Link :href="route('projects.index')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Mergi la proiecte
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="space-y-3">
             <div
@@ -178,6 +180,8 @@
 import { computed, reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     phases: Object,

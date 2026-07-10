@@ -44,14 +44,16 @@
             </div>
         </div>
 
-        <div v-if="tasks.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-16 text-center">
-            <div class="text-5xl mb-4">✅</div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Nu exista taskuri</h3>
-            <p class="text-gray-400 text-sm mb-6">Creeaza primul task pentru un proiect.</p>
+        <EmptyState
+            v-if="tasks.data.length === 0"
+            :icon="CheckCircleIcon"
+            title="Nu exista taskuri"
+            description="Creeaza primul task pentru un proiect."
+        >
             <Link :href="route('tasks.create')" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
                 Creeaza task
             </Link>
-        </div>
+        </EmptyState>
 
         <div v-else class="space-y-3">
             <div v-for="task in tasks.data" :key="task.id" class="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-4">
@@ -100,6 +102,8 @@
 import { reactive } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import { CheckCircleIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     tasks: Object,
