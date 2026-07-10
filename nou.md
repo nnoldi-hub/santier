@@ -1320,11 +1320,13 @@ Faza E (Sprint 5) - Materiale & Avize advanced pack
 	- panou `Export rapid` in header (CTA mare + preseturi manageriale);
 	- carduri one-click modernizate (dimensiune, accent color, icon, KPI-uri, actiuni vizibile XLSX/PDF/CSV/Preview);
 	- metadate vizuale per template + indicator de rulare recenta din loguri.
+	- KPI-uri reale pe carduri din date agregate backend (`rulari 90z`, `rata succes`, `ultim status`, `ultima rulare`).
+	- fine-tuning mobile: butoane mai mari, spacing ajustat, contrast imbunatatit pentru actiuni rapide.
 2. Validare tehnica:
 	- `npm run build` -> passed.
 3. Ce ramane in Faza A:
-	- calibrare KPI pe date reale per domeniu (nu doar rulari recente);
-	- ajustare finala spacing/contrast pentru viewport-uri mici.
+	- calibrare finala praguri KPI (warning/critical) pe date reale productie;
+	- review UX pe 2-3 rezolutii mobile reale (QA vizual).
 
 Faza A (Sapt. 1-2) - Foundation UX + Query Layer
 1. Search bar global in pagina exporturi (query unificata peste module).

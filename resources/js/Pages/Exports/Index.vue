@@ -18,7 +18,7 @@
 
                     <a
                         :href="quickExportUrl(quickExportPresets[0])"
-                        class="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                        class="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
                     >
                         {{ quickExportPresets[0].label }}
                     </a>
@@ -28,7 +28,7 @@
                             v-for="preset in quickExportPresets.slice(1)"
                             :key="preset.key"
                             :href="quickExportUrl(preset)"
-                            class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
+                            class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
                         >
                             {{ preset.label }}
                         </a>
@@ -114,7 +114,7 @@
                             class="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md"
                         >
                             <div class="h-1.5" :class="templateCardMeta(template).barClass"></div>
-                            <div class="flex h-full flex-col p-4">
+                            <div class="flex h-full min-h-[260px] flex-col p-4 sm:p-4">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <div class="text-sm font-semibold text-gray-900">{{ template.label }}</div>
@@ -127,26 +127,33 @@
                                     </span>
                                 </div>
 
+                                <div class="mt-3 flex items-center justify-between gap-2">
+                                    <span class="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide" :class="templateStatusClass(template)">
+                                        {{ templateStatusLabel(template) }}
+                                    </span>
+                                    <span class="text-[11px] text-gray-500">Ultima rulare: {{ templateLastRunLabel(template) }}</span>
+                                </div>
+
                                 <div class="mt-3 grid grid-cols-2 gap-2">
-                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2">
-                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Module</div>
-                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ template.types.length }}</div>
-                                    </div>
-                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2">
-                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Rulari recente</div>
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2.5">
+                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Rulari 90z</div>
                                         <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ templateRunCount(template) }}</div>
+                                    </div>
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2.5">
+                                        <div class="text-[10px] uppercase tracking-wide text-gray-500">Rata succes</div>
+                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ templateSuccessRate(template) }}</div>
                                     </div>
                                 </div>
 
-                                <div class="mt-2 text-[11px] text-gray-500">Ultima rulare: {{ templateLastRunLabel(template) }}</div>
+                                <div class="mt-2 text-[11px] text-gray-500">Module incluse: {{ template.types.length }}</div>
 
-                                <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] font-semibold">
-                                    <a :href="templateWorkbookUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-700 transition hover:bg-emerald-100">XLSX</a>
-                                    <a :href="templatePdfUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-rose-700 transition hover:bg-rose-100">PDF</a>
-                                    <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-2 py-1.5 text-sky-700 transition hover:bg-sky-100">CSV</a>
+                                <div class="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+                                    <a :href="templateWorkbookUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-emerald-700 transition hover:bg-emerald-100">XLSX</a>
+                                    <a :href="templatePdfUrl(template)" class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-2 text-rose-700 transition hover:bg-rose-100">PDF</a>
+                                    <a v-if="template.primaryCsvRoute" :href="routeWithFilters(template.primaryCsvRoute)" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-2 py-2 text-sky-700 transition hover:bg-sky-100">CSV</a>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-gray-700 transition hover:bg-gray-50"
+                                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-2 py-2 text-gray-700 transition hover:bg-gray-50"
                                         @click="previewTemplate(template)"
                                     >
                                         Preview
@@ -486,6 +493,7 @@ const props = defineProps({
     users: { type: Array, default: () => [] },
     subscriptions: { type: Array, default: () => [] },
     recentLogs: { type: Array, default: () => [] },
+    exportStats: { type: Object, default: () => ({}) },
     branding: { type: Object, default: () => ({}) },
     filters: { type: Object, default: () => ({}) },
 });
@@ -704,6 +712,51 @@ const quickExportPresets = [
     },
 ];
 
+const exportStatsByType = computed(() => (props.exportStats && typeof props.exportStats === 'object' ? props.exportStats : {}));
+
+const templateStatsMap = computed(() => {
+    const entries = reportTemplates.map((template) => {
+        let runs = 0;
+        let successRuns = 0;
+        let lastRunAt = null;
+        let lastStatus = null;
+
+        template.types.forEach((type) => {
+            const stats = exportStatsByType.value[type];
+
+            if (!stats) {
+                return;
+            }
+
+            const typeRuns = Number(stats.runs || 0);
+            const typeSuccessRuns = Number(stats.success_runs || 0);
+            runs += typeRuns;
+            successRuns += typeSuccessRuns;
+
+            if (stats.last_run_at) {
+                const candidate = new Date(stats.last_run_at);
+                if (!Number.isNaN(candidate.getTime())) {
+                    if (!lastRunAt || candidate > lastRunAt) {
+                        lastRunAt = candidate;
+                        lastStatus = stats.last_status || null;
+                    }
+                }
+            }
+        });
+
+        const successRate = runs > 0 ? ((successRuns / runs) * 100) : null;
+
+        return [template.key, {
+            runs,
+            successRate,
+            lastRunAt,
+            lastStatus,
+        }];
+    });
+
+    return Object.fromEntries(entries);
+});
+
 const templateCardMetaMap = {
     'project-complete': {
         barClass: 'bg-gradient-to-r from-indigo-500 to-sky-500',
@@ -834,23 +887,60 @@ function templateCardMeta(template) {
 }
 
 function templateRunCount(template) {
-    if (!template?.types?.length) {
-        return 0;
+    return templateStats(template).runs;
+}
+
+function templateSuccessRate(template) {
+    const stats = templateStats(template);
+
+    if (stats.successRate === null) {
+        return 'n/a';
     }
 
-    const typeSet = new Set(template.types);
-    return (props.recentLogs || []).filter((log) => typeSet.has(log.export_type)).length;
+    return `${stats.successRate.toFixed(1)}%`;
+}
+
+function templateStatusLabel(template) {
+    const status = String(templateStats(template).lastStatus || '').toLowerCase();
+
+    if (!status) {
+        return 'fara rulare';
+    }
+
+    if (status === 'success') {
+        return 'ultima rulare OK';
+    }
+
+    return `ultima rulare ${status}`;
+}
+
+function templateStatusClass(template) {
+    const status = String(templateStats(template).lastStatus || '').toLowerCase();
+
+    if (!status) {
+        return 'border-gray-200 bg-gray-50 text-gray-600';
+    }
+
+    if (status === 'success') {
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    }
+
+    return 'border-rose-200 bg-rose-50 text-rose-700';
 }
 
 function templateLastRunLabel(template) {
-    if (!template?.types?.length) {
-        return '-';
-    }
+    const runAt = templateStats(template).lastRunAt;
 
-    const typeSet = new Set(template.types);
-    const latest = (props.recentLogs || []).find((log) => typeSet.has(log.export_type));
+    return runAt ? formatDateTime(runAt.toISOString()) : 'fara rulare recenta';
+}
 
-    return latest?.created_at ? formatDateTime(latest.created_at) : 'fara rulare recenta';
+function templateStats(template) {
+    return templateStatsMap.value[template.key] ?? {
+        runs: 0,
+        successRate: null,
+        lastRunAt: null,
+        lastStatus: null,
+    };
 }
 
 function templateWorkbookUrl(template) {

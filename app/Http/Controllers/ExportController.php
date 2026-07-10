@@ -54,6 +54,30 @@ class ExportController extends Controller
         $tenantId = TenantContext::id($user);
         $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
         $filters = ExportFilter::fromRequest($request);
+        $statsLogs = ExportLog::query()
+            ->where('tenant_id', $tenantId)
+            ->when(DemoScope::isDemoUser($user), fn ($query) => $query->where('user_id', $user->id))
+            ->whereIn('export_type', self::SUPPORTED_EXPORT_TYPES)
+            ->where('created_at', '>=', now()->subDays(90))
+            ->orderByDesc('created_at')
+            ->get(['export_type', 'status', 'created_at']);
+
+        $exportStats = $statsLogs
+            ->groupBy('export_type')
+            ->map(function (Collection $logs): array {
+                $runs = $logs->count();
+                $successRuns = $logs->where('status', 'success')->count();
+                $latest = $logs->first();
+
+                return [
+                    'runs' => $runs,
+                    'success_runs' => $successRuns,
+                    'success_rate' => $runs > 0 ? round(($successRuns / $runs) * 100, 1) : 0,
+                    'last_status' => (string) ($latest?->status ?? 'n/a'),
+                    'last_run_at' => $latest?->created_at?->toDateTimeString(),
+                ];
+            })
+            ->all();
 
         return Inertia::render('Exports/Index', [
             'projects' => DemoScope::applyProjectScope(Project::query(), $user)->orderBy('name')->get(['id', 'name']),
@@ -76,6 +100,7 @@ class ExportController extends Controller
                 ->latest('id')
                 ->take(20)
                 ->get(['id', 'export_type', 'format', 'status', 'file_name', 'delivery_channel', 'delivery_target', 'created_at']),
+            'exportStats' => $exportStats,
             'filters' => $filters,
             'branding' => [
                 'company_name' => $branding['company_name'] ?? config('exports.company_name'),
