@@ -1851,3 +1851,25 @@ Definition of Done:
 	- Fara schimbari de backend.
 - Ce ramane: nimic - plan "modernizare vizuala aplicatie" (5 faze) complet finalizat si
   livrat pe live.
+
+### 2026-07-10 - Checkpoint Modernizare admin platforma (Faza 1/4 - bug-uri reale)
+- Etapa: analiza profesionala a zonei de superadmin ("Control platforma": Administrare,
+  Dashboard Comercial, Firme & Abonamente, Firme pilot) - plan nou de modernizare in 4
+  faze, incepand cu 2 bug-uri reale gasite la citirea codului.
+- Livrat:
+	- `Admin/Index.vue`: eliminat hero-ul "Configurare documente emise" care era randat
+	  DE DOUA ORI - o data mereu vizibil la inceputul paginii, o data identic (plus un
+	  buton in plus) in interiorul tab-ului "Documente emise" (tab-ul implicit). Userul
+	  vedea acelasi card mare stivuit de doua ori la fiecare incarcare - confirmat exact
+	  de screenshot-urile trimise. Pastrat un singur hero, cel din tab.
+	- `TenantsIndex.vue`: butonul "Aplica filtre" folosea `bg-[var(--brand-blue)]`, o
+	  variabila CSS definita doar in scope-ul `.landing` din `Welcome.vue` (pagina publica) -
+	  in contextul acestei pagini variabila era nedefinita, deci proprietatea CSS invalida
+	  si butonul fara fundal real. Inlocuit cu `bg-orange-500 hover:bg-orange-600`,
+	  consistent cu restul CTA-urilor din aplicatie.
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: Faza 2/4 (aliniere culori brand + eliminare emoji pe cele 3 pagini), Faza 3/4
+  (aliniere PilotInvites.vue cu hero+KPI ca surorile sale), Faza 4/4 (pluralizare
+  "X firme" pe TenantsIndex.vue).

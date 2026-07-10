@@ -1,24 +1,6 @@
 <template>
     <AppLayout title="Administrare">
         <div class="space-y-6 max-w-7xl mx-auto">
-            <section class="rounded-3xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-sky-50 p-6 shadow-sm">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <div class="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                            <span>🧾</span>
-                            Configurare documente emise
-                        </div>
-                        <h2 class="mt-3 text-3xl font-black text-slate-900">Antet, logo, culoare si date de firma pentru documente profesionale</h2>
-                        <p class="mt-2 max-w-3xl text-sm text-slate-600">
-                            Aici setezi exact cum arata documentele emise din aplicatie: facturi, devize, oferte si procese verbale.
-                        </p>
-                    </div>
-                    <a href="#documente-configurare" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition">
-                        Mergi la setari
-                    </a>
-                </div>
-            </section>
-
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Operatori listati</div>

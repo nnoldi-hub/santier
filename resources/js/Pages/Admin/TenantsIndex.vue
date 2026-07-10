@@ -54,7 +54,7 @@
                             <option value="">Toate statusurile</option>
                             <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
-                        <button type="submit" class="rounded-xl bg-[var(--brand-blue)] px-4 py-2 text-sm font-semibold text-white hover:brightness-95 transition">
+                        <button type="submit" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition">
                             Aplica filtre
                         </button>
                     </form>
