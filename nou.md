@@ -1928,3 +1928,18 @@ Definition of Done:
   Comercial, Firme & Abonamente, Firme pilot) au acum acelasi limbaj vizual (hero + KPI +
   paleta de brand) si cele 2 bug-uri reale gasite (continut duplicat, CSS var nedefinita)
   sunt rezolvate.
+
+### 2026-07-10 - Fix buton "Mergi la setari" (Administrare -> Documente emise)
+- Etapa: userul a raportat ca butonul "Mergi la setari" din hero-ul de pe pagina
+  Administrare nu face nimic la click.
+- Ce am gasit: butonul era un link ancora `href="#documente-configurare"`, dar niciun
+  element din pagina nu avea `id="documente-configurare"` - ancora nu avea nicaieri unde
+  sa sara. Bug pre-existent (nu introdus de fazele anterioare din aceasta sesiune), ramas
+  neobservat pentru ca formularul era oricum vizibil imediat sub hero pe ecrane mari.
+- Livrat:
+	- Adaugat `id="documente-configurare"` pe formularul de setari documente
+	  (`Admin/Index.vue`), plus `scroll-mt-24` ca formularul sa nu ramana ascuns sub
+	  header-ul sticky (`h-16 sticky top-0`) al aplicatiei cand se face scroll la ancora.
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.

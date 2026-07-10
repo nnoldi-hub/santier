@@ -126,7 +126,7 @@
                         </div>
                     </section>
 
-                    <form class="mt-5 space-y-4 max-w-xl" @submit.prevent="saveSettings">
+                    <form id="documente-configurare" class="mt-5 space-y-4 max-w-xl scroll-mt-24" @submit.prevent="saveSettings">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Nume aplicatie</label>
                             <input v-model="settingsForm.app_name" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" />
