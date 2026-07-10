@@ -1,37 +1,49 @@
 <template>
     <AppLayout title="Exporturi">
         <div class="max-w-6xl mx-auto space-y-6">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex flex-col gap-3 pb-2 pt-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-800">Exporturi si rapoarte</h2>
-                    <p class="text-sm text-gray-500 mt-1">Descarca datele operationale in format CSV sau pachet complet pe proiect.</p>
+                    <h1 class="text-[28px] font-bold leading-tight text-[#1A237E]">Rapoarte &amp; Exporturi Enterprise</h1>
+                    <p class="mt-1 text-base text-gray-500">Claritate operationala, financiara si manageriala in fiecare proiect.</p>
                 </div>
 
-                <div class="w-full rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 via-amber-50 to-white p-4 shadow-sm lg:w-[420px]">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <div class="text-xs font-semibold uppercase tracking-wide text-orange-700">Export rapid</div>
-                            <div class="text-sm text-gray-600">Preset-uri executive pentru manageri</div>
-                        </div>
-                        <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700">One-click</span>
-                    </div>
-
-                    <a
-                        :href="quickExportUrl(quickExportPresets[0])"
-                        class="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-xl bg-[#F57C00] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                        @click="scrollToQuickExport"
                     >
-                        {{ quickExportPresets[0].label }}
-                    </a>
+                        Export rapid
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition hover:border-[#1A237E] hover:text-[#1A237E]"
+                        title="Rapoartele acopera proiect si etape, operare si echipe, resurse si utilaje, calitate si defecte, financiar si documente. Filtrele active se aplica automat pe toate exporturile."
+                    >
+                        <span class="text-sm font-bold">i</span>
+                        <span class="sr-only">Ce include rapoartele?</span>
+                    </button>
+                </div>
+            </div>
 
-                    <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <a
-                            v-for="preset in quickExportPresets.slice(1)"
-                            :key="preset.key"
-                            :href="quickExportUrl(preset)"
-                            class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
-                        >
-                            {{ preset.label }}
-                        </a>
+            <div ref="quickExportRef" class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div
+                    v-for="preset in quickExportPresets"
+                    :key="preset.key"
+                    class="flex min-h-[140px] flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-orange-300 hover:shadow-md"
+                >
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-xl">{{ preset.icon }}</span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-900">{{ preset.label }}</div>
+                            <div class="mt-0.5 text-xs text-gray-500">{{ preset.description }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-4 gap-1.5 text-[11px] font-semibold">
+                        <a :href="quickExportUrl(preset)" class="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-1.5 py-1.5 text-emerald-700 transition hover:bg-emerald-100">XLSX</a>
+                        <a :href="quickExportPdfUrl(preset)" class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-1.5 py-1.5 text-rose-700 transition hover:bg-rose-100">PDF</a>
+                        <a :href="routeWithFilters(preset.primaryCsvRoute)" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-1.5 py-1.5 text-sky-700 transition hover:bg-sky-100">CSV</a>
+                        <button type="button" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-1.5 py-1.5 text-gray-700 transition hover:bg-gray-50" @click="previewQuickPreset(preset)">Preview</button>
                     </div>
                 </div>
             </div>
@@ -127,7 +139,7 @@
                                     </span>
                                 </div>
 
-                                <div class="mt-3 flex items-center justify-between gap-2">
+                                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <span class="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide" :class="templateStatusClass(template)">
                                         {{ templateStatusLabel(template) }}
                                     </span>
@@ -135,13 +147,23 @@
                                 </div>
 
                                 <div class="mt-3 grid grid-cols-2 gap-2">
-                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2.5">
+                                    <div class="rounded-lg border px-2.5 py-2.5" :class="templateRunsClass(template)">
                                         <div class="text-[10px] uppercase tracking-wide text-gray-500">Rulari 90z</div>
-                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ templateRunCount(template) }}</div>
+                                        <div class="mt-0.5 text-sm font-semibold" :class="templateRunsValueClass(template)">{{ templateRunCount(template) }}</div>
                                     </div>
-                                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2.5">
+                                    <div class="rounded-lg border px-2.5 py-2.5" :class="templateSuccessClass(template)">
                                         <div class="text-[10px] uppercase tracking-wide text-gray-500">Rata succes</div>
-                                        <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ templateSuccessRate(template) }}</div>
+                                        <div class="mt-0.5 text-sm font-semibold" :class="templateSuccessValueClass(template)">{{ templateSuccessRate(template) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2">
+                                    <div class="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-gray-500">
+                                        <span>Sanatate KPI</span>
+                                        <span>{{ templateHealthLabel(template) }}</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full bg-gray-100">
+                                        <div class="h-full rounded-full transition-all" :class="templateHealthBarClass(template)" :style="{ width: templateHealthBarWidth(template) }"></div>
                                     </div>
                                 </div>
 
@@ -500,6 +522,7 @@ const props = defineProps({
 
 const projectId = ref('');
 const previewPanelRef = ref(null);
+const quickExportRef = ref(null);
 
 const exportTypeOptions = [
     { value: 'projects', label: 'Proiecte' },
@@ -698,17 +721,29 @@ const quickExportPresets = [
     {
         key: 'project-full',
         label: 'Export proiect complet',
+        icon: '📁',
+        description: 'WBS, taskuri, defecte, progres, documente.',
         types: ['projects', 'wbs', 'tasks', 'defects', 'stage-progress', 'documents'],
+        previewType: 'projects',
+        primaryCsvRoute: 'exports.projects',
     },
     {
         key: 'finance-full',
         label: 'Export financiar complet',
+        icon: '💰',
+        description: 'Costuri, devize, facturi, buget.',
         types: ['costs', 'documents', 'quotes', 'stage-progress'],
+        previewType: 'costs',
+        primaryCsvRoute: 'exports.costs',
     },
     {
         key: 'quality-full',
         label: 'Export calitate complet',
+        icon: '✔️',
+        description: 'Defecte, verificari, taskuri corective.',
         types: ['defects', 'tasks', 'stage-tasks', 'stage-reports'],
+        previewType: 'defects',
+        primaryCsvRoute: 'exports.defects',
     },
 ];
 
@@ -882,6 +917,27 @@ function quickExportUrl(preset) {
     });
 }
 
+function quickExportPdfUrl(preset) {
+    if (!preset) {
+        return '#';
+    }
+
+    return route('exports.managerial-pdf', {
+        ...filters,
+        q: filters.global_search || undefined,
+        types: preset.types.join(','),
+    });
+}
+
+function scrollToQuickExport() {
+    quickExportRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function previewQuickPreset(preset) {
+    previewState.export_type = preset.previewType;
+    generatePreview();
+}
+
 function templateCardMeta(template) {
     return templateCardMetaMap[template.key] ?? templateCardMetaMap.default;
 }
@@ -916,9 +972,14 @@ function templateStatusLabel(template) {
 
 function templateStatusClass(template) {
     const status = String(templateStats(template).lastStatus || '').toLowerCase();
+    const rate = templateStats(template).successRate;
 
     if (!status) {
         return 'border-gray-200 bg-gray-50 text-gray-600';
+    }
+
+    if (rate !== null && rate < 85) {
+        return 'border-rose-200 bg-rose-50 text-rose-700';
     }
 
     if (status === 'success') {
@@ -926,6 +987,116 @@ function templateStatusClass(template) {
     }
 
     return 'border-rose-200 bg-rose-50 text-rose-700';
+}
+
+function templateRunsClass(template) {
+    const runs = templateRunCount(template);
+
+    if (runs >= 12) {
+        return 'border-emerald-100 bg-emerald-50/60';
+    }
+
+    if (runs >= 4) {
+        return 'border-amber-100 bg-amber-50/60';
+    }
+
+    return 'border-gray-100 bg-gray-50';
+}
+
+function templateRunsValueClass(template) {
+    const runs = templateRunCount(template);
+
+    if (runs >= 12) {
+        return 'text-emerald-700';
+    }
+
+    if (runs >= 4) {
+        return 'text-amber-700';
+    }
+
+    return 'text-gray-700';
+}
+
+function templateSuccessClass(template) {
+    const rate = templateStats(template).successRate;
+
+    if (rate === null) {
+        return 'border-gray-100 bg-gray-50';
+    }
+
+    if (rate >= 95) {
+        return 'border-emerald-100 bg-emerald-50/60';
+    }
+
+    if (rate >= 85) {
+        return 'border-amber-100 bg-amber-50/60';
+    }
+
+    return 'border-rose-100 bg-rose-50/60';
+}
+
+function templateSuccessValueClass(template) {
+    const rate = templateStats(template).successRate;
+
+    if (rate === null) {
+        return 'text-gray-700';
+    }
+
+    if (rate >= 95) {
+        return 'text-emerald-700';
+    }
+
+    if (rate >= 85) {
+        return 'text-amber-700';
+    }
+
+    return 'text-rose-700';
+}
+
+function templateHealthLabel(template) {
+    const rate = templateStats(template).successRate;
+
+    if (rate === null) {
+        return 'n/a';
+    }
+
+    if (rate >= 95) {
+        return 'normal';
+    }
+
+    if (rate >= 85) {
+        return 'warning';
+    }
+
+    return 'critical';
+}
+
+function templateHealthBarClass(template) {
+    const rate = templateStats(template).successRate;
+
+    if (rate === null) {
+        return 'bg-gray-300';
+    }
+
+    if (rate >= 95) {
+        return 'bg-emerald-500';
+    }
+
+    if (rate >= 85) {
+        return 'bg-amber-500';
+    }
+
+    return 'bg-rose-500';
+}
+
+function templateHealthBarWidth(template) {
+    const rate = templateStats(template).successRate;
+
+    if (rate === null) {
+        return '20%';
+    }
+
+    return `${Math.max(12, Math.min(100, rate))}%`;
 }
 
 function templateLastRunLabel(template) {

@@ -1462,3 +1462,16 @@ Definition of Done:
 	- tab-uri dedicate pe domenii de raportare (proiect/etapa/echipa/contractor/resurse/utilaje/calitate/financiar);
 	- extindere scheduler pentru fluxuri multiple cu atasamente combinate;
 	- raportare verticala Materiale & Avize cu indicatori comparativi dedicati (comandat vs livrat, aviz statie vs pompa, consum vs livrat).
+
+### 2026-07-10 - Checkpoint Exporturi Enterprise (aliniere design "Rapoarte & Exporturi Enterprise" - Faza 1/3)
+- Etapa: aliniere pagina `/exports` la specificatia din `design rapoarte.md` (header + export rapid).
+- Livrat:
+	- Header dedicat nou: titlu mare "Rapoarte & Exporturi Enterprise" + subtitlu + buton "Export rapid" (scroll spre carduri) + iconita info cu tooltip "Ce include rapoartele?".
+	- Sectiunea "Export rapid" refacuta ca 3 carduri mari (Proiect complet / Financiar complet / Calitate complet), fiecare cu icon, descriere si 4 actiuni proprii: XLSX, PDF, CSV, Preview (reutilizeaza `quickExportPresets` existent, extins cu `icon`, `previewType`, `primaryCsvRoute`).
+	- Nicio schimbare de backend/rute - doar `resources/js/Pages/Exports/Index.vue`.
+- Validare:
+	- `npm run build` -> passed.
+- Ce ramane (Faza 2/3 si 3/3):
+	- Filtre avansate pe 2 coloane + buton explicit "Aplica filtre" (declanseaza preview cu filtrele curente).
+	- Filtre rapide client-side pe tabelul de audit exporturi (Tip/Format/Status/Interval).
+	- Iconite pe cardurile din "Toate rapoartele", footer enterprise, polish minor de culoare (accent navy pe titluri de sectiune).
