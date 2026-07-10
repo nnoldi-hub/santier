@@ -1,11 +1,5 @@
 <template>
     <AppLayout title="Dashboard">
-        <div class="mb-5 flex items-center justify-end">
-            <span class="rounded-full bg-[#0057FF]/10 px-3 py-1 text-xs font-semibold tracking-wide text-[#0057FF]">
-                Claritate in fiecare proiect.
-            </span>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
             <StatCard icon="🏠" label="Proiecte active" :value="stats.activeProjects" color="blue" />
             <StatCard icon="👷" label="Echipe alocate" :value="stats.teams" color="green" />

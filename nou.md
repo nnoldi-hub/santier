@@ -1713,3 +1713,36 @@ Definition of Done:
 	  `/dashboard` vs `/onboarding`, nelegat de aceasta schimbare).
 - Ce ramane: verificare vizuala live pe `/reset-password`, `/login`, `/register` etc. dupa
   deploy (nu am putut porni serverul local din cauza .env-ului cu config de productie).
+
+### 2026-07-10 - Checkpoint Modernizare vizuala (Faza 1/5 - bug-uri globale sidebar)
+- Etapa: userul a trecut aplicatia pagina cu pagina prin screenshot-uri si a semnalat ca nu
+  arata "profi". Am investigat cu 3 agenti de explorare inainte de plan si am gasit 5
+  probleme distincte, confirmate cu dovezi in cod. Aceasta faza rezolva cele 2 care apareau
+  pe FIECARE pagina.
+- Ce am gasit:
+	- Textul din header-ul sidebar-ului ("Mod...", "Santierul ...") nu era o problema de
+	  `truncate` - cutia logo-ului (`.modulia-logo-crop`) avea `width: 280px` fix, in timp
+	  ce tot sidebar-ul (`<aside>`) e doar `w-64` (256px). Logo-ul singur era deja mai lat
+	  decat intregul sidebar, asa ca textul de langa el ramanea fara spatiu.
+	- Badge-ul "Claritate in fiecare proiect." era scris de mana de doua ori independent -
+	  o data global in `AppLayout.vue` (pe fiecare pagina) si o data in plus doar in
+	  `Dashboard.vue`.
+- Livrat:
+	- Am descoperit ca imaginea sursa `public/brand/logo_modulia.png` (1024x1024, fundal
+	  transparent) contine icon-ul + wordmark-ul "MODULIA" complet, plasat pe o banda
+	  orizontala in centrul canvas-ului patrat. Am scanat pixel-cu-pixel canalul alpha
+	  pentru a gasi exact bounding box-ul icon-ului separat de text (icon: x=[154,322],
+	  text "MODULIA": x=[370,850]) si am decupat cu PHP GD un asset nou, doar cu icon-ul,
+	  patrat, centrat, cu padding: `public/brand/logo_icon.png` (200x200).
+	- `AppLayout.vue`: sidebar-ul foloseste acum `logo_icon.png` la 40x40px (`h-10 w-10
+	  shrink-0`) in loc de crop-ul de 280x64 al logo-ului complet - elibereaza spatiu real
+	  pentru numele firmei si tagline. Am sters si CSS-ul scoped `.modulia-logo-crop`
+	  ramas nefolosit.
+	- `Dashboard.vue`: sters badge-ul local duplicat, ramane doar cel global din
+	  `AppLayout.vue`.
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: Faza 2/5 (sistem de iconite - inlocuire emoji cu Heroicons), Faza 3/5
+  (componenta EmptyState), Faza 4/5 (consistenta culori pe Ajutor + Documente), Faza 5/5
+  (pluralizare romana la numaratori).

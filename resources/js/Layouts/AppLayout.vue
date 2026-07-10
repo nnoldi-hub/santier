@@ -11,9 +11,7 @@
             :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
         >
             <div class="h-24 flex items-center px-4 border-b border-gray-700 gap-3">
-                <div class="modulia-logo-crop" aria-label="Modulia">
-                    <img src="/brand/logo_modulia.png" alt="Modulia" class="modulia-logo-crop__img" />
-                </div>
+                <img src="/brand/logo_icon.png" alt="Modulia" class="h-10 w-10 shrink-0" />
                 <div class="min-w-0">
                     <div class="text-sm font-extrabold tracking-wide text-white truncate">{{ platformAppName }}</div>
                     <div class="text-[11px] text-gray-300 truncate">Șantierul devine clar.</div>
@@ -479,20 +477,3 @@ watch(
     },
 );
 </script>
-
-<style scoped>
-.modulia-logo-crop {
-    height: 64px;
-    width: 280px;
-    overflow: hidden;
-    border-radius: 12px;
-}
-
-.modulia-logo-crop__img {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    object-position: center;
-    display: block;
-}
-</style>
