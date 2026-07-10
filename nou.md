@@ -1913,3 +1913,18 @@ Definition of Done:
 	- `npm run build` -> passed.
 	- Fara schimbari de backend.
 - Ce ramane: Faza 4/4 (pluralizare "X firme" pe TenantsIndex.vue).
+
+### 2026-07-10 - Checkpoint Modernizare admin platforma (Faza 4/4 - pluralizare)
+- Etapa: `{{ tenants.total }} firme` (`TenantsIndex.vue:152`) era mereu la plural
+  indiferent de numar, acelasi tipar de bug corectat deja in restul aplicatiei.
+- Livrat:
+	- `TenantsIndex.vue`: `pluralize(tenants.total, 'firma', 'firme')`, folosind helper-ul
+	  existent `resources/js/utils/pluralize.js` (fara modificari la helper).
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: nimic - plan "modernizare admin platforma" (4 faze) complet finalizat si
+  livrat pe live. Toate cele 4 pagini din "Control platforma" (Administrare, Dashboard
+  Comercial, Firme & Abonamente, Firme pilot) au acum acelasi limbaj vizual (hero + KPI +
+  paleta de brand) si cele 2 bug-uri reale gasite (continut duplicat, CSS var nedefinita)
+  sunt rezolvate.

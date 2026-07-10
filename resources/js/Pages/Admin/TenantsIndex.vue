@@ -149,7 +149,7 @@
                         <h3 class="text-lg font-bold text-slate-900">Firme active in platforma</h3>
                         <p class="text-sm text-slate-500">Baza pentru controlul abonamentelor si dezvoltarea dashboard-ului comercial.</p>
                     </div>
-                    <div class="text-sm text-slate-500">{{ tenants.total }} firme</div>
+                    <div class="text-sm text-slate-500">{{ pluralize(tenants.total, 'firma', 'firme') }}</div>
                 </div>
 
                 <div v-if="tenants.data.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
@@ -283,6 +283,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 import { commercialRiskTone, labelCommercialRisk } from '@/Support/commercialLabels';
+import { pluralize } from '@/utils/pluralize';
 
 const props = defineProps({
     tenants: { type: Object, required: true },
