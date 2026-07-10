@@ -10,35 +10,30 @@ class DocumentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->legacyAllow($user) || $user->can('documents.view');
+        return $user->can('documents.view');
     }
 
     public function view(User $user, Document $document): bool
     {
         return $this->sameTenant($user, (int) $document->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('documents.view'));
+            && $user->can('documents.view');
     }
 
     public function create(User $user): bool
     {
-        return $this->legacyAllow($user) || $user->can('documents.create');
+        return $user->can('documents.create');
     }
 
     public function update(User $user, Document $document): bool
     {
         return $this->sameTenant($user, (int) $document->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('documents.edit'));
+            && $user->can('documents.edit');
     }
 
     public function delete(User $user, Document $document): bool
     {
         return $this->sameTenant($user, (int) $document->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('documents.delete'));
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
+            && $user->can('documents.delete');
     }
 
     private function sameTenant(User $user, int $resourceTenantId): bool

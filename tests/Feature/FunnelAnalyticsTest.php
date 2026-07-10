@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -56,6 +57,9 @@ class FunnelAnalyticsTest extends TestCase
             'user_id' => $user->id,
             'event_name' => 'onboarding_completed',
         ]);
+
+        $this->seed(IamSeeder::class);
+        $user = $user->fresh();
 
         $client = Client::create([
             'tenant_id' => 1,

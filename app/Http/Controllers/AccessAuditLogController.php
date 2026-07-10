@@ -192,15 +192,6 @@ class AccessAuditLogController extends Controller
             return;
         }
 
-        if ($this->legacyAllow($user)) {
-            return;
-        }
-
         abort(403);
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
     }
 }

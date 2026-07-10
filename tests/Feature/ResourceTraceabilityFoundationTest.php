@@ -12,6 +12,7 @@ use App\Models\ResourceDelivery;
 use App\Models\ResourceDocumentLink;
 use App\Models\ResourceOrder;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -160,10 +161,14 @@ class ResourceTraceabilityFoundationTest extends TestCase
 
     private function createOnboardedUser(): User
     {
-        return User::factory()->create([
+        $user = User::factory()->create([
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
             'billing_plan' => 'pro',
         ]);
+
+        $this->seed(IamSeeder::class);
+
+        return $user->fresh();
     }
 }

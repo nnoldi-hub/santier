@@ -15,7 +15,7 @@ class QuotePolicy
             return false;
         }
 
-        return $this->legacyAllow($user) || $user->can('quotes.view');
+        return $user->can('quotes.view');
     }
 
     public function view(User $user, Quote $quote): bool
@@ -25,7 +25,7 @@ class QuotePolicy
         }
 
         return $this->sameTenant($user, (int) $quote->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('quotes.view'));
+            && $user->can('quotes.view');
     }
 
     public function create(User $user): bool
@@ -34,7 +34,7 @@ class QuotePolicy
             return false;
         }
 
-        return $this->legacyAllow($user) || $user->can('quotes.create');
+        return $user->can('quotes.create');
     }
 
     public function update(User $user, Quote $quote): bool
@@ -44,7 +44,7 @@ class QuotePolicy
         }
 
         return $this->sameTenant($user, (int) $quote->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('quotes.edit'));
+            && $user->can('quotes.edit');
     }
 
     public function delete(User $user, Quote $quote): bool
@@ -54,12 +54,7 @@ class QuotePolicy
         }
 
         return $this->sameTenant($user, (int) $quote->tenant_id)
-            && ($this->legacyAllow($user) || $user->can('quotes.delete'));
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
+            && $user->can('quotes.delete');
     }
 
     private function sameTenant(User $user, int $resourceTenantId): bool

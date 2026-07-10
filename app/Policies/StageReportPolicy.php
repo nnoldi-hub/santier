@@ -10,35 +10,30 @@ class StageReportPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->legacyAllow($user) || $user->can('reports.view');
+        return $user->can('reports.view');
     }
 
     public function view(User $user, StageReport $stageReport): bool
     {
         return $this->sameTenant($user, $stageReport)
-            && ($this->legacyAllow($user) || $user->can('reports.view'));
+            && $user->can('reports.view');
     }
 
     public function create(User $user): bool
     {
-        return $this->legacyAllow($user) || $user->can('reports.create');
+        return $user->can('reports.create');
     }
 
     public function update(User $user, StageReport $stageReport): bool
     {
         return $this->sameTenant($user, $stageReport)
-            && ($this->legacyAllow($user) || $user->can('reports.edit'));
+            && $user->can('reports.edit');
     }
 
     public function delete(User $user, StageReport $stageReport): bool
     {
         return $this->sameTenant($user, $stageReport)
-            && ($this->legacyAllow($user) || $user->can('reports.delete'));
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
+            && $user->can('reports.delete');
     }
 
     private function sameTenant(User $user, StageReport $stageReport): bool

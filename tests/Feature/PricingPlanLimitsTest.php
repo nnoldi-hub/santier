@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -74,10 +76,15 @@ class PricingPlanLimitsTest extends TestCase
 
     private function createOnboardedUser(string $plan): User
     {
-        return User::factory()->create([
+        $user = User::factory()->create([
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
             'billing_plan' => $plan,
         ]);
+
+        $this->seed(IamSeeder::class);
+        Tenant::find(1)?->update(['billing_plan' => $plan]);
+
+        return $user->fresh();
     }
 }

@@ -175,15 +175,6 @@ class TenantRoleController extends Controller
             return;
         }
 
-        if ($this->legacyAllow($user)) {
-            return;
-        }
-
         abort_unless($user->can('roles.manage') || $user->can('users.edit'), 403);
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
     }
 }

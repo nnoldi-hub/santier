@@ -6,6 +6,7 @@ use App\Models\Contractor;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -99,10 +100,14 @@ class ContractorsTest extends TestCase
 
     private function createOnboardedUser(): User
     {
-        return User::factory()->create([
+        $user = User::factory()->create([
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
             'billing_plan' => 'pro',
         ]);
+
+        $this->seed(IamSeeder::class);
+
+        return $user->fresh();
     }
 }

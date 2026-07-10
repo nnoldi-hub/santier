@@ -18,8 +18,6 @@ class TasksFilterTest extends TestCase
 
     public function test_task_list_can_be_filtered_by_status_and_project(): void
     {
-        $this->seed(IamSeeder::class);
-
         $user = $this->createTenantUser('tasks.filter@santier.local');
         $projectA = $this->createProject($user, 'Proiect A');
         $projectB = $this->createProject($user, 'Proiect B');
@@ -47,8 +45,6 @@ class TasksFilterTest extends TestCase
 
     public function test_task_status_update_sets_completion_timestamp_for_done(): void
     {
-        $this->seed(IamSeeder::class);
-
         $user = $this->createTenantUser('tasks.status@santier.local');
         $project = $this->createProject($user, 'Proiect Status');
         $task = $this->createTask($user, $project, 'Task de status', 'todo', 'high');
@@ -68,8 +64,6 @@ class TasksFilterTest extends TestCase
 
     public function test_task_list_can_be_filtered_by_critical_and_blocked(): void
     {
-        $this->seed(IamSeeder::class);
-
         $user = $this->createTenantUser('tasks.advanced@santier.local');
         $project = $this->createProject($user, 'Proiect Avansat');
         $blockedPhase = $this->createPhase($project, 'Etapa blocata', 'blocked');
@@ -101,8 +95,6 @@ class TasksFilterTest extends TestCase
 
     public function test_task_checklist_is_persisted_on_create(): void
     {
-        $this->seed(IamSeeder::class);
-
         $user = $this->createTenantUser('tasks.checklist@santier.local');
         $project = $this->createProject($user, 'Proiect Checklist');
 
@@ -131,8 +123,6 @@ class TasksFilterTest extends TestCase
 
     public function test_task_materials_are_persisted_on_create(): void
     {
-        $this->seed(IamSeeder::class);
-
         $user = $this->createTenantUser('tasks.materials@santier.local');
         $project = $this->createProject($user, 'Proiect Consum');
         $material = Material::create([
@@ -172,13 +162,17 @@ class TasksFilterTest extends TestCase
 
     private function createTenantUser(string $email): User
     {
-        return User::factory()->create([
+        $user = User::factory()->create([
             'email' => $email,
             'tenant_id' => 1,
             'current_tenant_id' => 1,
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
         ]);
+
+        $this->seed(IamSeeder::class);
+
+        return $user->fresh();
     }
 
     private function createProject(User $user, string $name): Project

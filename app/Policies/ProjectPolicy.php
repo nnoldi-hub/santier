@@ -12,7 +12,7 @@ class ProjectPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->legacyAllow($user) || $user->can('projects.view');
+        return $user->can('projects.view');
     }
 
     public function view(User $user, Project $project): bool
@@ -20,7 +20,7 @@ class ProjectPolicy
         return $this->sameTenant($user, (int) $project->tenant_id)
             && $this->canAccessProject($user, $project)
             && $this->hasProjectAccessByDynamicRole($user, $project, [ProjectRole::OWNER, ProjectRole::CONTRIBUTOR, ProjectRole::VIEWER])
-            && ($this->legacyAllow($user) || $user->can('projects.view'));
+            && $user->can('projects.view');
     }
 
     public function create(User $user): bool
@@ -29,7 +29,7 @@ class ProjectPolicy
             return false;
         }
 
-        return $this->legacyAllow($user) || $user->can('projects.create');
+        return $user->can('projects.create');
     }
 
     public function update(User $user, Project $project): bool
@@ -40,7 +40,7 @@ class ProjectPolicy
 
         return $this->sameTenant($user, (int) $project->tenant_id)
             && $this->hasProjectAccessByDynamicRole($user, $project, [ProjectRole::OWNER, ProjectRole::CONTRIBUTOR])
-            && ($this->legacyAllow($user) || $user->can('projects.edit'));
+            && $user->can('projects.edit');
     }
 
     public function delete(User $user, Project $project): bool
@@ -51,7 +51,7 @@ class ProjectPolicy
 
         return $this->sameTenant($user, (int) $project->tenant_id)
             && $this->hasProjectAccessByDynamicRole($user, $project, [ProjectRole::OWNER])
-            && ($this->legacyAllow($user) || $user->can('projects.delete'));
+            && $user->can('projects.delete');
     }
 
     public function manageRoles(User $user, Project $project): bool
@@ -69,7 +69,7 @@ class ProjectPolicy
         }
 
         if (! $user->hasAnyProjectRoleAssignments(TenantContext::id($user))) {
-            return $this->legacyAllow($user) || $user->can('projects.edit');
+            return $user->can('projects.edit');
         }
 
         return $user->hasProjectRole($project, [ProjectRole::OWNER]);
@@ -98,11 +98,6 @@ class ProjectPolicy
         }
 
         return ExternalPortalScope::canAccessProject($user, $project);
-    }
-
-    private function legacyAllow(User $user): bool
-    {
-        return $user->roles()->count() === 0 && $user->permissions()->count() === 0;
     }
 
     private function sameTenant(User $user, int $resourceTenantId): bool

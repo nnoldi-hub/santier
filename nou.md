@@ -1556,3 +1556,45 @@ Definition of Done:
 	- Faza 2/3: comanda de backfill roluri legacy + eliminare completa a bypass-ului
 	  `legacyAllow()` (decizie user: se elimina complet, nu doar se logheaza).
 	- Faza 3/3: notificari email pentru invitare/schimbare rol/suspendare-reactivare cont.
+
+### 2026-07-10 - Checkpoint Audit izolare organizatii + IAM (Faza 2/3 - eliminare bypass legacy)
+- Etapa: eliminarea completa a bypass-ului `legacyAllow()` (decizie explicita a userului -
+  "elimina-l complet acum"), care dadea acces FULL la gestionare useri/roluri/audit oricarui
+  user cu 0 roluri si 0 permisiuni atribuite direct.
+- Livrat:
+	- Comanda noua `php artisan iam:backfill-legacy-roles` (`--apply` pentru scriere, altfel
+	  doar raport) - gaseste userii cu 0 roluri/permisiuni, atribuie `tenant_admin` celui mai
+	  vechi user din tenantul care nu are deja un admin, altfel `data_entry` (fallback minimal
+	  sigur). De rulat manual pe productie ÎNAINTE de deploy-ul acestui commit, altfel orice
+	  user ramas fara rol isi pierde imediat accesul.
+	- `legacyAllow()` eliminat din toate cele 12 locatii unde exista: `TaskPolicy`,
+	  `ClientPolicy` (nu a avut-o), `ContractorPolicy`, `EquipmentPolicy`, `StageReportPolicy`,
+	  `StageTaskPolicy`, `ProjectPolicy`, `QuotePolicy`, `DocumentPolicy`,
+	  `MaterialInvoicePolicy`, `TenantUserController`, `TenantRoleController`,
+	  `AccessAuditLogController` + logica echivalenta din `LegacyAwarePermissionMiddleware`
+	  (alias global `permission:`).
+	- Test nou `tests/Feature/BackfillLegacyRolesCommandTest.php` (3 teste) - valideaza dry-run
+	  (nu scrie nimic), atribuirea `tenant_admin` celui mai vechi user fara admin existent, si
+	  `data_entry` cand tenantul are deja un admin.
+- Efect secundar descoperit si reparat: eliminarea bypass-ului a scos la iveala ca ~15 fisiere
+  de test existente creau useri de test fara niciun rol, bazandu-se implicit pe bypass pentru
+  a trece de autorizare. Fiecare a fost reparat sa apeleze `IamSeeder` dupa crearea userului
+  (`ContractorsTest`, `DocumentsTest`, `EquipmentManagementTest`, `FinancialFlowSmokeTest`,
+  `FunnelAnalyticsTest`, `MaterialInvoicesTest`, `OnboardingWizardTest`,
+  `ProceseVerbaleAliasTest`, `ProjectAiToolsTest`, `QuotesFilterTest`,
+  `ResourceTraceabilityFoundationTest`, `StageReportsTest`, `StageTasksTest`,
+  `TasksFilterTest`, `DemoUserScopeTest`, `PricingPlanLimitsTest`). Bonus gasit in acest
+  proces: `PricingPlan::current()` prioritizeaza planul de facturare al tenantului fata de
+  cel al userului - userii de test fara `tenant_id` "scapau" accidental pe planul lor propriu
+  ('pro'); dupa ce IamSeeder le seteaza tenant_id real, testele care simulau un plan platit au
+  fost corectate sa seteze si `Tenant::billing_plan`, nu doar `User::billing_plan`.
+- Validare:
+	- `tests/Feature/BackfillLegacyRolesCommandTest.php` -> 3/3 passed.
+	- Suita completa (152 teste, inclusiv `PricingPlanLimitsTest` rulat separat din cauza
+	  limitei de memorie CLI locale) -> 149/152 + 5/5 pass, aceleasi 3 esecuri pre-existente
+	  neschimbate (confirmate anterior ca independente de aceasta initiativa).
+- Ce ramane:
+	- Faza 3/3: notificari email pentru invitare/schimbare rol/suspendare-reactivare cont +
+	  ecran de setare parola la invitare (in loc de parola random inutila).
+	- Operational (inainte de deploy pe productie): rulat `iam:backfill-legacy-roles --apply`
+	  pe productie pentru orice user real fara rol atribuit.

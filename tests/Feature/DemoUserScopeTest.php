@@ -14,7 +14,9 @@ use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Models\StageEquipment;
 use App\Models\Team;
+use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -42,6 +44,10 @@ class DemoUserScopeTest extends TestCase
             'onboarding_completed_at' => now(),
             'billing_plan' => 'pro',
         ]);
+
+        $this->seed(IamSeeder::class);
+        Tenant::find(1)?->update(['billing_plan' => 'pro']);
+        $demoUser = $demoUser->fresh();
 
         $client = Client::create([
             'tenant_id' => 1,

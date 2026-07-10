@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\Quote;
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -43,13 +44,17 @@ class QuotesFilterTest extends TestCase
 
     private function createTenantUser(string $email): User
     {
-        return User::factory()->create([
+        $user = User::factory()->create([
             'email' => $email,
             'tenant_id' => 1,
             'current_tenant_id' => 1,
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
         ]);
+
+        $this->seed(IamSeeder::class);
+
+        return $user->fresh();
     }
 
     private function createProject(User $user, string $name): Project

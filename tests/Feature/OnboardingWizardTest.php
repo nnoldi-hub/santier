@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -69,6 +70,9 @@ class OnboardingWizardTest extends TestCase
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
         ]);
+
+        $this->seed(IamSeeder::class);
+        $user = $user->fresh();
 
         $response = $this->actingAs($user)->get('/projects');
 
