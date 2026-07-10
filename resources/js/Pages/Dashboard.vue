@@ -1,10 +1,10 @@
 <template>
     <AppLayout title="Dashboard">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-            <StatCard icon="🏠" label="Proiecte active" :value="stats.activeProjects" color="blue" />
-            <StatCard icon="👷" label="Echipe alocate" :value="stats.teams" color="green" />
-            <StatCard icon="📋" label="Oferte trimise" :value="stats.quotes" color="orange" />
-            <StatCard icon="🔧" label="Defecte deschise" :value="stats.defects" color="red" />
+            <StatCard :icon="FolderIcon" label="Proiecte active" :value="stats.activeProjects" color="blue" />
+            <StatCard :icon="UsersIcon" label="Echipe alocate" :value="stats.teams" color="green" />
+            <StatCard :icon="ClipboardDocumentCheckIcon" label="Oferte trimise" :value="stats.quotes" color="orange" />
+            <StatCard :icon="WrenchScrewdriverIcon" label="Defecte deschise" :value="stats.defects" color="red" />
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -405,7 +405,7 @@
                             <div class="text-sm font-semibold">{{ item.title }}</div>
                             <div class="text-2xl font-bold mt-2">{{ item.value }}</div>
                         </div>
-                        <div class="text-xl">{{ item.icon }}</div>
+                        <Icon :icon="item.icon" size="h-6 w-6 shrink-0" />
                     </div>
                     <div class="text-sm mt-2 opacity-90">{{ item.description }}</div>
                     <div class="text-xs mt-3 font-medium opacity-80">{{ item.cta }}</div>
@@ -416,11 +416,11 @@
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">📁 Proiecte recente</h2>
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-gray-800"><Icon :icon="FolderIcon" size="h-5 w-5 text-gray-400" /> Proiecte recente</h2>
                     <Link :href="route('projects.index')" class="text-xs text-orange-500 hover:underline">Vezi toate →</Link>
                 </div>
                 <div v-if="recentProjects.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                    <div class="text-3xl mb-2">🏗️</div>
+                    <Icon :icon="BuildingOffice2Icon" size="h-8 w-8 mx-auto mb-2 text-gray-300" />
                     Niciun proiect creat inca.<br />
                     <Link :href="route('projects.create')" class="text-orange-500 hover:underline mt-2 inline-block font-medium">
                         + Creeaza primul proiect
@@ -444,11 +444,11 @@
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">✅ Taskuri pentru azi</h2>
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-gray-800"><Icon :icon="CheckCircleIcon" size="h-5 w-5 text-gray-400" /> Taskuri pentru azi</h2>
                     <Link :href="route('tasks.index')" class="text-xs text-orange-500 hover:underline">Vezi toate →</Link>
                 </div>
                 <div v-if="todayTasks.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                    <div class="text-3xl mb-2">✅</div>
+                    <Icon :icon="CheckCircleIcon" size="h-8 w-8 mx-auto mb-2 text-gray-300" />
                     Niciun task pentru azi.
                     <Link :href="route('tasks.create')" class="text-orange-500 hover:underline mt-2 inline-block font-medium">
                         + Creeaza task
@@ -473,7 +473,7 @@
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 class="text-base font-semibold text-gray-800 mb-4">⏱️ Etape intarziate</h2>
+                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-800 mb-4"><Icon :icon="ClockIcon" size="h-5 w-5 text-gray-400" /> Etape intarziate</h2>
                 <div v-if="delayedPhases.length === 0" class="text-center py-8 text-gray-400 text-sm">
                     Nicio etapa intarziata.
                 </div>
@@ -487,7 +487,7 @@
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">🔧 Defecte deschise</h2>
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-gray-800"><Icon :icon="WrenchScrewdriverIcon" size="h-5 w-5 text-gray-400" /> Defecte deschise</h2>
                     <Link :href="route('defects.index')" class="text-xs text-orange-500 hover:underline">Vezi toate →</Link>
                 </div>
                 <div v-if="openDefects.length === 0" class="text-center py-8 text-gray-400 text-sm">
@@ -511,7 +511,7 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-            <h2 class="text-base font-semibold text-gray-800 mb-4">📌 Plan vs Real pe etape</h2>
+            <h2 class="flex items-center gap-2 text-base font-semibold text-gray-800 mb-4"><Icon :icon="PresentationChartBarIcon" size="h-5 w-5 text-gray-400" /> Plan vs Real pe etape</h2>
             <div v-if="stagePlanVsReal.length === 0" class="text-center py-8 text-gray-400 text-sm">
                 Nu exista date de comparatie pentru etape.
             </div>
@@ -553,6 +553,19 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import Icon from '@/Components/Icon.vue';
+import {
+    BanknotesIcon,
+    BuildingOffice2Icon,
+    CheckCircleIcon,
+    ClipboardDocumentCheckIcon,
+    ClockIcon,
+    FolderIcon,
+    ListBulletIcon,
+    PresentationChartBarIcon,
+    UsersIcon,
+    WrenchScrewdriverIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     stats:          { type: Object, default: () => ({ activeProjects: 0, teams: 0, quotes: 0, defects: 0, overdueTasks: 0, delayedPhases: 0, avgProgress: 0, estimatedEquipmentCost: 0, documentsUnpaidCount: 0, documentsUnpaidAmount: 0, documentsOverdueInvoices: 0, stageTasksOpen: 0, overloadedTeamsCount: 0, parallelSubcontractorsCount: 0, unavailableEquipmentCount: 0, lowStockMaterialsCount: 0, equipmentDailyCost: 0, teamDailyCost: 0, subcontractorDailyCost: 0 }) },
@@ -577,7 +590,7 @@ const attentionItems = computed(() => {
             description: 'Exista taskuri generale care au depasit termenul si trebuie replanificate.',
             cta: 'Deschide taskurile restante',
             href: route('tasks.index', { status: 'todo,in_progress' }),
-            icon: '⏰',
+            icon: ClockIcon,
             tone: 'border-amber-200 bg-amber-50 text-amber-900',
         });
     }
@@ -591,7 +604,7 @@ const attentionItems = computed(() => {
                 : 'Exista etape in executie sau pending care au depasit termenul.',
             cta: 'Verifica WBS si replanificarea',
             href: route('wbs.index', { status: 'delayed' }),
-            icon: '📌',
+            icon: PresentationChartBarIcon,
             tone: 'border-red-200 bg-red-50 text-red-900',
         });
     }
@@ -603,7 +616,7 @@ const attentionItems = computed(() => {
             description: 'Exista facturi sau documente neachitate de peste 30 de zile.',
             cta: 'Deschide documentele financiare',
             href: route('documents.index', { payment_status: 'unpaid' }),
-            icon: '💸',
+            icon: BanknotesIcon,
             tone: 'border-rose-200 bg-rose-50 text-rose-900',
         });
     }
@@ -615,7 +628,7 @@ const attentionItems = computed(() => {
             description: 'Etapele active au taskuri operationale care cer urmarire zilnica.',
             cta: 'Deschide taskurile pe etapa',
             href: route('stage-tasks.index', { status: 'todo,in_progress,blocked' }),
-            icon: '🧱',
+            icon: ListBulletIcon,
             tone: 'border-blue-200 bg-blue-50 text-blue-900',
         });
     }

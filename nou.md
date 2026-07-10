@@ -1746,3 +1746,35 @@ Definition of Done:
 - Ce ramane: Faza 2/5 (sistem de iconite - inlocuire emoji cu Heroicons), Faza 3/5
   (componenta EmptyState), Faza 4/5 (consistenta culori pe Ajutor + Documente), Faza 5/5
   (pluralizare romana la numaratori).
+
+### 2026-07-10 - Checkpoint Modernizare vizuala (Faza 2/5 - sistem de iconite)
+- Etapa: inlocuire completa a iconitelor emoji din navigatie si Dashboard cu un set de
+  iconite profesionale, consistente.
+- Livrat:
+	- Adaugat `@heroicons/vue` (MIT, pachet oficial Vue 3, tree-shakeable) - nu exista nicio
+	  librarie de iconite in proiect inainte.
+	- `resources/js/Components/Icon.vue` (nou) - wrapper subtire peste componentele
+	  Heroicons, aplica marimea standard.
+	- `NavItem.vue`: prop-ul `icon` a trecut din string emoji in componenta de iconita;
+	  ambele randari (link activ + stare "Soon" dezactivata) folosesc acum `<Icon>`.
+	- `AppLayout.vue`: toate cele 41 de `<NavItem>` din meniul lateral au acum o iconita
+	  Heroicons potrivita semantic (Dashboard->Squares2X2Icon, Proiecte->FolderIcon,
+	  Subcontractori->UserGroupIcon/HandRaisedIcon, Utilaje->TruckIcon, etc.). Am inlocuit
+	  si alte 4 emoji ramase in acelasi fisier care nu erau in nav dar erau la fel de
+	  vizibile - hamburger-ul mobil (☰->Bars3Icon), clopotelul de notificari
+	  (🔔->BellIcon), mesajele flash de succes/eroare (✅/⚠️->CheckCircleIcon/
+	  ExclamationTriangleIcon).
+	- `StatCard.vue`: refacut sa afiseze iconita intr-un chip colorat (fundal + text
+	  potrivite culorii cardului) in loc de emoji uriaș fara stil.
+	- `Dashboard.vue`: cele 4 carduri de statistici, cele 4 "attention items", titlurile de
+	  sectiune (Proiecte recente, Taskuri pentru azi, Etape intarziate, Defecte deschise,
+	  Plan vs Real) si starile goale (niciun proiect / niciun task) - toate emoji inlocuite.
+- Validare:
+	- `npm run build` -> passed dupa fiecare pas.
+	- Verificare finala: 0 caractere emoji ramase in `AppLayout.vue` (cautare pe range-uri
+	  Unicode emoji).
+	- Fara schimbari de backend.
+- Ce ramane: Faza 3/5 (componenta EmptyState pentru ~18 pagini cu stari goale), Faza 4/5
+  (consistenta culori pe Ajutor + Documente), Faza 5/5 (pluralizare romana). Emoji-urile
+  ramase in restul aplicatiei (~70 aparitii imprastiate in alte 30+ fisiere, mai ales
+  `Projects/Show.vue` si `Welcome.vue`) raman backlog, in afara scopului acestei runde.
