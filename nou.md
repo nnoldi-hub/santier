@@ -1873,3 +1873,24 @@ Definition of Done:
 - Ce ramane: Faza 2/4 (aliniere culori brand + eliminare emoji pe cele 3 pagini), Faza 3/4
   (aliniere PilotInvites.vue cu hero+KPI ca surorile sale), Faza 4/4 (pluralizare
   "X firme" pe TenantsIndex.vue).
+
+### 2026-07-10 - Checkpoint Modernizare admin platforma (Faza 2/4 - aliniere culori brand)
+- Etapa: cele 3 pagini cu hero-card (Admin/Index, CommercialDashboard, TenantsIndex)
+  foloseau fiecare alta combinatie de culori (portocaliu-sky, emerald-sky, sky-portocaliu),
+  fara legatura cu paleta de brand (`#F57C00` portocaliu, `#1A237E` navy) si cu emoji ca
+  iconita in kicker, in ciuda faptului ca nav-ul (`AppLayout.vue`) foloseste deja Heroicons
+  corecte pentru aceleasi 4 pagini.
+- Livrat:
+	- Cele 3 hero-uri: fundal alb neutru + bordura portocalie (in loc de gradient-uri
+	  colorate diferite pe fiecare pagina), badge kicker portocaliu cu iconita Heroicons
+	  in loc de emoji (`DocumentTextIcon` / `PresentationChartLineIcon` /
+	  `BuildingOffice2Icon` - acelasi mapping ca in nav), CTA principal navy (`#1A237E`)
+	  in loc de `slate-900` generic ("Mergi la setari", "Vezi firme pilot",
+	  "Vezi pipeline firme pilot", "Salveaza setarile").
+	- CommercialDashboard: butoanele de export CSV/XLSX (secundare) unificate pe acelasi
+	  stil neutru `slate-300`/`slate-700` in loc de emerald/sky.
+- Validare:
+	- `npm run build` -> passed.
+	- Fara schimbari de backend.
+- Ce ramane: Faza 3/4 (aliniere PilotInvites.vue cu hero+KPI ca surorile sale), Faza 4/4
+  (pluralizare "X firme" pe TenantsIndex.vue).
