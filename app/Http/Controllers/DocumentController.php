@@ -253,7 +253,7 @@ class DocumentController extends Controller
             'stage:id,name,start_date,end_date',
             'contractor:id,name',
         ]);
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $document->tenant_id);
 
         $fileName = sprintf('%s-%d.pdf', str($document->title)->slug('-'), $document->id);
 

@@ -2012,3 +2012,64 @@ Definition of Done:
   dar URL-ul public `/storage/branding/...` intoarce 404. Documentat deja ca pas de
   deploy in `HOSTICO_GITHUB_DEPLOY_CHECKLIST.md`, dar necesita acces la server (SSH/
   terminal cPanel) pentru a fi rulat sau reverificat, nu poate fi facut din acest mediu.
+
+
+### 2026-07-10 - Fix critic: branding documente global in loc de per-firma (izolare tenant)
+- Etapa: userul a raportat ca logo-ul salvat pe pagina "Configurare documente" dispare
+  daca reintra pe pagina. Investigatia a scos la iveala o problema mai grava decat un
+  bug de UI - aprobata explicit de user pentru fix ("Separare pe firma").
+- Ce am gasit: tabelul `app_settings` avea o singura coloana `key` cu constraint UNIQUE -
+  un singur rand global per cheie, fara nicio distinctie intre firme. Doua pagini complet
+  separate scriau in ACELEASI randuri:
+	- `Admin/Index.vue` (superadmin, setari de platforma) prin `AdminController::updateSettings()`.
+	- `Documents/Branding.vue` (`/documente/configurare`, gated `plan:document_branding` -
+	  feature pentru firme cu abonament platit, menita sa fie personalizare PER FIRMA) prin
+	  `DocumentBrandingController::update()`.
+  Ambele scriau exact acelasi set de chei (`company_name`, `company_phone`,
+  `company_address`, `support_email`, `sales_email`, `document_logo_url`,
+  `document_brand_color`) in acelasi rand global - orice salvare pe oricare din cele doua
+  pagini suprascria ce salvase cealalta, cu orice valoare avea acel formular incarcata in
+  browser la acel moment. Mai grav: daca ar exista mai multe firme platitoare, personalizarea
+  uneia ar suprascrie brandingul tuturor celorlalte (branding-ul aparea si in PDF-urile
+  reale generate prin `ExportController`, `DocumentController::pdf()`, `QuoteController::pdf()`/
+  `send()` - toate citeau acelasi rand global, fara nicio scopare pe firma).
+- Livrat:
+	- Migratie noua `2026_07_10_000000_add_tenant_id_to_app_settings_table.php`: adauga
+	  coloana `tenant_id` (implicit `0` = platforma globala), muta constraint-ul UNIQUE de
+	  pe `key` singur pe combinatia `(key, tenant_id)`.
+	- `AppSetting` model: `value()`, `allWithDefaults()`, `setValues()` accepta acum un
+	  parametru optional `tenantId` (implicit `0` = comportament vechi, neschimbat pentru
+	  apelurile care nu-l trimit). Metoda noua `allForTenant(defaults, tenantId)` compune
+	  in straturi: defaults din config -> setari globale de platforma (tenant_id 0) ->
+	  suprascrieri specifice firmei (doar campurile pe care acea firma le-a salvat explicit,
+	  restul mostenesc valoarea globala/platforma). `tenant_id` adaugat si in `$fillable`
+	  (altfel `updateOrCreate()` l-ar fi ignorat silentios la crearea unui rand nou, din
+	  cauza protectiei de mass-assignment).
+	- `DocumentBrandingController` (index + update): rezolva `tenant_id`-ul firmei curente
+	  cu `TenantContext::id($request->user())` (acelasi helper folosit deja in restul
+	  aplicatiei) si citeste/scrie exclusiv pe randuri scopate pe acel tenant, prin
+	  `allForTenant()`/`setValues(..., $tenantId)`.
+	- `AdminController` (setari superadmin) - NESCHIMBAT intentionat: continua sa
+	  citeasca/scrie pe randurile globale (`tenant_id=0`), exact comportamentul dinainte,
+	  pentru ca acolo e vorba de branding-ul PLATFORMEI (aplicat implicit firmelor care nu
+	  si-au personalizat inca documentele).
+	- `ExportController` (3 locuri: `index`, `workbook`, `managerialPdf`), `DocumentController::pdf()`,
+	  `QuoteController::pdf()` si `send()`: branding-ul folosit la generarea efectiva a
+	  PDF-urilor/exporturilor e acum scopat pe firma documentului/proiectului respectiv
+	  (`$document->tenant_id`, `$quote->tenant_id`, `TenantContext::id($request->user())`),
+	  nu mai citeste orbeste randul global - altfel personalizarea din Faza asta ar fi
+	  ramas vizibila doar in pagina de configurare, fara sa se reflecte in documentele
+	  chiar generate.
+- Validare:
+	- Cod revizuit manual linie cu linie (fara mediu PHP CLI accesibil in acest shell
+	  pentru `artisan migrate`/`artisan test` - path-urile catre `php.exe` de pe sistem
+	  (Laragon/WAMP) nu sunt accesibile din acest mediu sandboxat, limitare deja
+	  intalnita si documentata anterior in acest fisier pentru `php artisan serve`).
+	- `npm run build` -> passed (fara schimbari de frontend in acest increment).
+- Operational (obligatoriu inainte ca fix-ul sa aiba efect): `php artisan migrate` trebuie
+  rulat manual (local si pe productie) pentru a aplica migratia noua. Pana atunci, codul
+  vechi din productie continua sa functioneze ca inainte (fara coloana tenant_id), iar
+  codul nou nu trebuie deployat fara migratie in acelasi pas.
+- Ce ramane: verificare pe live dupa migratie - salvezi logo-ul pe /documente/configurare,
+  navighezi in alta parte, revii - logo-ul trebuie sa ramana, indiferent ce se salveaza
+  separat pe pagina de superadmin /admin.

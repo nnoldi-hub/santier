@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,10 +12,12 @@ use Inertia\Response;
 
 class DocumentBrandingController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Documents/Branding', [
-            'settings' => AppSetting::allWithDefaults(config('platform.defaults', [])),
+            'settings' => AppSetting::allForTenant(config('platform.defaults', []), $tenantId),
             'colorPresets' => [
                 ['name' => 'Portocaliu Profesional', 'value' => '#f97316'],
                 ['name' => 'Albastru Corporate', 'value' => '#1d4ed8'],
@@ -28,6 +31,8 @@ class DocumentBrandingController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:120'],
             'document_issuer_name' => ['nullable', 'string', 'max:120'],
@@ -64,7 +69,7 @@ class DocumentBrandingController extends Controller
             'sales_email' => $validated['sales_email'],
             'document_logo_url' => $documentLogoUrl,
             'document_brand_color' => $validated['document_brand_color'],
-        ]);
+        ], $tenantId);
 
         return back()->with('success', 'Configurarea documentelor a fost actualizata.');
     }

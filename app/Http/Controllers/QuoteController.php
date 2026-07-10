@@ -255,7 +255,7 @@ class QuoteController extends Controller
     {
         $this->ensureTenantAccess($quote);
         $quote->loadMissing(['project:id,name', 'creator:id,name', 'items']);
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
 
         [$displayNotes, $breakdown] = $this->extractBreakdownFromNotes((string) ($quote->notes ?? ''));
 
@@ -304,7 +304,7 @@ class QuoteController extends Controller
             $breakdown = $this->buildBreakdownFromItems($quote->items);
         }
 
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
         $meta = is_array($quote->meta) ? $quote->meta : [];
 
         $pdfBinary = Pdf::loadView('quotes.pdf', [

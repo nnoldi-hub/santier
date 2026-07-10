@@ -52,7 +52,7 @@ class ExportController extends Controller
     {
         $user = $request->user();
         $tenantId = TenantContext::id($user);
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), $tenantId);
         $filters = ExportFilter::fromRequest($request);
         $statsLogs = ExportLog::query()
             ->where('tenant_id', $tenantId)
@@ -549,7 +549,7 @@ class ExportController extends Controller
     {
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), TenantContext::id($request->user()));
 
         if (empty($types)) {
             $types = ['projects', 'quotes', 'materials', 'resource-comparison', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
@@ -575,7 +575,7 @@ class ExportController extends Controller
     {
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
-        $branding = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), TenantContext::id($request->user()));
 
         if (empty($types)) {
             $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison'];
