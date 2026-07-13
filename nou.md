@@ -25,7 +25,7 @@ configurat sa bootstrap-eze acea aplicatie.
 - Gantt, Calendar echipe, Calendar utilaje, Calendar resurse - toate cu filtre pe
   interval (Azi/7 zile/30 zile).
 
-### 2.2. Resurse - COMPLET, cu o extensie partiala
+### 2.2. Resurse - COMPLET
 - Contractori/Subcontractori (+ agenda operationala zilnica), Echipe, Utilaje
   (rezervare pe etapa + calendar + cost estimat), Materiale.
 - **Trasabilitate resurse** (comenzi -> livrari -> confirmari -> documente):
@@ -41,8 +41,12 @@ configurat sa bootstrap-eze acea aplicatie.
   pe fiecare material comandat/livrat/consumat + valoare comandata + facturi materiale
   (total/neplatit), cu status per material (conform/cu diferente/blocat la plata) rezultat
   din cea mai grava stare a comenzilor lui.
-  **Lipseste** inca "Trasabilitate utilaje" (varianta V1: rezervari + cost estimat
-  unificat, fara flux de confirmare) - vezi backlog.
+- **Trasabilitate utilaje** (`/trasabilitate-utilaje`, V1): pagina dedicata, agrega pe
+  fiecare utilaj numarul de rezervari, total zile rezervate, cost estimat (formula unica
+  `App\Support\EquipmentCostEstimator`, in loc de cele 3 formule inconsistente gasite
+  anterior in cod), rezervari active azi. Fara flux de confirmare ore/cost final (schema
+  `stage_equipment` nu are camp de confirmare - ar necesita migratie noua, ramas backlog
+  daca se doreste varianta completa).
 
 ### 2.3. Financiar - COMPLET
 - Documente financiare (contracte/facturi/devize/oferte) cu upload fisier si branding
@@ -125,12 +129,10 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    vezi 2.2). Ramas explicit in afara scopului: legarea `MaterialInvoice` de
    `resource_orders`/`resource_document_links` (sunt doua sisteme de facturare separate,
    neconectate in schema - aratate distinct, nu unificate).
-2. **Trasabilitate utilaje (pagina dedicata) - V1** - rezervari + cost estimat unificat
-   per utilaj (cost_per_hour x cantitate x zile x 8h, printr-un helper unic
-   `App\Support\EquipmentCostEstimator`, in loc de cele 3 formule inconsistente gasite
-   in cod). Explicit NU include un flux de confirmare ore/cost final (schema
-   `stage_equipment` nu are camp de confirmare - ar necesita o migratie noua, decizie
-   ramasa pentru o runda separata daca se doreste varianta completa).
+2. ~~Trasabilitate utilaje (pagina dedicata) - V1~~ - FACUT (`/trasabilitate-utilaje`,
+   vezi 2.2). Ramas explicit in afara scopului (backlog separat daca se doreste): flux
+   de confirmare ore/cost final aprobat - ar necesita o migratie noua pe
+   `stage_equipment` (varianta V2, discutata si respinsa pentru aceasta runda).
 3. **Comercial - log de actiuni** (`commercial_actions`): istoric apel/email/demo/oferta/
    follow-up/negociere per lead, separat de taskurile automate existente.
 4. **Comercial - inbox/widget dashboard** (C3): "Taskuri azi", "follow-up restante",

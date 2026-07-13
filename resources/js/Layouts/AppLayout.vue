@@ -86,6 +86,7 @@
                         <NavItem :href="routeOrFallback('teams.index')" :disabled="routeMissing('teams.index')" :icon="UsersIcon" label="Echipe interne" />
                         <NavItem :href="routeOrFallback('contractors.index')" :disabled="routeMissing('contractors.index')" :icon="HandRaisedIcon" label="Subcontractori" />
                         <NavItem :href="routeOrFallback('equipment.index')" :disabled="routeMissing('equipment.index')" :icon="TruckIcon" label="Utilaje" />
+                        <NavItem :href="routeOrFallback('trasabilitate-utilaje.index')" :disabled="routeMissing('trasabilitate-utilaje.index')" :icon="ScaleIcon" label="Trasabilitate utilaje" />
                         <NavItem :href="routeOrFallback('materials.index')" :disabled="routeMissing('materials.index')" :icon="CubeIcon" label="Materiale" />
                         <NavItem :href="routeOrFallback('resource-orders.index')" :disabled="routeMissing('resource-orders.index')" :icon="ClipboardDocumentListIcon" label="Documente resurse" />
                         <NavItem :href="routeOrFallback('trasabilitate-materiale.index')" :disabled="routeMissing('trasabilitate-materiale.index')" :icon="ArrowsRightLeftIcon" label="Trasabilitate materiale" />
@@ -349,6 +350,7 @@ import {
     QuestionMarkCircleIcon,
     ReceiptPercentIcon,
     RocketLaunchIcon,
+    ScaleIcon,
     ShieldCheckIcon,
     Squares2X2Icon,
     TruckIcon,
@@ -386,7 +388,7 @@ const sectionRoutes = {
     platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index'],
     projects: ['projects.index', 'wbs.index', 'contractors.index', 'equipment.index', 'documents.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
-    resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'resource-orders.index', 'trasabilitate-materiale.index'],
+    resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],
     financial: ['quotes.index', 'documents.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],

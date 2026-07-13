@@ -33,6 +33,7 @@ use App\Http\Controllers\StageTaskController;
 use App\Http\Controllers\StageProgressController;
 use App\Http\Controllers\ResourceOrderController;
 use App\Http\Controllers\MaterialTraceabilityController;
+use App\Http\Controllers\EquipmentTraceabilityController;
 use App\Http\Controllers\ProjectAiToolsController;
 use App\Http\Controllers\AccessAuditLogController;
 use App\Http\Controllers\DocumentBrandingController;
@@ -1288,6 +1289,7 @@ Route::middleware('auth')->group(function () {
         Route::get('resource-calendar', [ResourceCalendarController::class, 'index'])->name('resource-calendar.index');
         Route::resource('contractors', ContractorController::class)->except('show');
         Route::resource('equipment', EquipmentController::class)->except('show');
+        Route::get('trasabilitate-utilaje', [EquipmentTraceabilityController::class, 'index'])->name('trasabilitate-utilaje.index');
         Route::resource('resource-orders', ResourceOrderController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::patch('resource-orders/{resource_order}/confirmations', [ResourceOrderController::class, 'updateConfirmation'])->name('resource-orders.confirmations.update');
         Route::post('resource-orders/{resource_order}/documents', [ResourceOrderController::class, 'storeDocument'])->name('resource-orders.documents.store');
