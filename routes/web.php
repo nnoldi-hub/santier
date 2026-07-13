@@ -68,6 +68,23 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Fallback static-file server for storage/app/public assets (logo uploads etc).
+// Some shared-hosting Apache configs (CloudLinux/CageFS) fail to recognize files
+// reached through the public/storage symlink in the .htaccess "!-f" rewrite check,
+// so those requests fall through to Laravel and 404 instead of being served
+// directly by Apache. This route serves them straight from disk instead, which
+// works regardless of symlink/rewrite quirks.
+Route::get('/storage/{path}', function (string $path) {
+    $base = realpath(storage_path('app/public'));
+    $target = realpath(storage_path('app/public/' . ltrim($path, '/')));
+
+    abort_unless($base && $target && str_starts_with($target, $base) && is_file($target), 404);
+
+    return response()->file($target, [
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+    ]);
+})->where('path', '.*')->name('storage.local');
+
 Route::get('/', function (Request $request) {
     AnalyticsTracker::track($request, 'landing_view', [
         'path' => '/',

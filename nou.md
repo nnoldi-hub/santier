@@ -2107,3 +2107,43 @@ Definition of Done:
   necesita `composer dump-autoload` (nu doar `php artisan optimize:clear`) daca
   autoloader-ul e optimizat cu classmap (`composer install --optimize-autoloader`) -
   altfel clasa noua nu e gasita pana la urmatorul `composer install`/`dump-autoload`.
+
+
+### 2026-07-13 - Fix definitiv logo in browser: simlink storage nu functiona pe hosting (CageFS)
+- Etapa: dupa fix-ul de PDF, logo-ul tot nu aparea in preview-ul din browser
+  ("Logo indisponibil"). Investigatie live pe server, pas cu pas, impreuna cu userul.
+- Ce am gasit, in ordine:
+	- `public/storage` nu era simlink, ci un director gol real (doar `.gitignore`) -
+	  `storage:link` nu fusese niciodata aplicat cu succes.
+	- `php artisan storage:link` a esuat cu `Call to undefined function
+	  Illuminate\Filesystem\exec()` - Hostico are `exec()` dezactivat in PHP din motive
+	  de securitate (comun pe shared hosting), deci comanda artisan nu poate crea
+	  simlink-ul prin PHP.
+	- Simlink-ul creat manual din shell (`ln -s ... public/storage`, ocolind PHP) a
+	  reusit, dar logo-ul tot nu aparea - browserul dadea `net::ERR_BLOCKED_BY_ORB`.
+	- `curl -I` direct pe URL-ul logo-ului a aratat `HTTP/2 404` cu `x-powered-by: PHP` -
+	  cererea NU era servita static de Apache (ar fi ocolit PHP-ul complet), ci ajungea
+	  in Laravel care raspundea 404 (nicio ruta pentru `storage/...`).
+	- Cauza radacina: `.htaccess`-ul standard Laravel testeaza
+	  `%{REQUEST_FILENAME} !-f` inainte sa lase Apache sa serveasca fisierul static -
+	  pe hosting-uri cu izolare CloudLinux/CageFS (cazul Hostico), acest test nu
+	  recunoaste corect fisierele accesate prin simlink, asa ca orice cerere sub
+	  `/storage/...` cadea prin la `index.php` si Laravel raspundea 404.
+- Livrat:
+	- `routes/web.php`: ruta noua `GET /storage/{path}` care serveste fisierele direct
+	  din `storage/app/public/...` prin Laravel (`response()->file()`), complet
+	  independenta de simlink si de comportamentul `.htaccess`/CageFS. Validare
+	  anti-directory-traversal cu `realpath()` + verificare ca rezultatul ramane in
+	  interiorul `storage/app/public`. Header `Cache-Control: public, max-age=31536000,
+	  immutable` pentru performanta (fisierele au nume hash-uite, unice per upload, deci
+	  cache etern e sigur).
+	- Simlink-ul `public/storage` a fost creat manual pe productie (ramane util pentru
+	  medii unde `!-f` chiar recunoaste simlink-uri corect, ex. local/Laragon), dar
+	  aplicatia nu mai depinde de el pentru corectitudine.
+- Validare:
+	- `npm run build` -> passed (fara schimbari de frontend).
+	- Validat live pe productie, pas cu pas cu userul: fisierele existau fizic pe disc
+	  (`ls -la storage/app/public/branding/`), simlink-ul a fost creat, dar tot 404 -
+	  abia ruta Laravel noua rezolva definitiv problema (necesita re-testare dupa deploy).
+- Ce ramane: dupa `git pull` + `php artisan optimize:clear` pe productie, retestat
+  logo-ul in preview-ul de configurare SI intr-un document/oferta generat efectiv.
