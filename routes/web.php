@@ -74,6 +74,10 @@ use Inertia\Inertia;
 // so those requests fall through to Laravel and 404 instead of being served
 // directly by Apache. This route serves them straight from disk instead, which
 // works regardless of symlink/rewrite quirks.
+Route::get('/route-canary-test', function () {
+    return response('CANARY-OK ' . now()->toDateTimeString(), 200)->header('Content-Type', 'text/plain');
+});
+
 Route::get('/storage/{path}', function (\Illuminate\Http\Request $request, string $path) {
     $rawTarget = storage_path('app/public/' . ltrim($path, '/'));
     $base = realpath(storage_path('app/public'));
