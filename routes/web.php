@@ -128,6 +128,9 @@ Route::get('/', function (Request $request) {
     ]);
 });
 
+Route::get('/termeni', fn () => Inertia::render('Legal/Terms'))->name('legal.terms');
+Route::get('/confidentialitate', fn () => Inertia::render('Legal/Privacy'))->name('legal.privacy');
+
 Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
     ->middleware('throttle:6,1')
     ->name('demo-request.store');

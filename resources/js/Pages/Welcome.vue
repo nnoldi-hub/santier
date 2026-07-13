@@ -60,7 +60,7 @@
                                 v-if="canRegister"
                                 :href="route('register')"
                                 @click="trackCtaClick('hero', 'incearca_modulia')"
-                                class="px-6 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition"
+                                class="px-6 py-3 rounded-xl bg-[var(--brand-orange)] text-white font-semibold shadow-lg shadow-orange-500/20 hover:-translate-y-0.5 transition"
                             >
                                 Incearca Modulia
                             </Link>
@@ -177,6 +177,36 @@
                         <p class="mt-2 text-sm text-slate-600">{{ step.text }}</p>
                     </article>
                 </div>
+
+                <!-- Mockup ilustrativ (nu e screenshot real - inlocuieste cu o captura reala cand exista) -->
+                <div class="mt-4 rounded-3xl border border-slate-200 bg-white/85 backdrop-blur p-5 sm:p-6 shadow-sm">
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">1. Configurare</div>
+                            <div class="mt-2 space-y-1.5">
+                                <div class="h-2 w-3/4 rounded-full bg-slate-100"></div>
+                                <div class="h-2 w-1/2 rounded-full bg-slate-100"></div>
+                            </div>
+                            <div class="mt-2 inline-flex text-[10px] px-2 py-0.5 rounded-md bg-orange-100 text-orange-700">Sablon etape</div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">2. Executie</div>
+                            <div class="mt-2 space-y-1.5">
+                                <div class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span><div class="h-2 w-2/3 rounded-full bg-slate-100"></div></div>
+                                <div class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span><div class="h-2 w-1/2 rounded-full bg-slate-100"></div></div>
+                            </div>
+                            <div class="mt-2 inline-flex text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700">Taskuri &amp; defecte</div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">3. Raportare</div>
+                            <div class="mt-2 flex items-center justify-between text-xs">
+                                <span class="text-slate-500">Export PDF/XLSX</span>
+                                <span class="font-black text-slate-900">1 click</span>
+                            </div>
+                            <div class="mt-2 inline-flex text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700">Gata pentru management</div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
@@ -192,7 +222,12 @@
             </section>
 
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
-                <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Probleme reale pe care le rezolvi din prima saptamana</h2>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Probleme reale pe care le rezolvi din prima saptamana</h2>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                        <Icon :icon="CheckCircleIcon" size="h-3.5 w-3.5" /> Rezolvat in prima saptamana
+                    </span>
+                </div>
                 <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div v-for="item in painPoints" :key="item.title" class="bg-white border border-slate-200 rounded-2xl p-5">
                         <div class="text-slate-500"><Icon :icon="item.icon" size="h-7 w-7" /></div>
@@ -202,9 +237,36 @@
                 </div>
             </section>
 
-            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+            <section id="module-esentiale" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Module esentiale MODULIA</h2>
                 <p class="mt-2 text-slate-600">Ofertare inteligenta, WBS, taskuri, documente, financiar, AI si control enterprise intr-o singura platforma.</p>
+
+                <!-- Mockup ilustrativ (nu e screenshot real - inlocuieste cu o captura reala cand exista) -->
+                <div class="mt-6 rounded-3xl border border-slate-200 bg-white/85 backdrop-blur p-5 sm:p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs uppercase tracking-wide text-slate-400 font-semibold">Platforma in actiune</span>
+                        <span class="text-xs px-2 py-1 rounded-md bg-emerald-100 text-emerald-700">Live</span>
+                    </div>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-xs text-slate-500">WBS - Structura fundatie</div>
+                            <div class="mt-2 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div class="h-full w-[64%] bg-gradient-to-r from-[var(--brand-orange)] to-[var(--brand-blue)]"></div>
+                            </div>
+                            <div class="mt-1 text-[11px] text-slate-400">64% complet</div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-xs text-slate-500">Financiar proiect</div>
+                            <div class="mt-1 text-lg font-black text-slate-900">96%</div>
+                            <div class="text-[11px] text-slate-400">din bugetul alocat</div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <div class="text-xs text-slate-500">AI Tools</div>
+                            <div class="mt-2 text-[11px] text-slate-600">"Buget etapa finisaje aproape de limita - verifica achizitiile recente."</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="feature in features" :key="feature.title" class="feature-card rounded-2xl p-5 text-white">
                         <div class="text-white/90"><Icon :icon="feature.icon" size="h-7 w-7" /></div>
@@ -216,11 +278,38 @@
 
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">De ce Modulia</h2>
-                <div class="mt-6 grid md:grid-cols-2 gap-4">
-                    <article v-for="reason in whyModulia" :key="reason.title" class="rounded-2xl border border-slate-200 bg-white p-5">
-                        <h3 class="font-bold text-slate-900">{{ reason.title }}</h3>
-                        <p class="mt-2 text-sm text-slate-600">{{ reason.text }}</p>
-                    </article>
+                <div class="mt-6 grid lg:grid-cols-[1fr_0.85fr] gap-4 items-stretch">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <article v-for="reason in whyModulia" :key="reason.title" class="rounded-2xl border border-slate-200 bg-white p-5">
+                            <h3 class="font-bold text-slate-900">{{ reason.title }}</h3>
+                            <p class="mt-2 text-sm text-slate-600">{{ reason.text }}</p>
+                        </article>
+                    </div>
+
+                    <!-- Mockup ilustrativ AI dashboard (nu e screenshot real - inlocuieste cu o captura reala cand exista) -->
+                    <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-orange-50 to-blue-50 p-5 sm:p-6 shadow-sm">
+                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <Icon :icon="CpuChipIcon" size="h-4 w-4 text-[var(--brand-orange)]" /> AI Dashboard
+                        </div>
+                        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <div class="text-xs text-amber-700 font-semibold">Indicator AI</div>
+                            <div class="mt-1 text-sm font-bold text-amber-900">Risc intarziere: 18%</div>
+                        </div>
+                        <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                            <div class="text-xs text-slate-500 font-semibold">Sugestie AI</div>
+                            <div class="mt-1 text-sm text-slate-700">Etapa "Instalatii" are 2 taskuri blocate - realoca echipa pentru a evita intarzierea livrarii.</div>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-3">
+                            <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                <div class="text-[11px] text-slate-500">Oferte generate AI</div>
+                                <div class="text-lg font-black text-slate-900">128</div>
+                            </div>
+                            <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                <div class="text-[11px] text-slate-500">Timp economisit</div>
+                                <div class="text-lg font-black text-slate-900">~6h/sapt</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5 flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -234,15 +323,25 @@
             <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Ce spun clientii pilot</h2>
                 <div class="mt-6 grid md:grid-cols-3 gap-4">
-                    <article v-for="quote in testimonials" :key="quote.name" class="rounded-2xl border border-slate-200 bg-white p-5">
-                        <p class="text-sm text-slate-700">"{{ quote.text }}"</p>
-                        <div class="mt-4 text-sm font-semibold text-slate-900">{{ quote.name }}</div>
-                        <div class="text-xs text-slate-500">{{ quote.role }}</div>
+                    <article v-for="(quote, index) in testimonials" :key="quote.name" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div class="flex items-center gap-1 text-amber-400">
+                            <svg v-for="star in 5" :key="star" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L10 14.9l-5.2 2.62.99-5.8-4.21-4.1 5.82-.85z" /></svg>
+                        </div>
+                        <p class="mt-3 text-sm text-slate-700">"{{ quote.text }}"</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white" :class="avatarColor(index)">
+                                {{ initials(quote.name) }}
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900">{{ quote.name }}</div>
+                                <div class="text-xs text-slate-500">{{ quote.role }}</div>
+                            </div>
+                        </div>
                     </article>
                 </div>
             </section>
 
-            <section class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+            <section id="preturi" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Preturi clare pentru fiecare etapa</h2>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
@@ -273,6 +372,7 @@
                         </div>
                     </div>
                 </div>
+                <p class="mt-5 text-center text-xs text-slate-500">Fara contract, fara instalare, fara costuri ascunse.</p>
             </section>
 
             <section v-if="socialLinksToRender.length" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
@@ -387,20 +487,44 @@
         </main>
 
         <footer class="relative z-10 border-t border-slate-200 bg-white/70">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap gap-3 items-center justify-between text-sm text-slate-600">
-                <div class="flex items-center gap-2">
-                    <img src="/brand/logo_modulia.png" alt="Modulia" class="h-6 w-6 object-contain" />
-                    <span>Modulia - Șantierul devine clar.</span>
-                </div>
-                <div class="flex items-center gap-4">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
+                <div>
                     <div class="flex items-center gap-2">
+                        <img src="/brand/logo_modulia.png" alt="Modulia" class="h-6 w-6 object-contain" />
+                        <span class="font-semibold text-slate-800">Modulia</span>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">Șantierul devine clar.</p>
+                    <p class="mt-4 text-xs text-slate-400">© 2026 Modulia</p>
+                </div>
+
+                <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Produs</div>
+                    <ul class="mt-3 space-y-2">
+                        <li><a href="#solicita-demo" class="hover:text-[var(--brand-blue)] hover:underline">Solicita demo</a></li>
+                        <li><a href="#module-esentiale" class="hover:text-[var(--brand-blue)] hover:underline">Module esentiale</a></li>
+                        <li><a href="#preturi" class="hover:text-[var(--brand-blue)] hover:underline">Preturi</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Legal</div>
+                    <ul class="mt-3 space-y-2">
+                        <li><Link :href="route('legal.terms')" class="hover:text-[var(--brand-blue)] hover:underline">Termeni &amp; Conditii</Link></li>
+                        <li><Link :href="route('legal.privacy')" class="hover:text-[var(--brand-blue)] hover:underline">Confidentialitate (GDPR)</Link></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Contact</div>
+                    <ul class="mt-3 space-y-2">
+                        <li><a :href="`mailto:${supportEmail || 'suport@modulia.ro'}`" class="hover:text-[var(--brand-blue)] hover:underline">{{ supportEmail || 'suport@modulia.ro' }}</a></li>
+                        <li><a href="https://modulia.ro" target="_blank" rel="noopener" class="hover:text-[var(--brand-blue)] hover:underline">modulia.ro</a></li>
+                    </ul>
+                    <div v-if="socialLinksToRender.length" class="mt-4 flex items-center gap-2">
                         <a v-for="link in socialLinksToRender" :key="link.label" :href="link.url" target="_blank" rel="noopener" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-[var(--brand-blue)] hover:text-[var(--brand-blue)] transition" :aria-label="link.label">
                             {{ link.shortLabel }}
                         </a>
                     </div>
-                    <a href="https://modulia.ro" target="_blank" rel="noopener" class="text-[var(--brand-blue)] hover:underline">modulia.ro</a>
-                    <a :href="`mailto:${supportEmail || 'suport@modulia.ro'}`" class="text-[var(--brand-blue)] hover:underline">Suport</a>
-                    <span>© 2026 Modulia</span>
                 </div>
             </div>
         </footer>
@@ -496,6 +620,21 @@ const testimonials = [
 
 const landingVideo = computed(() => resolveLandingVideo(props.landingVideoUrl || DEFAULT_LANDING_VIDEO_URL));
 const socialLinksToRender = computed(() => buildSocialLinks(props.socialLinks || {}));
+
+const AVATAR_COLORS = ['bg-[var(--brand-orange)]', 'bg-[var(--brand-blue)]', 'bg-slate-700'];
+
+function avatarColor(index) {
+    return AVATAR_COLORS[index % AVATAR_COLORS.length];
+}
+
+function initials(name) {
+    return String(name || '')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+}
 
 function formatPrice(price) {
     const numericPrice = Number(price || 0);
