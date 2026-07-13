@@ -158,6 +158,13 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
 
 ## 4. Note tehnice utile pentru viitor
 
+- **Verificare `git status` la inceput de sesiune**: la un moment dat, 4 relatii Eloquent
+  (`resourceOrders()` pe `Material`, `Equipment`, `Project`, `ProjectPhase`) au stat
+  necomise local mult timp, desi jurnalul vechi le pretindea livrate - nimeni nu le-a
+  observat pana cand `Material::resourceOrders()` a cauzat un 500 in productie (folosit
+  de `MaterialTraceabilityController`). Lectie: fisiere modificate persistent in
+  `git status` la inceputul mai multor sesiuni merita verificate explicit (sunt scratch
+  ale userului sau cod real neterminat?), nu doar excluse automat din commituri.
 - **Multi-tenancy**: `AppSetting` (setari cheie-valoare) e acum scopat pe `tenant_id`
   (`0` = platforma globala). Orice setare noua per-firma trebuie sa foloseasca
   `AppSetting::allForTenant()`/`setValues(..., $tenantId)`, nu varianta fara tenant.
