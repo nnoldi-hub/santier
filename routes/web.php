@@ -68,48 +68,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Fallback static-file server for storage/app/public assets (logo uploads etc).
-// Some shared-hosting Apache configs (CloudLinux/CageFS) fail to recognize files
-// reached through the public/storage symlink in the .htaccess "!-f" rewrite check,
-// so those requests fall through to Laravel and 404 instead of being served
-// directly by Apache. This route serves them straight from disk instead, which
-// works regardless of symlink/rewrite quirks.
-Route::get('/route-canary-test', function () {
-    return response('CANARY-OK ' . now()->toDateTimeString(), 200)->header('Content-Type', 'text/plain');
-});
-
-Route::get('/storage/{path}', function (\Illuminate\Http\Request $request, string $path) {
-    $rawTarget = storage_path('app/public/' . ltrim($path, '/'));
-    $base = realpath(storage_path('app/public'));
-    $target = realpath($rawTarget);
-
-    $ok = $base && $target && str_starts_with($target, $base) && is_file($target);
-
-    if (! $ok) {
-        if ($request->boolean('debug')) {
-            return response()->json([
-                'requested_path' => $path,
-                'raw_target' => $rawTarget,
-                'raw_target_is_file' => is_file($rawTarget),
-                'raw_target_is_readable' => is_readable($rawTarget),
-                'resolved_base' => $base,
-                'resolved_target' => $target,
-                'open_basedir' => ini_get('open_basedir'),
-                'php_sapi' => php_sapi_name(),
-                'posix_getpwuid' => function_exists('posix_getpwuid') && function_exists('posix_geteuid')
-                    ? (posix_getpwuid(posix_geteuid())['name'] ?? null)
-                    : null,
-            ], 404);
-        }
-
-        abort(404);
-    }
-
-    return response()->file($target, [
-        'Cache-Control' => 'public, max-age=31536000, immutable',
-    ]);
-})->where('path', '.*')->name('storage.local');
-
 Route::get('/', function (Request $request) {
     AnalyticsTracker::track($request, 'landing_view', [
         'path' => '/',

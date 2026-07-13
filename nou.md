@@ -2147,3 +2147,48 @@ Definition of Done:
 	  abia ruta Laravel noua rezolva definitiv problema (necesita re-testare dupa deploy).
 - Ce ramane: dupa `git pull` + `php artisan optimize:clear` pe productie, retestat
   logo-ul in preview-ul de configurare SI intr-un document/oferta generat efectiv.
+
+
+### 2026-07-13 - Fix REAL, definitiv: mecanismul nativ Laravel de servire storage era configurat gresit
+- Etapa: dupa multe teste live pe productie (simlink, cache, opcache, rute custom cu
+  diagnostic JSON), am gasit cauza reala si am reparat-o corect, la sursa.
+- Investigatie (pas cu pas, confirmata live cu userul):
+	- Simlink-ul `public/storage` lipsea -> creat manual (`ln -s`), dar tot 404.
+	- `.htaccess` standard Laravel nu recunostea fisierul din spatele simlink-ului
+	  (izolare CloudLinux/CageFS) -> am adaugat o ruta Laravel custom `/storage/{path}`
+	  care citeste direct din `storage_path()`, ocolind simlink-ul.
+	- Ruta custom tot nu functiona -> am adaugat diagnostic JSON (`?debug=1`) si o ruta
+	  "canar" (`/route-canary-test`) ca sa verificam daca deploy-ul chiar ajunge live.
+	  Canary-ul functiona (deploy-ul e OK), dar `/storage/{path}` tot dadea 404 fara sa
+	  ajunga vreodata la codul meu.
+	- `php artisan route:list --path=storage -v` a aratat cauza reala: rutele
+	  `GET|PUT storage/{path}` NU erau ale mele - erau inregistrate automat de Laravel
+	  insusi, din `Illuminate\Filesystem\FilesystemServiceProvider` (mecanism nativ,
+	  introdus in Laravel recent, care inlocuieste simlink-ul clasic `storage:link`).
+	  Fiindca acest provider isi inregistreaza rutele mai tarziu (`$app->booted(...)`),
+	  suprascria ruta mea identica din `routes/web.php` in tabela interna de rute Laravel
+	  (aceeasi combinatie metoda+URI = ultima inregistrare castiga).
+	- Cauza reala a 404-ului nativ: `config/filesystems.php` avea `'serve' => true` pe
+	  discul `local` (care indica spre `storage/app/private`, fara `visibility: public`),
+	  in timp ce discul `public` (unde chiar salvam logo-urile, cu `visibility: public`
+	  si URL corect) NU avea `serve => true`. Laravel servea deci discul GRESIT la
+	  `/storage/{path}` - `ServeFile` (clasa interna care raspunde la aceasta ruta)
+	  respingea orice cerere cu 404 inca de la verificarea de vizibilitate (`hasValidSignature()`),
+	  inainte sa verifice macar daca fisierul exista.
+- Livrat:
+	- `config/filesystems.php`: mutat `'serve' => true` de pe discul `local` (privat) pe
+	  discul `public` (unde chiar salvam logo-urile de branding) - Laravel isi foloseste
+	  acum propriul mecanism nativ, corect configurat, pentru a servi
+	  `storage/app/public/...` la `/storage/{path}`.
+	- `routes/web.php`: eliminate complet ruta custom `/storage/{path}` si ruta de test
+	  `/route-canary-test` - redundante acum ca mecanismul nativ Laravel e reparat.
+	- Simlink-ul `public/storage` creat manual pe productie ramane (nu strica, e folosit
+	  ca prim nivel de Apache cand `-f` chiar recunoaste simlink-uri; cand nu, mecanismul
+	  nativ Laravel de mai sus preia cererea).
+- Validare:
+	- `npm run build` -> passed.
+	- Investigatie complet live pe productie: fiecare ipoteza (simlink, .htaccess,
+	  opcache, route cache) a fost testata si confirmata/infirmata cu comenzi reale
+	  (`ls`, `curl -I`, `php artisan route:list -v`) inainte de a ajunge la cauza reala.
+- Ce ramane: dupa `git pull` + stergere cache (`bootstrap/cache/*.php`) + `optimize:clear`
+  pe productie, retestat logo-ul in preview SI intr-un document generat.
