@@ -97,11 +97,18 @@ configurat sa bootstrap-eze acea aplicatie.
   in panoul de preview (fara librarie noua de grafice, consistent cu barele de
   progres deja folosite in alte pagini). `costs` si `stage-reports` nu au o
   dimensiune categorica reala, deci raman fara grafic (`charts: []`).
-- **Lipsesc** din planul "Exporturi Premium v2": raport managerial "avansat"
-  multi-sectiune cu grafice + generator pe interval (saptamanal/lunar/trimestrial/
-  anual) cu abonare, si inca 2 din cele 3 rapoarte comparative Materiale&Avize
-  planificate (Trasabilitate materiale completa, Utilaje & consum materiale) - vezi
-  backlog.
+- **Raport managerial cu grafice + abonare pe interval**: `exports.managerial-pdf`
+  (atat generarea la cerere, cat si cea programata prin `RunExportSubscriptionJob`)
+  randeaza acum grafice per sectiune (acelasi `ExportChartBuilder`, bare CSS randate
+  in PDF cu tiparul `.timeline-bar` deja folosit in `quotes/pdf.blade.php`), plus
+  `->setPaper('a4')` (lipsea). Abonarile (`export_subscriptions.frequency`) au acum
+  si `monthly`/`quarterly`/`yearly` pe langa `daily`/`weekly` (offset relativ de la
+  momentul rularii, ca si `daily` - fara camp de "ziua lunii"). Logica de calcul a
+  urmatoarei rulari a fost extrasa in `App\Support\ExportScheduleCalculator`
+  (elimina o duplicare intre controller si job).
+- **Lipsesc** din planul "Exporturi Premium v2": inca 2 din cele 3 rapoarte
+  comparative Materiale&Avize planificate (Trasabilitate materiale completa, Utilaje
+  & consum materiale) - vezi backlog.
 
 ### 2.9. Cont si organizatie (IAM) - COMPLET
 - Superadmin (platforma) vs tenant admin (per firma), izolare completa verificata cu
@@ -160,8 +167,8 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    `saved_export_filters`, sectiune dedicata in `Exports/Index.vue`, vezi 2.8).
 6. ~~Exporturi - preview cu grafice~~ - FACUT (`App\Support\ExportChartBuilder`,
    cheia `charts` pe `exports/preview`, vezi 2.8).
-7. **Exporturi - raport managerial avansat + raport pe interval**: PDF multi-sectiune
-   cu grafice, generator saptamanal/lunar/trimestrial/anual cu abonare automata.
+7. ~~Exporturi - raport managerial avansat + raport pe interval~~ - FACUT (grafice pe
+   `exports.managerial-pdf`, frecvente noi pe abonari, vezi 2.8).
 8. **Exporturi - completare pachet Materiale & Avize**: mai lipsesc 2 din cele 3
    rapoarte comparative planificate (doar `resource-comparison` exista azi):
    - Trasabilitate materiale completa (timeline documente + actori, vezi si #1).

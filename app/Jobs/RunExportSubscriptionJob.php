@@ -6,7 +6,9 @@ use App\Exports\EnterpriseWorkbookExport;
 use App\Mail\ScheduledExportMail;
 use App\Models\ExportSubscription;
 use App\Support\ExportAudit;
+use App\Support\ExportChartBuilder;
 use App\Support\ExportDatasetBuilder;
+use App\Support\ExportScheduleCalculator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -61,6 +63,7 @@ class RunExportSubscriptionJob implements ShouldQueue
                 'sections' => [
                     [
                         'name' => ucfirst($exportType),
+                        'charts' => ExportChartBuilder::build($exportType, $dataset['rows']),
                         'rows' => $dataset['rows']->map(fn ($row) => is_array($row) ? $row : (method_exists($row, 'toArray') ? $row->toArray() : (array) $row))->values(),
                     ],
                 ],
@@ -124,21 +127,7 @@ class RunExportSubscriptionJob implements ShouldQueue
 
         $subscription->update([
             'last_run_at' => now(),
-            'next_run_at' => $this->computeNextRunAt($subscription->frequency, $subscription->schedule_time, $subscription->schedule_weekday),
+            'next_run_at' => ExportScheduleCalculator::nextRunAt($subscription->frequency, $subscription->schedule_time, $subscription->schedule_weekday),
         ]);
-    }
-
-    private function computeNextRunAt(string $frequency, string $time, ?int $weekday)
-    {
-        $now = now();
-
-        if ($frequency === 'daily') {
-            return $now->copy()->addDay()->setTimeFromTimeString($time);
-        }
-
-        $targetWeekday = $weekday ?? 1;
-        $next = $now->copy()->next($targetWeekday)->setTimeFromTimeString($time);
-
-        return $next;
     }
 }

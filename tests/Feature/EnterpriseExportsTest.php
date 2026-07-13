@@ -289,6 +289,38 @@ class EnterpriseExportsTest extends TestCase
         ]);
     }
 
+    public function test_subscription_creation_with_monthly_frequency_persists_next_run_at(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        $payload = [
+            'name' => 'Raport lunar PM',
+            'export_type' => 'projects',
+            'format' => 'xlsx',
+            'frequency' => 'monthly',
+            'schedule_time' => '08:00',
+            'recipients' => ['pm@example.com'],
+        ];
+
+        $response = $this->actingAs($user)
+            ->from('/exports')
+            ->post('/exports/subscriptions', $payload);
+
+        $response->assertRedirect('/exports');
+
+        $this->assertDatabaseHas('export_subscriptions', [
+            'tenant_id' => 1,
+            'created_by' => $user->id,
+            'name' => 'Raport lunar PM',
+            'frequency' => 'monthly',
+        ]);
+
+        $subscription = ExportSubscription::query()->where('name', 'Raport lunar PM')->firstOrFail();
+        $this->assertNotNull($subscription->next_run_at);
+        $this->assertTrue($subscription->next_run_at->greaterThan(now()->addDays(25)));
+        $this->assertTrue($subscription->next_run_at->lessThanOrEqualTo(now()->addDays(35)));
+    }
+
     public function test_run_subscription_endpoint_dispatches_job(): void
     {
         Queue::fake();

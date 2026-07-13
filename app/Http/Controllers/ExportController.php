@@ -23,6 +23,7 @@ use App\Support\ExportAudit;
 use App\Support\ExportChartBuilder;
 use App\Support\ExportDatasetBuilder;
 use App\Support\ExportFilter;
+use App\Support\ExportScheduleCalculator;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -606,6 +607,7 @@ class ExportController extends Controller
 
             return [
                 'name' => ucfirst($type),
+                'charts' => ExportChartBuilder::build($type, $dataset['rows']),
                 'rows' => $dataset['rows']->map(function ($row) {
                     return is_array($row)
                         ? $row
@@ -635,7 +637,7 @@ class ExportController extends Controller
             'sections' => $sections,
         ])->setOptions([
             'isRemoteEnabled' => true,
-        ]);
+        ])->setPaper('a4');
 
         return $pdf->download($fileName);
     }
@@ -646,7 +648,7 @@ class ExportController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'export_type' => ['required', 'in:projects,quotes,materials,resource-comparison,costs,teams,tasks,defects,wbs,equipment,documents,stage-reports,stage-tasks,stage-progress'],
             'format' => ['required', 'in:csv,xlsx,pdf'],
-            'frequency' => ['required', 'in:daily,weekly'],
+            'frequency' => ['required', 'in:daily,weekly,monthly,quarterly,yearly'],
             'schedule_time' => ['required', 'date_format:H:i'],
             'schedule_weekday' => ['nullable', 'integer', 'between:0,6'],
             'recipients' => ['required', 'array', 'min:1'],
@@ -666,7 +668,7 @@ class ExportController extends Controller
             'filters' => $validated['filters'] ?? [],
             'recipients' => $validated['recipients'],
             'active' => true,
-            'next_run_at' => $this->computeNextRunAt($validated['frequency'], $validated['schedule_time'], $validated['schedule_weekday'] ?? null),
+            'next_run_at' => ExportScheduleCalculator::nextRunAt($validated['frequency'], $validated['schedule_time'], $validated['schedule_weekday'] ?? null),
         ]);
 
         ExportAudit::log('subscription', 'system', $validated['filters'] ?? [], [
@@ -802,18 +804,6 @@ class ExportController extends Controller
         }, 'project_' . $project->id . '_package.json', [
             'Content-Type' => 'application/json; charset=UTF-8',
         ]);
-    }
-
-    private function computeNextRunAt(string $frequency, string $time, ?int $weekday)
-    {
-        $now = now();
-
-        if ($frequency === 'daily') {
-            return $now->copy()->addDay()->setTimeFromTimeString($time);
-        }
-
-        $targetWeekday = $weekday ?? 1;
-        return $now->copy()->next($targetWeekday)->setTimeFromTimeString($time);
     }
 
     private function downloadCsv(string $fileName, array $headers, array $rows): StreamedResponse

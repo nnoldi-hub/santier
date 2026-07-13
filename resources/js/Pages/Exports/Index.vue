@@ -551,13 +551,16 @@
                         <select v-model="subscriptionForm.frequency" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                             <option value="daily">daily</option>
                             <option value="weekly">weekly</option>
+                            <option value="monthly">monthly</option>
+                            <option value="quarterly">quarterly</option>
+                            <option value="yearly">yearly</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-600 mb-1">Ora executie</label>
                         <input v-model="subscriptionForm.schedule_time" type="time" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
-                    <div>
+                    <div v-if="subscriptionForm.frequency === 'weekly'">
                         <label class="block text-xs text-gray-600 mb-1">Zi saptamana (0-6)</label>
                         <input v-model.number="subscriptionForm.schedule_weekday" type="number" min="0" max="6" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>

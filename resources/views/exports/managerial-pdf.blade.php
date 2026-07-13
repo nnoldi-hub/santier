@@ -17,6 +17,13 @@
         th, td { border: 1px solid #e5e7eb; padding: 6px; font-size: 11px; vertical-align: top; }
         th { background: #f3f4f6; text-align: left; }
         .small { font-size: 10px; color: #6b7280; }
+        .charts { margin-bottom: 12px; }
+        .chart-block { margin-bottom: 10px; }
+        .chart-title { font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+        .chart-row { margin-bottom: 4px; }
+        .chart-label { font-size: 9px; color: #475569; margin-bottom: 2px; }
+        .chart-bar-bg { width: 100%; height: 7px; background: #e5e7eb; border-radius: 999px; }
+        .chart-bar { height: 7px; background: {{ $branding['brand_color'] ?? '#f97316' }}; border-radius: 999px; }
     </style>
 </head>
 <body>
@@ -52,7 +59,33 @@
             <h3>{{ $section['name'] }}</h3>
             @php
                 $rows = $section['rows'];
+                $charts = $section['charts'] ?? [];
             @endphp
+
+            @if(!empty($charts))
+                <div class="charts">
+                    @foreach($charts as $chart)
+                        @php
+                            $max = !empty($chart['series']) ? max($chart['series']) : 0;
+                        @endphp
+                        <div class="chart-block">
+                            <div class="chart-title">{{ $chart['title'] }}</div>
+                            @foreach($chart['labels'] as $index => $label)
+                                @php
+                                    $value = $chart['series'][$index] ?? 0;
+                                    $width = $max > 0 ? round(($value / $max) * 100, 2) : 0;
+                                @endphp
+                                <div class="chart-row">
+                                    <div class="chart-label">{{ $label }} ({{ $value }})</div>
+                                    <div class="chart-bar-bg">
+                                        <div class="chart-bar" style="width: {{ $width }}%;"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if(!empty($rows) && count($rows) > 0)
                 @php
