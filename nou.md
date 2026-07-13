@@ -33,10 +33,16 @@ configurat sa bootstrap-eze acea aplicatie.
   `resource_deliveries`, `resource_confirmations`, `resource_document_links`,
   pagina `ResourceOrders/Index` + `Show`), inclusiv reconciliere automata cu prag de
   toleranta configurabil si blocare automata la plata (`blocked_payment`) cand
-  diferentele depasesc pragul, plus audit complet pe fiecare actiune.
-  **Lipsesc** insa paginile dedicate de vizualizare "Trasabilitate materiale" si
-  "Trasabilitate utilaje" (timeline + sumar comandat/livrat/consumat/facturat per
-  material sau utilaj) - vezi backlog.
+  diferentele depasesc pragul, plus audit complet pe fiecare actiune. Logica de
+  reconciliere e extrasa intr-un serviciu partajat
+  (`App\Support\ResourceOrderReconciliation`) reutilizat de pagina de detaliu si de
+  pagina agregata.
+- **Trasabilitate materiale** (`/trasabilitate-materiale`): pagina dedicata, agrega
+  pe fiecare material comandat/livrat/consumat + valoare comandata + facturi materiale
+  (total/neplatit), cu status per material (conform/cu diferente/blocat la plata) rezultat
+  din cea mai grava stare a comenzilor lui.
+  **Lipseste** inca "Trasabilitate utilaje" (varianta V1: rezervari + cost estimat
+  unificat, fara flux de confirmare) - vezi backlog.
 
 ### 2.3. Financiar - COMPLET
 - Documente financiare (contracte/facturi/devize/oferte) cu upload fisier si branding
@@ -115,13 +121,16 @@ configurat sa bootstrap-eze acea aplicatie.
 
 Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica prioritate.
 
-1. **Trasabilitate materiale (pagina dedicata)** - timeline complet documente + actori +
-   status per material, sumar comandat/livrat/pompat/consumat/returnat/facturat/platit,
-   badge-uri de stare (conform/in verificare/cu diferente/blocat la plata). Foloseste
-   date deja existente in `resource_orders`/`resource_deliveries`.
-2. **Trasabilitate utilaje (pagina dedicata)** - construita peste `equipment` +
-   `stage_equipment`, comparatie rezervare initiala vs ore confirmate vs cost final
-   aprobat, conectata cu cost tracking.
+1. ~~Trasabilitate materiale (pagina dedicata)~~ - FACUT (`/trasabilitate-materiale`,
+   vezi 2.2). Ramas explicit in afara scopului: legarea `MaterialInvoice` de
+   `resource_orders`/`resource_document_links` (sunt doua sisteme de facturare separate,
+   neconectate in schema - aratate distinct, nu unificate).
+2. **Trasabilitate utilaje (pagina dedicata) - V1** - rezervari + cost estimat unificat
+   per utilaj (cost_per_hour x cantitate x zile x 8h, printr-un helper unic
+   `App\Support\EquipmentCostEstimator`, in loc de cele 3 formule inconsistente gasite
+   in cod). Explicit NU include un flux de confirmare ore/cost final (schema
+   `stage_equipment` nu are camp de confirmare - ar necesita o migratie noua, decizie
+   ramasa pentru o runda separata daca se doreste varianta completa).
 3. **Comercial - log de actiuni** (`commercial_actions`): istoric apel/email/demo/oferta/
    follow-up/negociere per lead, separat de taskurile automate existente.
 4. **Comercial - inbox/widget dashboard** (C3): "Taskuri azi", "follow-up restante",

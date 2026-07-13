@@ -32,6 +32,7 @@ use App\Http\Controllers\StageReportController;
 use App\Http\Controllers\StageTaskController;
 use App\Http\Controllers\StageProgressController;
 use App\Http\Controllers\ResourceOrderController;
+use App\Http\Controllers\MaterialTraceabilityController;
 use App\Http\Controllers\ProjectAiToolsController;
 use App\Http\Controllers\AccessAuditLogController;
 use App\Http\Controllers\DocumentBrandingController;
@@ -1291,6 +1292,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('resource-orders/{resource_order}/confirmations', [ResourceOrderController::class, 'updateConfirmation'])->name('resource-orders.confirmations.update');
         Route::post('resource-orders/{resource_order}/documents', [ResourceOrderController::class, 'storeDocument'])->name('resource-orders.documents.store');
         Route::delete('resource-orders/{resource_order}/documents/{resource_document_link}', [ResourceOrderController::class, 'destroyDocument'])->name('resource-orders.documents.destroy');
+        Route::get('trasabilitate-materiale', [MaterialTraceabilityController::class, 'index'])->name('trasabilitate-materiale.index');
         Route::resource('documents', DocumentController::class)->except('show');
         Route::middleware('plan:document_branding')->group(function () {
             Route::get('documente/configurare', [DocumentBrandingController::class, 'index'])->name('documents.branding.index');
