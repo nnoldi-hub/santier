@@ -190,7 +190,14 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
   orice view PDF nou care afiseaza logo trebuie sa treaca branding-ul prin acest helper
   inainte de randare.
 - **Deploy productie**: `git pull` in `~/repositories/modulia-app`, apoi
-  `composer dump-autoload` (daca s-au adaugat clase noi), `php artisan optimize:clear`,
+  `composer dump-autoload --no-scripts` (daca s-au adaugat clase noi - vezi mai jos de ce
+  `--no-scripts`), `php artisan package:discover --ansi`, `php artisan optimize:clear`,
   `php artisan migrate --force` (daca sunt migratii noi). PHP-ul de pe acest hosting NU
   are `exec()` activat (storage:link prin artisan nu functioneaza - simlink-uri se
   creaza manual din shell cu `ln -s` daca sunt necesare).
+- **`composer dump-autoload` fara `--no-scripts` pica pe acest host**: hook-ul
+  `postAutoloadDump` ruleaza `@php artisan package:discover --ansi` printr-un subproces
+  (Symfony `Process`/`proc_open`), iar `proc_open` e dezactivat pe acest hosting (acelasi
+  motiv pentru care `exec()` lipseste). Fix: `composer dump-autoload --no-scripts` urmat
+  de `php artisan package:discover --ansi` rulat direct (comanda artisan normala, fara
+  subproces, deci nu are nevoie de `proc_open`).
