@@ -39,6 +39,17 @@ export function labelCommercialRisk(level) {
     }[level] || level || '-';
 }
 
+export function labelCommercialActionType(type) {
+    return {
+        apel: 'Apel',
+        email: 'Email',
+        demo: 'Demo',
+        oferta: 'Oferta',
+        follow_up: 'Follow-up',
+        negociere: 'Negociere',
+    }[type] || type || '-';
+}
+
 export function commercialRiskTone(level) {
     if (level === 'high') {
         return 'bg-rose-100 text-rose-700';

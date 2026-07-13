@@ -1244,6 +1244,7 @@ Route::middleware('auth')->group(function () {
         Route::get('pilot-invites', [PilotInviteController::class, 'index'])->name('pilot-invites.index');
         Route::post('pilot-invites', [PilotInviteController::class, 'store'])->name('pilot-invites.store');
         Route::patch('pilot-invites/{pilotInvite}/status', [PilotInviteController::class, 'updateStatus'])->name('pilot-invites.status');
+        Route::post('pilot-invites/{pilotInvite}/actions', [PilotInviteController::class, 'storeAction'])->name('pilot-invites.actions.store');
 
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
         Route::patch('billing', [BillingController::class, 'update'])->name('billing.update');

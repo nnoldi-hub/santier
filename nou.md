@@ -102,10 +102,14 @@ configurat sa bootstrap-eze acea aplicatie.
   cu taskuri comerciale automate + notificari la schimbare de etapa/status.
 - Dashboard Comercial si Firme & Abonamente (ambele in zona de superadmin), aliniate
   vizual la brand.
-- **Lipsesc**: log de actiuni comerciale (`commercial_actions` - istoric apel/email/
-  demo/negociere per lead, momentan doar taskurile automate exista) si inbox-ul
-  comercial din dashboard (widget "Taskuri azi" / "follow-up restante" / "oportunitati
-  stagnante") - vezi backlog.
+- **Jurnal de actiuni comerciale** (`commercial_actions`): istoric apel/email/demo/
+  oferta/follow-up/negociere per lead, complet independent de taskurile automate
+  existente (`commercial_tasks`, neschimbate). Vizibil direct in `PilotInvites/Index.vue`
+  (coloana "Jurnal actiuni", ultima actiune + mini-formular de adaugare per rand);
+  logarea unei actiuni actualizeaza automat `last_contacted_at` pe lead.
+- **Lipseste**: inbox-ul comercial din dashboard (widget "Taskuri azi" / "follow-up
+  restante" / "oportunitati stagnante" / "handoff onboarding") + filtrele
+  corespunzatoare in `PilotInvites/Index` - vezi backlog.
 
 ### 2.11. Admin platforma (superadmin) - COMPLET
 - Administrare (setari globale: branding platforma, trial, feature flags), Firme &
@@ -133,8 +137,7 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    vezi 2.2). Ramas explicit in afara scopului (backlog separat daca se doreste): flux
    de confirmare ore/cost final aprobat - ar necesita o migratie noua pe
    `stage_equipment` (varianta V2, discutata si respinsa pentru aceasta runda).
-3. **Comercial - log de actiuni** (`commercial_actions`): istoric apel/email/demo/oferta/
-   follow-up/negociere per lead, separat de taskurile automate existente.
+3. ~~Comercial - log de actiuni~~ - FACUT (`commercial_actions`, vezi 2.10).
 4. **Comercial - inbox/widget dashboard** (C3): "Taskuri azi", "follow-up restante",
    "oportunitati stagnante", "handoff-uri catre onboarding" + filtre in
    `PilotInvites/Index` (doar cu reminder azi / fara next step / stagnante).

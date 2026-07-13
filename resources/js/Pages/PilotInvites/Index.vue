@@ -136,6 +136,7 @@
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Stadiu comercial</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Urmarire</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Task comercial</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Jurnal actiuni</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Responsabil</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                         </tr>
@@ -199,6 +200,36 @@
                                 <div v-else class="text-xs text-gray-400">Nu exista task deschis.</div>
                             </td>
                             <td class="px-4 py-3 text-gray-600">
+                                <div v-if="invite.commercial_actions?.length" class="text-xs text-gray-700 mb-1">
+                                    <span class="font-semibold">{{ labelActionType(invite.commercial_actions[0].action_type) }}</span>
+                                    <span class="text-gray-400"> · {{ formatDateTime(invite.commercial_actions[0].created_at) }}</span>
+                                    <span v-if="invite.commercial_actions[0].actor_name" class="text-gray-400"> · {{ invite.commercial_actions[0].actor_name }}</span>
+                                </div>
+                                <div v-else class="text-xs text-gray-400 mb-1">Nicio actiune inregistrata.</div>
+
+                                <button
+                                    v-if="expandedActionInviteId !== invite.id"
+                                    type="button"
+                                    @click="expandActionForm(invite.id)"
+                                    class="text-[11px] text-blue-600 hover:underline"
+                                >
+                                    + Adauga actiune
+                                </button>
+
+                                <div v-else class="space-y-1 mt-1">
+                                    <select v-model="actionForm.action_type" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                                        <option v-for="(label, key) in actionTypes" :key="key" :value="key">{{ label }}</option>
+                                    </select>
+                                    <textarea v-model="actionForm.notes" rows="2" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Detalii (optional)"></textarea>
+                                    <div class="flex gap-1">
+                                        <button type="button" :disabled="actionForm.processing" @click="submitAction(invite)" class="bg-emerald-600 text-white px-2 py-1 rounded text-[11px] hover:bg-emerald-700 disabled:opacity-60">
+                                            {{ actionForm.processing ? 'Se salveaza...' : 'Salveaza' }}
+                                        </button>
+                                        <button type="button" @click="collapseActionForm" class="border border-gray-300 px-2 py-1 rounded text-[11px] text-gray-600">Renunta</button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
                                 <div class="space-y-2">
                                     <select v-model="inviteDrafts[invite.id].owner_id" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
                                         <option value="">Fara responsabil</option>
@@ -226,7 +257,7 @@ import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import { RocketLaunchIcon } from '@heroicons/vue/24/outline';
-import { labelCommercialStage, labelCommercialStatus } from '@/Support/commercialLabels';
+import { labelCommercialActionType, labelCommercialStage, labelCommercialStatus } from '@/Support/commercialLabels';
 
 const props = defineProps({
     invites: { type: Object, required: true },
@@ -235,6 +266,7 @@ const props = defineProps({
     statusOptions: { type: Array, default: () => [] },
     stageOptions: { type: Object, default: () => ({}) },
     customizationOptions: { type: Object, default: () => ({}) },
+    actionTypes: { type: Object, default: () => ({}) },
 });
 
 const statusFilter = ref(props.filters?.status || '');
@@ -242,6 +274,12 @@ const commercialStageFilter = ref(props.filters?.commercial_stage || '');
 const customizationFilter = ref(props.filters?.customization || '');
 const sortBy = ref(props.filters?.sort || 'users_desc');
 const updatingInviteId = ref(null);
+const expandedActionInviteId = ref(null);
+
+const actionForm = useForm({
+    action_type: 'apel',
+    notes: '',
+});
 
 const form = useForm({
     company_name: '',
@@ -328,6 +366,26 @@ function saveInvite(invite) {
     });
 }
 
+function expandActionForm(inviteId) {
+    actionForm.clearErrors();
+    actionForm.action_type = 'apel';
+    actionForm.notes = '';
+    expandedActionInviteId.value = inviteId;
+}
+
+function collapseActionForm() {
+    expandedActionInviteId.value = null;
+}
+
+function submitAction(invite) {
+    actionForm.post(route('pilot-invites.actions.store', invite.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            expandedActionInviteId.value = null;
+        },
+    });
+}
+
 function formatDate(value) {
     if (!value) return '-';
     return new Date(value).toLocaleDateString('ro-RO');
@@ -340,6 +398,7 @@ function formatDateTime(value) {
 
 const labelStatus = labelCommercialStatus;
 const labelStage = (stage) => props.stageOptions?.[stage] || labelCommercialStage(stage);
+const labelActionType = (type) => props.actionTypes?.[type] || labelCommercialActionType(type);
 
 function isHighValue(estimatedUsers) {
     return Number(estimatedUsers || 0) >= 50;

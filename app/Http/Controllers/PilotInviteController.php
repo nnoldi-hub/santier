@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
+use App\Models\CommercialAction;
 use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\User;
@@ -34,7 +35,7 @@ class PilotInviteController extends Controller
 
         $invites = PilotInvite::query()
             ->where('tenant_id', $tenantId)
-            ->with(['owner:id,name,email', 'commercialTasks'])
+            ->with(['owner:id,name,email', 'commercialTasks', 'commercialActions.actor:id,name'])
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($commercialStage !== '', fn ($query) => $query->where('commercial_stage', $commercialStage))
             ->when($selectedScopeLabel, fn ($query) => $query->where('notes', 'like', '%Personalizare dorita: '.$selectedScopeLabel.'%'))
@@ -62,6 +63,13 @@ class PilotInviteController extends Controller
                     'estimated_users' => $qualification['estimated_users'],
                     'customization_scope_label' => $qualification['customization_scope_label'],
                     'commercial_task' => $this->resolveCommercialTaskSummary($invite->commercialTasks),
+                    'commercial_actions' => $invite->commercialActions->take(3)->map(fn (CommercialAction $action) => [
+                        'id' => $action->id,
+                        'action_type' => $action->action_type,
+                        'notes' => $action->notes,
+                        'actor_name' => $action->actor?->name,
+                        'created_at' => optional($action->created_at)->toDateTimeString(),
+                    ])->values(),
                 ];
             })
             ->withQueryString();
@@ -87,6 +95,7 @@ class PilotInviteController extends Controller
             ],
             'stageOptions' => $this->stageLabels(),
             'customizationOptions' => $scopeLabels,
+            'actionTypes' => CommercialAction::$typeLabels,
         ]);
     }
 
@@ -150,6 +159,29 @@ class PilotInviteController extends Controller
         return back()->with('success', 'Status invitatie actualizat.');
     }
 
+    public function storeAction(Request $request, PilotInvite $pilotInvite): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $pilotInvite->tenant_id === $tenantId, 404);
+
+        $validated = $request->validate([
+            'action_type' => ['required', 'in:' . implode(',', array_keys(CommercialAction::$typeLabels))],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        CommercialAction::create([
+            'tenant_id' => $tenantId,
+            'pilot_invite_id' => $pilotInvite->id,
+            'actor_id' => $request->user()?->id,
+            'action_type' => $validated['action_type'],
+            'notes' => trim((string) ($validated['notes'] ?? '')) ?: null,
+        ]);
+
+        $pilotInvite->update(['last_contacted_at' => now()]);
+
+        return back()->with('success', 'Actiunea a fost inregistrata.');
+    }
+
     private function resolveCommercialTaskSummary(Collection $tasks): ?array
     {
         /** @var CommercialTask|null $task */
@@ -170,7 +202,6 @@ class PilotInviteController extends Controller
 
     private function syncCommercialTaskAutomation(PilotInvite $invite, int $actorId): void
     {
-        $activeStatuses = ['invited', 'contacted', 'demo_scheduled', 'trial_started'];
         $openStatuses = ['todo', 'in_progress'];
 
         $openTask = CommercialTask::query()
@@ -179,7 +210,7 @@ class PilotInviteController extends Controller
             ->latest('id')
             ->first();
 
-        if (! in_array((string) $invite->status, $activeStatuses, true)) {
+        if (! in_array((string) $invite->status, PilotInvite::ACTIVE_STATUSES, true)) {
             if ($openTask instanceof CommercialTask) {
                 $openTask->update([
                     'status' => 'cancelled',

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PilotInvite extends Model
 {
+    public const ACTIVE_STATUSES = ['invited', 'contacted', 'demo_scheduled', 'trial_started'];
+
     protected $fillable = [
         'tenant_id',
         'owner_id',
@@ -41,5 +43,10 @@ class PilotInvite extends Model
     public function commercialTasks(): HasMany
     {
         return $this->hasMany(CommercialTask::class)->latest('id');
+    }
+
+    public function commercialActions(): HasMany
+    {
+        return $this->hasMany(CommercialAction::class)->latest();
     }
 }
