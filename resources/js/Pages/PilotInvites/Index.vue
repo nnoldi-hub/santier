@@ -140,7 +140,7 @@
                 Nu exista invitatii inca.
             </div>
 
-            <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
