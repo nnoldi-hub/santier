@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\CommercialDashboardWorkbookExport;
 use App\Models\AppSetting;
 use App\Models\AccessAuditLog;
+use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\Tenant;
 use App\Models\User;
@@ -439,6 +440,90 @@ class AdminController extends Controller
             ->take(8)
             ->values();
 
+        $stagnantThreshold = $today->copy()->subDays((int) config('pilot_invites.stagnant_days', 14));
+
+        $tasksTodayBase = CommercialTask::query()
+            ->whereIn('status', ['todo', 'in_progress'])
+            ->whereDate('due_at', $today->toDateString());
+        $tasksToday = [
+            'count' => (clone $tasksTodayBase)->count(),
+            'items' => (clone $tasksTodayBase)
+                ->with('pilotInvite:id,company_name')
+                ->orderBy('due_at')
+                ->take(5)
+                ->get()
+                ->map(fn (CommercialTask $task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'due_at' => optional($task->due_at)->toDateTimeString(),
+                    'priority' => $task->priority,
+                    'pilot_invite_id' => $task->pilot_invite_id,
+                    'company_name' => $task->pilotInvite?->company_name,
+                ])
+                ->values(),
+        ];
+
+        $followUpOverdueBase = PilotInvite::query()
+            ->whereIn('status', PilotInvite::ACTIVE_STATUSES)
+            ->whereNotNull('follow_up_at')
+            ->where('follow_up_at', '<', now());
+        $followUpOverdue = [
+            'count' => (clone $followUpOverdueBase)->count(),
+            'items' => (clone $followUpOverdueBase)
+                ->orderBy('follow_up_at')
+                ->take(5)
+                ->get(['id', 'company_name', 'follow_up_at'])
+                ->map(fn (PilotInvite $invite) => [
+                    'id' => $invite->id,
+                    'company_name' => $invite->company_name,
+                    'follow_up_at' => optional($invite->follow_up_at)->toDateTimeString(),
+                ])
+                ->values(),
+        ];
+
+        $stagnantBase = PilotInvite::query()
+            ->whereIn('status', PilotInvite::ACTIVE_STATUSES)
+            ->where(fn ($query) => $query
+                ->whereNull('last_contacted_at')
+                ->orWhere('last_contacted_at', '<', $stagnantThreshold));
+        $stagnantOpportunities = [
+            'count' => (clone $stagnantBase)->count(),
+            'items' => (clone $stagnantBase)
+                ->orderBy('last_contacted_at')
+                ->take(5)
+                ->get(['id', 'company_name', 'last_contacted_at'])
+                ->map(fn (PilotInvite $invite) => [
+                    'id' => $invite->id,
+                    'company_name' => $invite->company_name,
+                    'last_contacted_at' => optional($invite->last_contacted_at)->toDateTimeString(),
+                ])
+                ->values(),
+        ];
+
+        $pendingHandoffsBase = PilotInvite::query()
+            ->where('status', 'closed_won')
+            ->whereNull('onboarding_handoff_at');
+        $pendingHandoffs = [
+            'count' => (clone $pendingHandoffsBase)->count(),
+            'items' => (clone $pendingHandoffsBase)
+                ->orderBy('updated_at')
+                ->take(5)
+                ->get(['id', 'company_name', 'updated_at'])
+                ->map(fn (PilotInvite $invite) => [
+                    'id' => $invite->id,
+                    'company_name' => $invite->company_name,
+                    'closed_at' => optional($invite->updated_at)->toDateTimeString(),
+                ])
+                ->values(),
+        ];
+
+        $inbox = [
+            'tasks_today' => $tasksToday,
+            'follow_up_overdue' => $followUpOverdue,
+            'stagnant_opportunities' => $stagnantOpportunities,
+            'pending_handoffs' => $pendingHandoffs,
+        ];
+
         return [
             'kpis' => [
                 'current_mrr' => $forecast['current_mrr'],
@@ -457,6 +542,7 @@ class AdminController extends Controller
             'riskOverview' => $riskOverview,
             'riskScoredTenants' => $riskScoredTenants->take(8)->values(),
             'topPipelineOpportunities' => $topPipelineOpportunities,
+            'inbox' => $inbox,
         ];
     }
 

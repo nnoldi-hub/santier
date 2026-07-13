@@ -24,6 +24,7 @@ class PilotInvite extends Model
         'demo_scheduled_at',
         'follow_up_at',
         'last_contacted_at',
+        'onboarding_handoff_at',
         'next_step',
         'notes',
     ];
@@ -33,6 +34,7 @@ class PilotInvite extends Model
         'demo_scheduled_at' => 'datetime',
         'follow_up_at' => 'datetime',
         'last_contacted_at' => 'datetime',
+        'onboarding_handoff_at' => 'datetime',
     ];
 
     public function owner(): BelongsTo

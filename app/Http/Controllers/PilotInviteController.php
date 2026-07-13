@@ -32,6 +32,10 @@ class PilotInviteController extends Controller
         }
         $scopeLabels = $this->scopeLabels();
         $selectedScopeLabel = $scopeLabels[$customization] ?? null;
+        $reminderToday = $request->boolean('reminder_today');
+        $noNextStep = $request->boolean('no_next_step');
+        $stagnant = $request->boolean('stagnant');
+        $stagnantThreshold = now()->subDays((int) config('pilot_invites.stagnant_days', 14));
 
         $invites = PilotInvite::query()
             ->where('tenant_id', $tenantId)
@@ -39,6 +43,13 @@ class PilotInviteController extends Controller
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($commercialStage !== '', fn ($query) => $query->where('commercial_stage', $commercialStage))
             ->when($selectedScopeLabel, fn ($query) => $query->where('notes', 'like', '%Personalizare dorita: '.$selectedScopeLabel.'%'))
+            ->when($reminderToday, fn ($query) => $query->whereDate('follow_up_at', today()))
+            ->when($noNextStep, fn ($query) => $query->whereNull('next_step'))
+            ->when($stagnant, fn ($query) => $query
+                ->whereIn('status', PilotInvite::ACTIVE_STATUSES)
+                ->where(fn ($inner) => $inner
+                    ->whereNull('last_contacted_at')
+                    ->orWhere('last_contacted_at', '<', $stagnantThreshold)))
             ->latest('id')
             ->paginate(20)
             ->through(function (PilotInvite $invite) {
@@ -84,6 +95,9 @@ class PilotInviteController extends Controller
                 'commercial_stage' => $commercialStage,
                 'customization' => $customization,
                 'sort' => $sort,
+                'reminder_today' => $reminderToday,
+                'no_next_step' => $noNextStep,
+                'stagnant' => $stagnant,
             ],
             'statusOptions' => [
                 'invited',
@@ -180,6 +194,18 @@ class PilotInviteController extends Controller
         $pilotInvite->update(['last_contacted_at' => now()]);
 
         return back()->with('success', 'Actiunea a fost inregistrata.');
+    }
+
+    public function markHandoff(Request $request, PilotInvite $pilotInvite): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $pilotInvite->tenant_id === $tenantId, 404);
+
+        abort_if($pilotInvite->status !== 'closed_won' || $pilotInvite->onboarding_handoff_at !== null, 422);
+
+        $pilotInvite->update(['onboarding_handoff_at' => now()]);
+
+        return back()->with('success', 'Handoff catre onboarding marcat.');
     }
 
     private function resolveCommercialTaskSummary(Collection $tasks): ?array

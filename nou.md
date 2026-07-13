@@ -97,7 +97,7 @@ configurat sa bootstrap-eze acea aplicatie.
   email (link de setare parola), audit acces, actiuni Suspenda/Reactiveaza/Reinvita/
   Elimina din firma pe utilizatori.
 
-### 2.10. Comercial - PARTIAL
+### 2.10. Comercial - COMPLET
 - Firme pilot: pipeline complet (invitat -> contactat -> demo -> trial -> rezultat),
   cu taskuri comerciale automate + notificari la schimbare de etapa/status.
 - Dashboard Comercial si Firme & Abonamente (ambele in zona de superadmin), aliniate
@@ -107,9 +107,13 @@ configurat sa bootstrap-eze acea aplicatie.
   existente (`commercial_tasks`, neschimbate). Vizibil direct in `PilotInvites/Index.vue`
   (coloana "Jurnal actiuni", ultima actiune + mini-formular de adaugare per rand);
   logarea unei actiuni actualizeaza automat `last_contacted_at` pe lead.
-- **Lipseste**: inbox-ul comercial din dashboard (widget "Taskuri azi" / "follow-up
-  restante" / "oportunitati stagnante" / "handoff onboarding") + filtrele
-  corespunzatoare in `PilotInvites/Index` - vezi backlog.
+- **Inbox comercial** pe `Admin/CommercialDashboard.vue`: 4 bucket-uri live (taskuri azi,
+  follow-up restante, oportunitati stagnante, handoff-uri catre onboarding), fiecare cu
+  link catre `PilotInvites/Index` cu filtrul corespunzator pre-aplicat. Handoff-ul e un
+  camp nou `onboarding_handoff_at` pe `pilot_invites` + buton de marcare (idempotent,
+  doar pentru lead-uri `closed_won`). `PilotInvites/Index` are 3 filtre noi (checkbox):
+  reminder azi, fara urmator pas, stagnante (prag configurabil,
+  `config('pilot_invites.stagnant_days')`, implicit 14 zile).
 
 ### 2.11. Admin platforma (superadmin) - COMPLET
 - Administrare (setari globale: branding platforma, trial, feature flags), Firme &
@@ -138,9 +142,8 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    de confirmare ore/cost final aprobat - ar necesita o migratie noua pe
    `stage_equipment` (varianta V2, discutata si respinsa pentru aceasta runda).
 3. ~~Comercial - log de actiuni~~ - FACUT (`commercial_actions`, vezi 2.10).
-4. **Comercial - inbox/widget dashboard** (C3): "Taskuri azi", "follow-up restante",
-   "oportunitati stagnante", "handoff-uri catre onboarding" + filtre in
-   `PilotInvites/Index` (doar cu reminder azi / fara next step / stagnante).
+4. ~~Comercial - inbox/widget dashboard~~ - FACUT (inbox pe `Admin/CommercialDashboard`
+   + filtre noi pe `PilotInvites/Index`, vezi 2.10).
 5. **Exporturi - Favorite Reports + Saved Filters**: tabele noi `report_favorites` si
    `saved_export_filters`, tab dedicat in pagina de exporturi.
 6. **Exporturi - preview cu grafice**: extindere endpoint preview cu structura

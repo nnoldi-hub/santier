@@ -171,6 +171,157 @@ class PilotInvitesTest extends TestCase
         $response->assertDontSee('Alpha Invite');
     }
 
+    public function test_reminder_today_filter_returns_only_invites_with_follow_up_today(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Today Follow Up',
+            'contact_email' => 'today@invite.ro',
+            'status' => 'contacted',
+            'invited_at' => now(),
+            'follow_up_at' => now(),
+        ]);
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Next Week Follow Up',
+            'contact_email' => 'nextweek@invite.ro',
+            'status' => 'contacted',
+            'invited_at' => now(),
+            'follow_up_at' => now()->addWeek(),
+        ]);
+
+        $response = $this->actingAs($user)->get('/pilot-invites?reminder_today=1');
+
+        $response->assertStatus(200);
+        $response->assertSee('Today Follow Up');
+        $response->assertDontSee('Next Week Follow Up');
+    }
+
+    public function test_no_next_step_filter_returns_only_invites_missing_next_step(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Missing Next Step',
+            'contact_email' => 'missing@invite.ro',
+            'status' => 'invited',
+            'invited_at' => now(),
+            'next_step' => null,
+        ]);
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Has Next Step',
+            'contact_email' => 'has@invite.ro',
+            'status' => 'invited',
+            'invited_at' => now(),
+            'next_step' => 'Suna clientul',
+        ]);
+
+        $response = $this->actingAs($user)->get('/pilot-invites?no_next_step=1');
+
+        $response->assertStatus(200);
+        $response->assertSee('Missing Next Step');
+        $response->assertDontSee('Has Next Step');
+    }
+
+    public function test_stagnant_filter_returns_only_active_invites_without_recent_contact(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Stagnant Lead',
+            'contact_email' => 'stagnant@invite.ro',
+            'status' => 'contacted',
+            'invited_at' => now(),
+            'last_contacted_at' => now()->subDays(20),
+        ]);
+
+        PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Fresh Lead',
+            'contact_email' => 'fresh@invite.ro',
+            'status' => 'contacted',
+            'invited_at' => now(),
+            'last_contacted_at' => now()->subDays(2),
+        ]);
+
+        $response = $this->actingAs($user)->get('/pilot-invites?stagnant=1');
+
+        $response->assertStatus(200);
+        $response->assertSee('Stagnant Lead');
+        $response->assertDontSee('Fresh Lead');
+    }
+
+    public function test_user_can_mark_handoff_on_closed_won_invite(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        $invite = PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Handoff Ready SRL',
+            'contact_email' => 'handoff@invite.ro',
+            'status' => 'closed_won',
+            'invited_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->patch("/pilot-invites/{$invite->id}/handoff");
+
+        $response->assertRedirect();
+
+        $invite->refresh();
+        $this->assertNotNull($invite->onboarding_handoff_at);
+    }
+
+    public function test_handoff_cannot_be_marked_twice(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        $invite = PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Already Handed Off SRL',
+            'contact_email' => 'already@invite.ro',
+            'status' => 'closed_won',
+            'invited_at' => now(),
+            'onboarding_handoff_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($user)->patch("/pilot-invites/{$invite->id}/handoff");
+
+        $response->assertStatus(422);
+    }
+
+    public function test_handoff_cannot_be_marked_unless_closed_won(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        $invite = PilotInvite::create([
+            'tenant_id' => 1,
+            'owner_id' => $user->id,
+            'company_name' => 'Still In Progress SRL',
+            'contact_email' => 'progress@invite.ro',
+            'status' => 'trial_started',
+            'invited_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->patch("/pilot-invites/{$invite->id}/handoff");
+
+        $response->assertStatus(422);
+    }
+
     private function createOnboardedUser(): User
     {
         return User::factory()->create([

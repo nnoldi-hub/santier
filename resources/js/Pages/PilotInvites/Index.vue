@@ -120,6 +120,20 @@
                     <button @click="applyFilter" class="bg-[#1A237E] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#141b5c]">Filtreaza</button>
                     <button @click="resetFilter" class="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Reset</button>
                 </div>
+                <div class="mt-3 flex flex-wrap items-center gap-4 border-t border-gray-100 pt-3">
+                    <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                        <input v-model="reminderTodayFilter" type="checkbox" class="rounded border-gray-300" @change="applyFilter" />
+                        Reminder azi
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                        <input v-model="noNextStepFilter" type="checkbox" class="rounded border-gray-300" @change="applyFilter" />
+                        Fara urmator pas
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                        <input v-model="stagnantFilter" type="checkbox" class="rounded border-gray-300" @change="applyFilter" />
+                        Stagnante
+                    </label>
+                </div>
             </div>
 
             <div v-if="invites.data.length === 0" class="bg-white rounded-xl border border-gray-200 p-10 text-center text-sm text-gray-500">
@@ -273,6 +287,9 @@ const statusFilter = ref(props.filters?.status || '');
 const commercialStageFilter = ref(props.filters?.commercial_stage || '');
 const customizationFilter = ref(props.filters?.customization || '');
 const sortBy = ref(props.filters?.sort || 'users_desc');
+const reminderTodayFilter = ref(Boolean(props.filters?.reminder_today));
+const noNextStepFilter = ref(Boolean(props.filters?.no_next_step));
+const stagnantFilter = ref(Boolean(props.filters?.stagnant));
 const updatingInviteId = ref(null);
 const expandedActionInviteId = ref(null);
 
@@ -335,6 +352,9 @@ function applyFilter() {
         commercial_stage: commercialStageFilter.value,
         customization: customizationFilter.value,
         sort: sortBy.value,
+        reminder_today: reminderTodayFilter.value ? 1 : undefined,
+        no_next_step: noNextStepFilter.value ? 1 : undefined,
+        stagnant: stagnantFilter.value ? 1 : undefined,
     }, { preserveState: true, preserveScroll: true });
 }
 
@@ -343,6 +363,9 @@ function resetFilter() {
     commercialStageFilter.value = '';
     customizationFilter.value = '';
     sortBy.value = 'users_desc';
+    reminderTodayFilter.value = false;
+    noNextStepFilter.value = false;
+    stagnantFilter.value = false;
     applyFilter();
 }
 

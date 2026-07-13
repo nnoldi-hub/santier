@@ -38,6 +38,38 @@
                 </article>
             </div>
 
+            <section class="rounded-3xl border border-violet-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-violet-100 px-5 py-4 bg-violet-50/70">
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">Inbox comercial</div>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Ce necesita atentie acum</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
+                    <div v-for="bucket in inboxBuckets" :key="bucket.key" class="rounded-2xl border border-violet-100 bg-violet-50/40 p-4 flex flex-col">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-semibold uppercase tracking-[0.15em] text-violet-700">{{ bucket.label }}</div>
+                            <div class="text-xl font-black text-violet-900">{{ bucket.data.count }}</div>
+                        </div>
+                        <div v-if="bucket.data.items.length === 0" class="mt-3 text-xs text-slate-500">Nimic in acest bucket.</div>
+                        <div v-else class="mt-3 space-y-2">
+                            <div v-for="item in bucket.data.items" :key="item.id" class="rounded-xl bg-white border border-violet-100 px-3 py-2">
+                                <div class="text-xs font-semibold text-slate-800">{{ item.company_name || item.title }}</div>
+                                <div class="text-[11px] text-slate-500">{{ bucket.itemSubtitle(item) }}</div>
+                                <button
+                                    v-if="bucket.key === 'pending_handoffs'"
+                                    type="button"
+                                    :disabled="handoffProcessingId === item.id"
+                                    @click="markHandoff(item)"
+                                    class="mt-2 inline-flex items-center rounded-lg bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+                                >
+                                    {{ handoffProcessingId === item.id ? 'Se marcheaza...' : 'Marcheaza handoff' }}
+                                </button>
+                            </div>
+                        </div>
+                        <Link :href="bucket.href" class="mt-3 text-[11px] font-semibold text-violet-700 hover:underline">Vezi in pipeline &rarr;</Link>
+                    </div>
+                </div>
+            </section>
+
             <section class="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Funnel</div>
@@ -298,8 +330,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import { PresentationChartLineIcon } from '@heroicons/vue/24/outline';
@@ -318,7 +350,60 @@ const props = defineProps({
     riskOverview: { type: Object, default: () => ({}) },
     riskScoredTenants: { type: Array, default: () => [] },
     topPipelineOpportunities: { type: Array, default: () => [] },
+    inbox: {
+        type: Object,
+        default: () => ({
+            tasks_today: { count: 0, items: [] },
+            follow_up_overdue: { count: 0, items: [] },
+            stagnant_opportunities: { count: 0, items: [] },
+            pending_handoffs: { count: 0, items: [] },
+        }),
+    },
 });
+
+const handoffProcessingId = ref(null);
+
+const inboxBuckets = computed(() => [
+    {
+        key: 'tasks_today',
+        label: 'Taskuri azi',
+        data: props.inbox.tasks_today,
+        href: route('pilot-invites.index'),
+        itemSubtitle: (item) => `Scadenta: ${formatDateTime(item.due_at)}`,
+    },
+    {
+        key: 'follow_up_overdue',
+        label: 'Follow-up restante',
+        data: props.inbox.follow_up_overdue,
+        href: route('pilot-invites.index', { reminder_today: 1 }),
+        itemSubtitle: (item) => `Urmarire: ${formatDateTime(item.follow_up_at)}`,
+    },
+    {
+        key: 'stagnant_opportunities',
+        label: 'Oportunitati stagnante',
+        data: props.inbox.stagnant_opportunities,
+        href: route('pilot-invites.index', { stagnant: 1 }),
+        itemSubtitle: (item) => `Ultim contact: ${formatDateTime(item.last_contacted_at)}`,
+    },
+    {
+        key: 'pending_handoffs',
+        label: 'Handoff-uri catre onboarding',
+        data: props.inbox.pending_handoffs,
+        href: route('pilot-invites.index', { status: 'closed_won' }),
+        itemSubtitle: (item) => `Castigat la: ${formatDateTime(item.closed_at)}`,
+    },
+]);
+
+function markHandoff(item) {
+    handoffProcessingId.value = item.id;
+
+    router.patch(route('pilot-invites.handoff.update', item.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            handoffProcessingId.value = null;
+        },
+    });
+}
 
 const kpiCards = computed(() => [
     { key: 'current_mrr', label: 'MRR total', value: formatMoney(props.kpis.current_mrr || 0), note: 'Venit recurent lunar estimat acum' },
