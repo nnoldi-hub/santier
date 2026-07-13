@@ -106,9 +106,19 @@ configurat sa bootstrap-eze acea aplicatie.
   momentul rularii, ca si `daily` - fara camp de "ziua lunii"). Logica de calcul a
   urmatoarei rulari a fost extrasa in `App\Support\ExportScheduleCalculator`
   (elimina o duplicare intre controller si job).
-- **Lipsesc** din planul "Exporturi Premium v2": inca 2 din cele 3 rapoarte
-  comparative Materiale&Avize planificate (Trasabilitate materiale completa, Utilaje
-  & consum materiale) - vezi backlog.
+- **Pachetul "Materiale & Avize" complet** - toate cele 3 rapoarte comparative
+  planificate exista acum (`resource-comparison` + 2 tipuri noi), cablate identic
+  prin tot pipeline-ul de export (preview, XLSX, PDF, favorite, abonari), fara ruta
+  CSV dedicata (ca si `resource-comparison`):
+  - `material-timeline`: cronologie completa per material (comanda -> livrari ->
+    documente/avize), fiecare eveniment cu data si actor (`supplier_name`/
+    `carrier_name`), sortat cronologic.
+  - `equipment-consumption`: rezervari utilaje corelate cu consumul de materiale pe
+    aceeasi etapa (agregare pe `phase_id` comun, `StageEquipment` nu are FK directa
+    catre `ResourceOrder` - nu exista o astfel de legatura in schema), cost via
+    `App\Support\EquipmentCostEstimator` (refolosit, nu recalculat).
+- **Lipsesc** din planul "Exporturi Premium v2": nimic ramas pe partea de rapoarte
+  comparative Materiale&Avize - pachetul e complet.
 
 ### 2.9. Cont si organizatie (IAM) - COMPLET
 - Superadmin (platforma) vs tenant admin (per firma), izolare completa verificata cu
@@ -169,11 +179,8 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    cheia `charts` pe `exports/preview`, vezi 2.8).
 7. ~~Exporturi - raport managerial avansat + raport pe interval~~ - FACUT (grafice pe
    `exports.managerial-pdf`, frecvente noi pe abonari, vezi 2.8).
-8. **Exporturi - completare pachet Materiale & Avize**: mai lipsesc 2 din cele 3
-   rapoarte comparative planificate (doar `resource-comparison` exista azi):
-   - Trasabilitate materiale completa (timeline documente + actori, vezi si #1).
-   - Utilaje & consum materiale (consum pe utilaj - pompa/macara/buldo etc. - corelat
-     cu etapa).
+8. ~~Exporturi - completare pachet Materiale & Avize~~ - FACUT (`material-timeline`,
+   `equipment-consumption`, vezi 2.8).
 9. **Emoji reziduale** in `Projects/Show.vue` (~21 aparitii) si `Welcome.vue` (~18
    aparitii) - scoase explicit din scope-ul rondelor de modernizare vizuala anterioare,
    raman ca polish minor daca se doreste.

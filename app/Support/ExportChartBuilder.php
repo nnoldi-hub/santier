@@ -17,6 +17,12 @@ class ExportChartBuilder
         'resource-comparison' => [
             ['field' => 'status', 'title' => 'Distributie status comenzi'],
         ],
+        'material-timeline' => [
+            ['field' => 'event_type', 'title' => 'Distributie tip eveniment'],
+        ],
+        'equipment-consumption' => [
+            ['field' => 'availability_status', 'title' => 'Disponibilitate utilaje'],
+        ],
         'wbs' => [
             ['field' => 'status', 'title' => 'Distributie status etape'],
         ],

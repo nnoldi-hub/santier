@@ -38,11 +38,19 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    private const NO_CSV_EXPORT_TYPES = [
+        'resource-comparison',
+        'material-timeline',
+        'equipment-consumption',
+    ];
+
     private const SUPPORTED_EXPORT_TYPES = [
         'projects',
         'quotes',
         'materials',
         'resource-comparison',
+        'material-timeline',
+        'equipment-consumption',
         'costs',
         'teams',
         'tasks',
@@ -572,7 +580,7 @@ class ExportController extends Controller
         $branding = AppSetting::allForTenant(config('platform.defaults', []), TenantContext::id($request->user()));
 
         if (empty($types)) {
-            $types = ['projects', 'quotes', 'materials', 'resource-comparison', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
+            $types = ['projects', 'quotes', 'materials', 'resource-comparison', 'material-timeline', 'equipment-consumption', 'costs', 'teams', 'tasks', 'defects', 'wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress'];
         }
 
         $fileName = 'enterprise_export_' . now()->format('Ymd_His') . '.xlsx';
@@ -599,7 +607,7 @@ class ExportController extends Controller
         $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
 
         if (empty($types)) {
-            $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison'];
+            $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison', 'material-timeline', 'equipment-consumption'];
         }
 
         $sections = collect($types)->map(function ($type) use ($filters) {
@@ -646,7 +654,7 @@ class ExportController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'export_type' => ['required', 'in:projects,quotes,materials,resource-comparison,costs,teams,tasks,defects,wbs,equipment,documents,stage-reports,stage-tasks,stage-progress'],
+            'export_type' => ['required', 'in:projects,quotes,materials,resource-comparison,material-timeline,equipment-consumption,costs,teams,tasks,defects,wbs,equipment,documents,stage-reports,stage-tasks,stage-progress'],
             'format' => ['required', 'in:csv,xlsx,pdf'],
             'frequency' => ['required', 'in:daily,weekly,monthly,quarterly,yearly'],
             'schedule_time' => ['required', 'date_format:H:i'],
@@ -736,8 +744,8 @@ class ExportController extends Controller
                 'required',
                 Rule::in(ReportFavorite::FORMATS),
                 function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    if ($value === 'csv' && $request->input('export_type') === 'resource-comparison') {
-                        $fail('Formatul CSV nu este disponibil pentru raportul comparativ de resurse.');
+                    if ($value === 'csv' && in_array($request->input('export_type'), self::NO_CSV_EXPORT_TYPES, true)) {
+                        $fail('Formatul CSV nu este disponibil pentru acest tip de raport.');
                     }
                 },
             ],

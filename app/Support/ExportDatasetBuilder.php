@@ -58,6 +58,8 @@ class ExportDatasetBuilder
             'quotes' => self::quotes($filters),
             'materials' => self::materials($filters),
             'resource-comparison' => self::resourceComparison($filters),
+            'material-timeline' => self::materialTimeline($filters),
+            'equipment-consumption' => self::equipmentConsumption($filters),
             'costs' => self::costs($filters),
             'teams' => self::teams($filters),
             'tasks' => self::tasks($filters),
@@ -500,6 +502,169 @@ class ExportDatasetBuilder
         return [
             'rows' => $rows,
             'meta' => ['title' => 'Materiale & Avize comparative'],
+        ];
+    }
+
+    private static function materialTimeline(array $filters): array
+    {
+        $tenantId = TenantContext::id();
+
+        $query = ResourceOrder::query()
+            ->where('tenant_id', $tenantId)
+            ->where('resource_type', 'material')
+            ->with([
+                'project:id,name',
+                'phase:id,name',
+                'material:id,name,code,unit',
+                'responsibleUser:id,name',
+                'deliveries',
+                'documentLinks.document' => fn ($relation) => $relation->select(['id', 'issued_at']),
+            ]);
+
+        self::applyDateRange($query, 'delivery_date', $filters);
+        self::applyProjectFilter($query, $filters);
+
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $query->where(function ($inner) use ($searchText) {
+                $inner->where('supplier_name', 'like', "%{$searchText}%")
+                    ->orWhere('carrier_name', 'like', "%{$searchText}%")
+                    ->orWhere('notes', 'like', "%{$searchText}%")
+                    ->orWhereHas('project', fn ($projectQuery) => $projectQuery->where('name', 'like', "%{$searchText}%"))
+                    ->orWhereHas('phase', fn ($phaseQuery) => $phaseQuery->where('name', 'like', "%{$searchText}%"))
+                    ->orWhereHas('material', fn ($materialQuery) => $materialQuery->where('name', 'like', "%{$searchText}%")->orWhere('code', 'like', "%{$searchText}%"));
+            });
+        }
+
+        $orders = $query->latest('id')->get();
+        $events = collect();
+
+        foreach ($orders as $order) {
+            $project = $order->project?->name;
+            $phase = $order->phase?->name;
+            $material = $order->material?->name;
+            $orderStatus = ResourceOrder::$statusLabels[$order->status] ?? $order->status;
+
+            $events->push([
+                'project' => $project,
+                'phase' => $phase,
+                'material' => $material,
+                'event_date' => optional($order->delivery_date)->format('Y-m-d'),
+                'event_type' => 'comanda',
+                'actor' => $order->supplier_name,
+                'quantity' => (float) $order->ordered_quantity,
+                'unit' => $order->ordered_unit,
+                'document_number' => null,
+                'order_status' => $orderStatus,
+                'notes' => $order->notes,
+            ]);
+
+            foreach ($order->deliveries as $delivery) {
+                $events->push([
+                    'project' => $project,
+                    'phase' => $phase,
+                    'material' => $material,
+                    'event_date' => optional($delivery->delivered_at)->format('Y-m-d H:i'),
+                    'event_type' => 'livrare',
+                    'actor' => $order->carrier_name ?: $order->supplier_name,
+                    'quantity' => (float) $delivery->received_quantity,
+                    'unit' => $order->ordered_unit,
+                    'document_number' => null,
+                    'order_status' => $orderStatus,
+                    'notes' => $delivery->notes,
+                ]);
+            }
+
+            foreach ($order->documentLinks as $link) {
+                $events->push([
+                    'project' => $project,
+                    'phase' => $phase,
+                    'material' => $material,
+                    'event_date' => optional($link->document?->issued_at)->format('Y-m-d'),
+                    'event_type' => 'document',
+                    'actor' => $link->supplier_name ?: $link->carrier_name,
+                    'quantity' => (float) $link->delivered_quantity,
+                    'unit' => $order->ordered_unit,
+                    'document_number' => $link->document_number,
+                    'order_status' => $orderStatus,
+                    'notes' => $link->notes,
+                ]);
+            }
+        }
+
+        return [
+            'rows' => $events->sortBy('event_date')->values(),
+            'meta' => ['title' => 'Trasabilitate materiale - cronologie'],
+        ];
+    }
+
+    private static function equipmentConsumption(array $filters): array
+    {
+        $tenantId = TenantContext::id();
+
+        $query = StageEquipment::query()
+            ->with([
+                'equipment:id,name,type,cost_per_hour,availability_status',
+                'phase:id,project_id,name,status',
+                'phase.project:id,name,tenant_id',
+            ])
+            ->whereHas('phase.project', fn ($q) => $q->where('tenant_id', $tenantId));
+
+        self::applyDateRange($query, 'usage_start', $filters);
+
+        $searchText = self::searchTerm($filters);
+        if ($searchText !== null) {
+            $text = $searchText;
+            $query->where(function ($inner) use ($text) {
+                $inner->whereHas('equipment', function ($equipmentQuery) use ($text) {
+                    $equipmentQuery->where('name', 'like', "%{$text}%");
+                })->orWhereHas('phase', function ($phaseQuery) use ($text) {
+                    $phaseQuery->where('name', 'like', "%{$text}%");
+                });
+            });
+        }
+
+        $reservations = $query->latest('id')->get();
+        $phaseIds = $reservations->pluck('phase.id')->filter()->unique()->values();
+
+        $consumptionByPhase = ResourceOrder::query()
+            ->where('tenant_id', $tenantId)
+            ->where('resource_type', 'material')
+            ->whereIn('phase_id', $phaseIds)
+            ->with(['deliveries:id,resource_order_id,consumed_quantity'])
+            ->get()
+            ->groupBy('phase_id')
+            ->map(fn ($orders) => [
+                'consumed_quantity' => (float) $orders->flatMap->deliveries->sum('consumed_quantity'),
+                'orders_count' => $orders->count(),
+            ]);
+
+        $rows = $reservations->map(function (StageEquipment $reservation) use ($consumptionByPhase) {
+            $phaseId = $reservation->phase?->id;
+            $consumption = $phaseId ? $consumptionByPhase->get($phaseId) : null;
+            $consumption ??= ['consumed_quantity' => 0.0, 'orders_count' => 0];
+
+            return [
+                'project' => $reservation->phase?->project?->name,
+                'phase' => $reservation->phase?->name,
+                'equipment' => $reservation->equipment?->name,
+                'availability_status' => $reservation->equipment?->availability_status,
+                'days' => EquipmentCostEstimator::reservedDays($reservation),
+                'estimated_cost' => EquipmentCostEstimator::estimate($reservation),
+                'phase_material_consumed_quantity' => round($consumption['consumed_quantity'], 2),
+                'phase_material_orders_count' => $consumption['orders_count'],
+                'reservation_id' => $reservation->id,
+                'equipment_type' => $reservation->equipment?->type,
+                'quantity' => $reservation->quantity,
+                'usage_start' => optional($reservation->usage_start)->format('Y-m-d'),
+                'usage_end' => optional($reservation->usage_end)->format('Y-m-d'),
+                'hourly_cost' => (float) ($reservation->equipment?->cost_per_hour ?? 0),
+            ];
+        });
+
+        return [
+            'rows' => $rows,
+            'meta' => ['title' => 'Utilaje & consum materiale pe etapa'],
         ];
     }
 

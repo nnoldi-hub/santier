@@ -65,6 +65,24 @@ class ExportFavoritesTest extends TestCase
         $this->assertDatabaseCount('report_favorites', 0);
     }
 
+    public function test_favorite_rejects_csv_format_for_material_timeline_and_equipment_consumption(): void
+    {
+        $user = $this->createOnboardedUser();
+
+        foreach (['material-timeline', 'equipment-consumption'] as $exportType) {
+            $response = $this->actingAs($user)
+                ->post('/exports/favorites', [
+                    'label' => 'CSV nepermis',
+                    'export_type' => $exportType,
+                    'format' => 'csv',
+                ]);
+
+            $response->assertSessionHasErrors('format');
+        }
+
+        $this->assertDatabaseCount('report_favorites', 0);
+    }
+
     public function test_user_cannot_delete_another_users_favorite(): void
     {
         $owner = $this->createOnboardedUser();

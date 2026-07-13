@@ -699,6 +699,8 @@ const exportTypeOptions = [
     { value: 'quotes', label: 'Oferte si devize' },
     { value: 'materials', label: 'Materiale' },
     { value: 'resource-comparison', label: 'Materiale & Avize comparative' },
+    { value: 'material-timeline', label: 'Trasabilitate materiale (cronologie)' },
+    { value: 'equipment-consumption', label: 'Utilaje & consum materiale' },
     { value: 'costs', label: 'Costuri' },
     { value: 'teams', label: 'Echipe si responsabilitati' },
     { value: 'tasks', label: 'Taskuri generale' },
@@ -885,6 +887,20 @@ const reportTemplates = [
         types: ['resource-comparison'],
         previewType: 'resource-comparison',
     },
+    {
+        key: 'material-timeline',
+        label: 'Trasabilitate materiale (cronologie)',
+        description: 'Cronologie completa: comenzi, livrari si documente per material, cu actori si date.',
+        types: ['material-timeline'],
+        previewType: 'material-timeline',
+    },
+    {
+        key: 'equipment-consumption',
+        label: 'Utilaje & consum materiale',
+        description: 'Rezervari utilaje corelate cu consumul de materiale pe aceeasi etapa.',
+        types: ['equipment-consumption'],
+        previewType: 'equipment-consumption',
+    },
 ];
 
 const quickExportPresets = [
@@ -999,6 +1015,16 @@ const templateCardMetaMap = {
         iconPath: 'M5 5h14v14H5V5Zm3 3h8m-8 4h8m-8 4h5',
     },
     'materials-comparison': {
+        barClass: 'bg-gradient-to-r from-purple-500 to-indigo-500',
+        badgeClass: 'border-purple-200 bg-purple-50 text-purple-700',
+        iconPath: 'M4 18 10 8l4 6 6-9M4 5h6M14 19h6',
+    },
+    'material-timeline': {
+        barClass: 'bg-gradient-to-r from-purple-500 to-indigo-500',
+        badgeClass: 'border-purple-200 bg-purple-50 text-purple-700',
+        iconPath: 'M4 18 10 8l4 6 6-9M4 5h6M14 19h6',
+    },
+    'equipment-consumption': {
         barClass: 'bg-gradient-to-r from-purple-500 to-indigo-500',
         badgeClass: 'border-purple-200 bg-purple-50 text-purple-700',
         iconPath: 'M4 18 10 8l4 6 6-9M4 5h6M14 19h6',
