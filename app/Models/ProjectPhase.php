@@ -63,6 +63,11 @@ class ProjectPhase extends Model
         return $this->hasMany(Document::class, 'stage_id')->latest();
     }
 
+    public function resourceOrders(): HasMany
+    {
+        return $this->hasMany(ResourceOrder::class, 'phase_id')->latest();
+    }
+
     public function stageReports(): HasMany
     {
         return $this->hasMany(StageReport::class, 'stage_id')->latest('report_date');

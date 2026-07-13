@@ -54,4 +54,9 @@ class Equipment extends Model
     {
         return $this->hasMany(StageEquipment::class, 'equipment_id')->latest();
     }
+
+    public function resourceOrders(): HasMany
+    {
+        return $this->hasMany(ResourceOrder::class)->latest();
+    }
 }

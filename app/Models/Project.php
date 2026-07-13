@@ -58,6 +58,11 @@ class Project extends Model
         return $this->hasMany(Document::class)->latest();
     }
 
+    public function resourceOrders(): HasMany
+    {
+        return $this->hasMany(ResourceOrder::class)->latest();
+    }
+
     public function projectRoleAssignments(): HasMany
     {
         return $this->hasMany(ProjectUserRole::class);
