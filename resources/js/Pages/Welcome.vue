@@ -184,7 +184,7 @@
                 <p class="mt-2 text-slate-600">Fiecare rol vede ce are nevoie pentru decizii rapide si executie buna.</p>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <article v-for="segment in audiences" :key="segment.title" class="rounded-2xl border border-slate-200 bg-white p-5">
-                        <div class="text-2xl">{{ segment.icon }}</div>
+                        <div class="text-slate-500"><Icon :icon="segment.icon" size="h-7 w-7" /></div>
                         <h3 class="mt-3 font-bold text-slate-900">{{ segment.title }}</h3>
                         <p class="mt-2 text-sm text-slate-600">{{ segment.text }}</p>
                     </article>
@@ -195,7 +195,7 @@
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Probleme reale pe care le rezolvi din prima saptamana</h2>
                 <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div v-for="item in painPoints" :key="item.title" class="bg-white border border-slate-200 rounded-2xl p-5">
-                        <div class="text-2xl">{{ item.icon }}</div>
+                        <div class="text-slate-500"><Icon :icon="item.icon" size="h-7 w-7" /></div>
                         <div class="mt-3 font-semibold">{{ item.title }}</div>
                         <p class="mt-1 text-sm text-slate-600">{{ item.text }}</p>
                     </div>
@@ -207,7 +207,7 @@
                 <p class="mt-2 text-slate-600">Ofertare inteligenta, WBS, taskuri, documente, financiar, AI si control enterprise intr-o singura platforma.</p>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="feature in features" :key="feature.title" class="feature-card rounded-2xl p-5 text-white">
-                        <div class="text-2xl">{{ feature.icon }}</div>
+                        <div class="text-white/90"><Icon :icon="feature.icon" size="h-7 w-7" /></div>
                         <div class="mt-3 font-semibold text-lg">{{ feature.title }}</div>
                         <p class="mt-1 text-sm text-slate-100/90">{{ feature.text }}</p>
                     </div>
@@ -336,7 +336,7 @@
                                 <div class="text-xs uppercase tracking-wide text-slate-500">Solicita demo</div>
                                 <h3 class="mt-2 text-xl font-black text-slate-900">Trimite datele si te contactam</h3>
                             </div>
-                            <div class="w-11 h-11 rounded-2xl bg-[var(--brand-orange)]/10 flex items-center justify-center text-xl">✉️</div>
+                            <div class="w-11 h-11 rounded-2xl bg-[var(--brand-orange)]/10 flex items-center justify-center text-[var(--brand-orange)]"><Icon :icon="EnvelopeIcon" size="h-5 w-5" /></div>
                         </div>
 
                         <form class="mt-6 space-y-3" @submit.prevent="submitDemoRequest">
@@ -411,6 +411,27 @@
 import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import Icon from '@/Components/Icon.vue';
+import {
+    PuzzlePieceIcon,
+    ClockIcon,
+    MagnifyingGlassIcon,
+    WrenchScrewdriverIcon,
+    FolderIcon,
+    ArrowUpTrayIcon,
+    LightBulbIcon,
+    Squares2X2Icon,
+    CheckCircleIcon,
+    CalendarDaysIcon,
+    BanknotesIcon,
+    CpuChipIcon,
+    ShieldCheckIcon,
+    UserGroupIcon,
+    BuildingOffice2Icon,
+    ChartBarIcon,
+    BriefcaseIcon,
+    EnvelopeIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     appName: { type: String, default: 'Modulia' },
@@ -428,23 +449,23 @@ const props = defineProps({
 const DEFAULT_LANDING_VIDEO_URL = '';
 
 const painPoints = [
-    { icon: '🧩', title: 'Taskuri pierdute', text: 'Ai un backlog clar pe proiect, responsabil si deadline, fara mesaje imprastiate.' },
-    { icon: '⏱️', title: 'Etape intarziate', text: 'Monitorizezi progresul zilnic si intervii inainte sa intarzie santierul.' },
-    { icon: '🔍', title: 'Lipsa vizibilitate', text: 'Dashboard unificat pentru status, cost, defecte si decizii operative.' },
-    { icon: '🛠️', title: 'Defecte deschise', text: 'Snag list cu prioritati, asignare si due date pana la rezolvare.' },
-    { icon: '📁', title: 'Oferte dispersate', text: 'Versionare devize si istoric centralizat, usor de comparat.' },
-    { icon: '📤', title: 'Rapoarte lente', text: 'Export XLSX/PDF managerial cu filtre avansate in cateva secunde.' },
+    { icon: PuzzlePieceIcon, title: 'Taskuri pierdute', text: 'Ai un backlog clar pe proiect, responsabil si deadline, fara mesaje imprastiate.' },
+    { icon: ClockIcon, title: 'Etape intarziate', text: 'Monitorizezi progresul zilnic si intervii inainte sa intarzie santierul.' },
+    { icon: MagnifyingGlassIcon, title: 'Lipsa vizibilitate', text: 'Dashboard unificat pentru status, cost, defecte si decizii operative.' },
+    { icon: WrenchScrewdriverIcon, title: 'Defecte deschise', text: 'Snag list cu prioritati, asignare si due date pana la rezolvare.' },
+    { icon: FolderIcon, title: 'Oferte dispersate', text: 'Versionare devize si istoric centralizat, usor de comparat.' },
+    { icon: ArrowUpTrayIcon, title: 'Rapoarte lente', text: 'Export XLSX/PDF managerial cu filtre avansate in cateva secunde.' },
 ];
 
 const features = [
-    { icon: '🧠', title: 'Ofertare inteligenta', text: 'Generezi oferte in cateva minute, cu sabloane inteligente, costuri reale si timeline automat. Modulia invata din ofertele tale si devine tot mai precisa.' },
-    { icon: '🧱', title: 'Proiecte & WBS', text: 'Structura clara pe etape, taskuri si progres. Totul modular, exact ca brandul Modulia.' },
-    { icon: '✅', title: 'Taskuri & Progres', text: 'Vezi ce se intampla pe santier in timp real. Actualizari, poze, rapoarte, responsabilitati - totul intr-un singur loc.' },
-    { icon: '🗓️', title: 'Calendar & Planificare', text: 'Planificare vizuala, clara, fara haos. Stii mereu cine, ce si cand lucreaza.' },
-    { icon: '📁', title: 'Documente', text: 'Documente ordonate, aprobari, versiuni, exporturi. Totul masurabil si usor de gasit.' },
-    { icon: '💸', title: 'Financiar & Cost Tracking', text: 'Costuri reale, materiale, manopera, profit, devize. Totul transparent si masurabil.' },
-    { icon: '🤖', title: 'AI Tools', text: 'AI care te ajuta sa generezi oferte, sa analizezi proiecte si sa vezi riscurile din timp. Modern, rapid, inteligent.' },
-    { icon: '🛡️', title: 'Roluri & Permisiuni Enterprise', text: 'Control complet asupra accesului. Superadmin, Admin firma, roluri custom, permisiuni granulare.' },
+    { icon: LightBulbIcon, title: 'Ofertare inteligenta', text: 'Generezi oferte in cateva minute, cu sabloane inteligente, costuri reale si timeline automat. Modulia invata din ofertele tale si devine tot mai precisa.' },
+    { icon: Squares2X2Icon, title: 'Proiecte & WBS', text: 'Structura clara pe etape, taskuri si progres. Totul modular, exact ca brandul Modulia.' },
+    { icon: CheckCircleIcon, title: 'Taskuri & Progres', text: 'Vezi ce se intampla pe santier in timp real. Actualizari, poze, rapoarte, responsabilitati - totul intr-un singur loc.' },
+    { icon: CalendarDaysIcon, title: 'Calendar & Planificare', text: 'Planificare vizuala, clara, fara haos. Stii mereu cine, ce si cand lucreaza.' },
+    { icon: FolderIcon, title: 'Documente', text: 'Documente ordonate, aprobari, versiuni, exporturi. Totul masurabil si usor de gasit.' },
+    { icon: BanknotesIcon, title: 'Financiar & Cost Tracking', text: 'Costuri reale, materiale, manopera, profit, devize. Totul transparent si masurabil.' },
+    { icon: CpuChipIcon, title: 'AI Tools', text: 'AI care te ajuta sa generezi oferte, sa analizezi proiecte si sa vezi riscurile din timp. Modern, rapid, inteligent.' },
+    { icon: ShieldCheckIcon, title: 'Roluri & Permisiuni Enterprise', text: 'Control complet asupra accesului. Superadmin, Admin firma, roluri custom, permisiuni granulare.' },
 ];
 
 const howItWorks = [
@@ -454,10 +475,10 @@ const howItWorks = [
 ];
 
 const audiences = [
-    { icon: '👷', title: 'Antreprenori generali', text: 'Coordonare centralizata pe mai multe santiere, echipe si subcontractori.' },
-    { icon: '🏗️', title: 'Firme de renovari', text: 'Planificare simpla pe etape scurte, control pe defecte si livrare la termen.' },
-    { icon: '📐', title: 'Manageri de proiect', text: 'Vizibilitate operationala completa: status, blocaje, costuri si decizii rapide.' },
-    { icon: '💼', title: 'Proprietari / management', text: 'Rapoarte executive, indicatori de performanta si control asupra bugetelor.' },
+    { icon: UserGroupIcon, title: 'Antreprenori generali', text: 'Coordonare centralizata pe mai multe santiere, echipe si subcontractori.' },
+    { icon: BuildingOffice2Icon, title: 'Firme de renovari', text: 'Planificare simpla pe etape scurte, control pe defecte si livrare la termen.' },
+    { icon: ChartBarIcon, title: 'Manageri de proiect', text: 'Vizibilitate operationala completa: status, blocaje, costuri si decizii rapide.' },
+    { icon: BriefcaseIcon, title: 'Proprietari / management', text: 'Rapoarte executive, indicatori de performanta si control asupra bugetelor.' },
 ];
 
 const whyModulia = [

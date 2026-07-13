@@ -14,7 +14,7 @@
         <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h3 class="font-semibold text-gray-800">🟧 AI Tools (Asistent inteligent)</h3>
+                    <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="SparklesIcon" size="h-4 w-4 text-orange-500" /> AI Tools (Asistent inteligent)</h3>
                     <p class="text-xs text-gray-500 mt-1">Instrumente de automatizare pentru factura, deviz si buget pe proiect.</p>
                 </div>
             </div>
@@ -47,7 +47,7 @@
         <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h3 class="font-semibold text-gray-800">🗓️ Mini-calendar proiect</h3>
+                    <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="CalendarDaysIcon" size="h-4 w-4 text-orange-500" /> Mini-calendar proiect</h3>
                     <p class="text-xs text-gray-500 mt-1">Agenda operationala pentru {{ todayCalendar.date }}.</p>
                 </div>
                 <div class="flex items-center gap-3">
@@ -134,19 +134,19 @@
             <div class="xl:col-span-1 bg-white rounded-xl border border-gray-200 p-6 space-y-4 h-fit">
                 <h3 class="font-semibold text-gray-500 text-xs uppercase tracking-wider">Detalii proiect</h3>
                 <div v-if="project.client" class="flex items-start gap-2 text-sm">
-                    <span class="w-5 text-gray-400">👥</span>
+                    <span class="w-5 text-gray-400"><Icon :icon="UserGroupIcon" size="h-4 w-4" /></span>
                     <div><div class="text-xs text-gray-400">Client</div><div class="font-medium">{{ project.client.name }}</div></div>
                 </div>
                 <div v-if="project.address" class="flex items-start gap-2 text-sm">
-                    <span class="w-5 text-gray-400">📍</span>
+                    <span class="w-5 text-gray-400"><Icon :icon="MapPinIcon" size="h-4 w-4" /></span>
                     <div><div class="text-xs text-gray-400">Adresa</div><div>{{ project.address }}</div></div>
                 </div>
                 <div v-if="project.start_date" class="flex items-start gap-2 text-sm">
-                    <span class="w-5 text-gray-400">📅</span>
+                    <span class="w-5 text-gray-400"><Icon :icon="CalendarIcon" size="h-4 w-4" /></span>
                     <div><div class="text-xs text-gray-400">Perioada</div><div>{{ fmt(project.start_date) }} → {{ project.end_date ? fmt(project.end_date) : '?' }}</div></div>
                 </div>
                 <div v-if="project.total_budget" class="flex items-start gap-2 text-sm">
-                    <span class="w-5 text-gray-400">💰</span>
+                    <span class="w-5 text-gray-400"><Icon :icon="BanknotesIcon" size="h-4 w-4" /></span>
                     <div><div class="text-xs text-gray-400">Buget</div><div class="font-semibold">{{ fmtCur(project.total_budget) }}</div></div>
                 </div>
                 <div v-if="project.description" class="text-sm border-t border-gray-100 pt-3">
@@ -243,7 +243,7 @@
                 <!-- Lista etape -->
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-800">📅 Etape proiect</h3>
+                        <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="CalendarDaysIcon" size="h-4 w-4 text-orange-500" /> Etape proiect</h3>
                         <button @click="showAddPhase = !showAddPhase" class="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition">
                             + Adauga etapa
                         </button>
@@ -297,7 +297,7 @@
 
                     <!-- Fara etape -->
                     <div v-if="project.phases.length === 0 && !showAddPhase" class="text-center py-8 text-gray-400 text-sm">
-                        <div class="text-3xl mb-2">📅</div>
+                        <div class="text-3xl mb-2 flex justify-center text-gray-300"><Icon :icon="CalendarDaysIcon" size="h-8 w-8" /></div>
                         Nicio etapa definita.<br />
                         <button @click="showAddPhase = true" class="text-orange-500 hover:underline mt-1">Adauga prima etapa</button>
                     </div>
@@ -313,9 +313,9 @@
                                     <StatusBadge :status="phase.status" />
                                 </div>
                                 <div class="flex items-center gap-3 text-xs text-gray-400">
-                                    <span v-if="phase.start_date">📅 {{ fmt(phase.start_date) }}</span>
+                                    <span v-if="phase.start_date" class="inline-flex items-center gap-1"><Icon :icon="CalendarIcon" size="h-3.5 w-3.5" /> {{ fmt(phase.start_date) }}</span>
                                     <span v-if="phase.end_date">→ {{ fmt(phase.end_date) }}</span>
-                                    <span v-if="phase.contractor">· 👷 {{ phase.contractor.name }}</span>
+                                    <span v-if="phase.contractor" class="inline-flex items-center gap-1">· <Icon :icon="UserIcon" size="h-3.5 w-3.5" /> {{ phase.contractor.name }}</span>
                                 </div>
                                 <!-- Progress bar -->
                                 <div class="mt-2 flex items-center gap-2">
@@ -334,11 +334,11 @@
                 <!-- Taskuri placeholder -->
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-800">✅ Taskuri</h3>
+                        <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="CheckCircleIcon" size="h-4 w-4 text-orange-500" /> Taskuri</h3>
                         <Link :href="route('tasks.create', { project_id: project.id })" class="text-xs text-orange-500 hover:underline">+ Task nou</Link>
                     </div>
                     <div v-if="!project.tasks || project.tasks.length === 0" class="text-center py-6 text-gray-400 text-sm">
-                        <div class="text-3xl mb-2">✅</div>
+                        <div class="text-3xl mb-2 flex justify-center text-gray-300"><Icon :icon="CheckCircleIcon" size="h-8 w-8" /></div>
                         Niciun task pentru acest proiect.
                     </div>
                     <div v-else class="space-y-2">
@@ -361,7 +361,7 @@
                 </div>
 
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">👷 Alocari echipe pe etape</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4 inline-flex items-center gap-1.5"><Icon :icon="UserGroupIcon" size="h-4 w-4 text-orange-500" /> Alocari echipe pe etape</h3>
                     <div v-if="project.phases.length === 0" class="text-center py-6 text-gray-400 text-sm">
                         Defineste mai intai etape pentru a putea aloca echipe.
                     </div>
@@ -419,7 +419,7 @@
                 </div>
 
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">🚜 Utilaje pe etape</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4 inline-flex items-center gap-1.5"><Icon :icon="TruckIcon" size="h-4 w-4 text-orange-500" /> Utilaje pe etape</h3>
                     <div v-if="project.phases.length === 0" class="text-center py-6 text-gray-400 text-sm">
                         Defineste mai intai etape pentru a putea rezerva utilaje.
                     </div>
@@ -483,11 +483,11 @@
 
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-800">🔧 Defecte (Snag)</h3>
+                        <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="WrenchScrewdriverIcon" size="h-4 w-4 text-orange-500" /> Defecte (Snag)</h3>
                         <Link :href="route('defects.create', { project_id: project.id })" class="text-xs text-orange-500 hover:underline">+ Defect nou</Link>
                     </div>
                     <div v-if="!project.defects || project.defects.length === 0" class="text-center py-6 text-gray-400 text-sm">
-                        <div class="text-3xl mb-2">🔧</div>
+                        <div class="text-3xl mb-2 flex justify-center text-gray-300"><Icon :icon="WrenchScrewdriverIcon" size="h-8 w-8" /></div>
                         Niciun defect raportat pentru acest proiect.
                     </div>
                     <div v-else class="space-y-2">
@@ -812,6 +812,19 @@ import axios from 'axios';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import Icon from '@/Components/Icon.vue';
+import {
+    SparklesIcon,
+    CalendarDaysIcon,
+    CalendarIcon,
+    UserGroupIcon,
+    MapPinIcon,
+    BanknotesIcon,
+    UserIcon,
+    CheckCircleIcon,
+    TruckIcon,
+    WrenchScrewdriverIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     project:    Object,

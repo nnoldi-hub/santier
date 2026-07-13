@@ -181,12 +181,16 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    `exports.managerial-pdf`, frecvente noi pe abonari, vezi 2.8).
 8. ~~Exporturi - completare pachet Materiale & Avize~~ - FACUT (`material-timeline`,
    `equipment-consumption`, vezi 2.8).
-9. **Emoji reziduale** in `Projects/Show.vue` (~21 aparitii) si `Welcome.vue` (~18
-   aparitii) - scoase explicit din scope-ul rondelor de modernizare vizuala anterioare,
-   raman ca polish minor daca se doreste.
+9. ~~Emoji reziduale~~ - FACUT. Toate emoji-urile decorative din `Projects/Show.vue`
+   (16) si `Welcome.vue` (19) inlocuite cu `Icon.vue` + Heroicons outline, consistent
+   cu paginile modernizate anterior (`PilotInvites/Index.vue`, `Exports/Index.vue`
+   etc.). Sagetile tipografice `←`/`→` (separatoare de interval/breadcrumb) NU au fost
+   atinse - sunt conventie stabilita in ~22 pagini din aplicatie, nu emoji reziduale.
 10. **Verificare operationala**: confirmarea ca `php artisan iam:backfill-legacy-roles
     --apply` a rulat pe productie (necesar dupa eliminarea bypass-ului legacy de
-    autorizare) - de verificat daca nu s-a facut deja.
+    autorizare in `9b1c076`) - comanda e idempotenta si sigura de rulat oricand
+    (raporteaza "no users found" daca a rulat deja) - de rulat manual pe productie,
+    nu poate fi verificat din acest mediu (fara acces la baza de date de productie).
 
 ## 4. Note tehnice utile pentru viitor
 
