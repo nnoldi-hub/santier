@@ -162,6 +162,10 @@ configurat sa bootstrap-eze acea aplicatie.
 
 Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica prioritate.
 
+**Toti cei 10 itemi de mai jos sunt FACUT** (ultimul inchis: 2026-07-13). Backlog-ul
+ramane ca istoric al initiativelor - orice munca noua ar trebui sa porneasca de la o
+discutie noua cu utilizatorul, nu presupusa din acest istoric.
+
 1. ~~Trasabilitate materiale (pagina dedicata)~~ - FACUT (`/trasabilitate-materiale`,
    vezi 2.2). Ramas explicit in afara scopului: legarea `MaterialInvoice` de
    `resource_orders`/`resource_document_links` (sunt doua sisteme de facturare separate,
@@ -186,11 +190,10 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    cu paginile modernizate anterior (`PilotInvites/Index.vue`, `Exports/Index.vue`
    etc.). Sagetile tipografice `←`/`→` (separatoare de interval/breadcrumb) NU au fost
    atinse - sunt conventie stabilita in ~22 pagini din aplicatie, nu emoji reziduale.
-10. **Verificare operationala**: confirmarea ca `php artisan iam:backfill-legacy-roles
-    --apply` a rulat pe productie (necesar dupa eliminarea bypass-ului legacy de
-    autorizare in `9b1c076`) - comanda e idempotenta si sigura de rulat oricand
-    (raporteaza "no users found" daca a rulat deja) - de rulat manual pe productie,
-    nu poate fi verificat din acest mediu (fara acces la baza de date de productie).
+10. ~~Verificare operationala~~ - FACUT. `php artisan iam:backfill-legacy-roles --apply`
+    rulat pe productie (2026-07-13): "No users with zero roles/permissions found. Safe
+    to remove the legacy bypass." - nu au existat conturi ramase pe bypass-ul legacy
+    de autorizare (eliminat in `9b1c076`).
 
 ## 4. Note tehnice utile pentru viitor
 
