@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Support\DemoScope;
 use App\Support\DocumentBranding;
 use App\Support\ExportAudit;
+use App\Support\ExportChartBuilder;
 use App\Support\ExportDatasetBuilder;
 use App\Support\ExportFilter;
 use App\Support\TenantContext;
@@ -542,6 +543,8 @@ class ExportController extends Controller
             ];
         }
 
+        $charts = ExportChartBuilder::build($validated['export_type'], $rows);
+
         ExportAudit::log('preview', 'system', $filters, [
             'status' => 'success',
             'notes' => 'Preview for export type: ' . $validated['export_type'],
@@ -552,6 +555,7 @@ class ExportController extends Controller
             'title' => (string) ($dataset['meta']['title'] ?? ucfirst($validated['export_type'])),
             'rows_count' => $rows->count(),
             'summary' => $summary,
+            'charts' => $charts,
             'sample' => $sample,
             'active_filters' => collect($filters)
                 ->reject(fn ($value) => $value === null || $value === '' || $value === [] || $value === false)

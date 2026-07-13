@@ -91,11 +91,17 @@ configurat sa bootstrap-eze acea aplicatie.
   / `exports.managerial-pdf`, fara cod nou de export). Un filtru salvat = doar setul de
   filtre, cu buton "Aplica" care il incarca peste filtrele curente. Doar creare+stergere
   (fara editare), fara partajare pe tenant (decizie explicita).
-- **Lipsesc** din planul "Exporturi Premium v2": preview cu grafice (doar tabel/sumar
-  text acum), raport managerial "avansat" multi-sectiune cu grafice + generator pe
-  interval (saptamanal/lunar/trimestrial/anual) cu abonare, si inca 2 din cele 3
-  rapoarte comparative Materiale&Avize planificate (Trasabilitate materiale completa,
-  Utilaje & consum materiale) - vezi backlog.
+- **Preview cu grafice** (`App\Support\ExportChartBuilder`): endpoint-ul
+  `exports/preview` intoarce si o cheie `charts` (labels+series) - breakdown pe
+  status/prioritate/disponibilitate/plata (dupa tip), afisat ca bare orizontale CSS
+  in panoul de preview (fara librarie noua de grafice, consistent cu barele de
+  progres deja folosite in alte pagini). `costs` si `stage-reports` nu au o
+  dimensiune categorica reala, deci raman fara grafic (`charts: []`).
+- **Lipsesc** din planul "Exporturi Premium v2": raport managerial "avansat"
+  multi-sectiune cu grafice + generator pe interval (saptamanal/lunar/trimestrial/
+  anual) cu abonare, si inca 2 din cele 3 rapoarte comparative Materiale&Avize
+  planificate (Trasabilitate materiale completa, Utilaje & consum materiale) - vezi
+  backlog.
 
 ### 2.9. Cont si organizatie (IAM) - COMPLET
 - Superadmin (platforma) vs tenant admin (per firma), izolare completa verificata cu
@@ -152,8 +158,8 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
    + filtre noi pe `PilotInvites/Index`, vezi 2.10).
 5. ~~Exporturi - Favorite Reports + Saved Filters~~ - FACUT (`report_favorites`,
    `saved_export_filters`, sectiune dedicata in `Exports/Index.vue`, vezi 2.8).
-6. **Exporturi - preview cu grafice**: extindere endpoint preview cu structura
-   `charts` (labels+series) pentru rapoartele manageriale, in loc de doar tabel/sumar.
+6. ~~Exporturi - preview cu grafice~~ - FACUT (`App\Support\ExportChartBuilder`,
+   cheia `charts` pe `exports/preview`, vezi 2.8).
 7. **Exporturi - raport managerial avansat + raport pe interval**: PDF multi-sectiune
    cu grafice, generator saptamanal/lunar/trimestrial/anual cu abonare automata.
 8. **Exporturi - completare pachet Materiale & Avize**: mai lipsesc 2 din cele 3

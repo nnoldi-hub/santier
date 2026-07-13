@@ -358,6 +358,21 @@
                     </div>
 
                     <div class="p-4 md:p-5">
+                        <div v-if="!previewState.loading && previewState.result?.charts?.length" class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div v-for="chart in previewState.result.charts" :key="chart.key" class="rounded-xl border border-gray-200 bg-white p-4">
+                                <div class="mb-3 text-xs font-semibold text-gray-700">{{ chart.title }}</div>
+                                <div class="space-y-2">
+                                    <div v-for="(label, index) in chart.labels" :key="label" class="flex items-center gap-3">
+                                        <div class="w-28 shrink-0 truncate text-xs text-gray-600">{{ label }}</div>
+                                        <div class="h-3 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                            <div class="h-full rounded-full bg-orange-400" :style="{ width: chartBarWidth(chart, index) + '%' }"></div>
+                                        </div>
+                                        <div class="w-8 shrink-0 text-right text-xs font-semibold text-gray-700">{{ chart.series[index] }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div v-if="previewState.loading" class="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/70 px-4 py-3 text-sm text-gray-700">
                             <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500"></span>
                             Se genereaza preview-ul raportului...
@@ -1557,6 +1572,16 @@ function previewSampleEntries(sample) {
 
 function formatExportType(value) {
     return exportTypeLabels[value] ?? value;
+}
+
+function chartBarWidth(chart, index) {
+    const max = Math.max(...chart.series, 0);
+
+    if (max <= 0) {
+        return 0;
+    }
+
+    return (Number(chart.series[index] || 0) / max) * 100;
 }
 
 function formatActiveFilters(filtersPayload) {
