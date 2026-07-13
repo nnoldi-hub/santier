@@ -255,6 +255,84 @@
 
             </div>
 
+            <div class="bg-white border border-gray-200 rounded-xl p-6">
+                <h3 class="font-semibold text-[#1A237E] mb-1">Filtre salvate</h3>
+                <p class="text-xs text-gray-500 mb-4">Salveaza combinatia curenta de filtre avansate pentru reaplicare rapida pe orice raport.</p>
+
+                <form class="flex flex-wrap items-end gap-3" @submit.prevent="createSavedFilter">
+                    <div class="min-w-[220px] flex-1">
+                        <label class="block text-xs text-gray-600 mb-1">Nume filtru *</label>
+                        <input v-model="savedFilterForm.name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: Proiecte active - luna curenta" />
+                    </div>
+                    <button type="submit" :disabled="savedFilterForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
+                        {{ savedFilterForm.processing ? 'Se salveaza...' : 'Salveaza filtrele curente' }}
+                    </button>
+                </form>
+
+                <div class="mt-4">
+                    <div v-if="savedFilters.length === 0" class="text-sm text-gray-400">Nu exista filtre salvate.</div>
+                    <div v-else class="space-y-2">
+                        <div v-for="saved in savedFilters" :key="saved.id" class="border border-gray-100 rounded-lg p-3 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-800">{{ saved.name }}</div>
+                                <div class="text-xs text-gray-500 truncate">{{ formatActiveFilters(saved.filters) }}</div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" class="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50" @click="applySavedFilter(saved)">Aplica</button>
+                                <button type="button" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50" @click="deleteSavedFilter(saved)">Sterge</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-6">
+                <h3 class="font-semibold text-[#1A237E] mb-1">Rapoarte favorite</h3>
+                <p class="text-xs text-gray-500 mb-4">Salveaza un raport (tip + format + filtrele curente) pentru descarcare cu un singur click.</p>
+
+                <form class="grid grid-cols-1 md:grid-cols-4 gap-3" @submit.prevent="createFavorite">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Eticheta *</label>
+                        <input v-model="favoriteForm.label" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: Raport PM saptamanal" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Tip raport *</label>
+                        <select v-model="favoriteForm.export_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option v-for="option in exportTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Format *</label>
+                        <select v-model="favoriteForm.format" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="xlsx">xlsx</option>
+                            <option value="pdf">pdf</option>
+                            <option value="csv" :disabled="favoriteForm.export_type === 'resource-comparison'">csv</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" :disabled="favoriteForm.processing" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
+                            {{ favoriteForm.processing ? 'Se salveaza...' : 'Salveaza ca favorit' }}
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4">
+                    <div v-if="favorites.length === 0" class="text-sm text-gray-400">Nu exista rapoarte favorite.</div>
+                    <div v-else class="space-y-2">
+                        <div v-for="favorite in favorites" :key="favorite.id" class="border border-gray-100 rounded-lg p-3 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-800">{{ favorite.label }}</div>
+                                <div class="text-xs text-gray-500">{{ formatExportType(favorite.export_type) }} · {{ favorite.format.toUpperCase() }}</div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <a :href="favoriteDownloadUrl(favorite)" class="text-xs border border-emerald-200 text-emerald-700 rounded px-2 py-1 hover:bg-emerald-50">Descarca</a>
+                                <button type="button" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50" @click="deleteFavorite(favorite)">Sterge</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div ref="previewPanelRef" v-if="previewState.export_type" class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
                     <div class="border-b border-gray-200 bg-gradient-to-r from-slate-50 via-white to-orange-50 px-4 py-4 md:px-5">
                         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -590,6 +668,8 @@ const props = defineProps({
     exportStats: { type: Object, default: () => ({}) },
     branding: { type: Object, default: () => ({}) },
     filters: { type: Object, default: () => ({}) },
+    savedFilters: { type: Array, default: () => [] },
+    favorites: { type: Array, default: () => [] },
 });
 
 const projectId = ref('');
@@ -993,6 +1073,16 @@ const subscriptionForm = useForm({
     recipientsText: '',
 });
 
+const savedFilterForm = useForm({
+    name: '',
+});
+
+const favoriteForm = useForm({
+    label: '',
+    export_type: 'projects',
+    format: 'xlsx',
+});
+
 const previewState = reactive({
     export_type: 'projects',
     loading: false,
@@ -1353,6 +1443,77 @@ function toggleSubscription(subscription) {
         preserveScroll: true,
         onSuccess: () => router.reload({ only: ['subscriptions', 'recentLogs'] }),
     });
+}
+
+function createSavedFilter() {
+    savedFilterForm.transform(() => ({
+        name: savedFilterForm.name,
+        filters: { ...filters },
+    })).post(route('exports.saved-filters.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            savedFilterForm.reset();
+            router.reload({ only: ['savedFilters'] });
+        },
+    });
+}
+
+function applySavedFilter(saved) {
+    Object.assign(filters, {
+        from: '',
+        to: '',
+        quick_range: '',
+        project_id: '',
+        team_id: '',
+        status: '',
+        priority: '',
+        assignee_ids: '',
+        global_search: '',
+        include_inactive: false,
+        ...saved.filters,
+    });
+    generatePreview();
+}
+
+function deleteSavedFilter(saved) {
+    router.delete(route('exports.saved-filters.destroy', saved.id), {
+        preserveScroll: true,
+        onSuccess: () => router.reload({ only: ['savedFilters'] }),
+    });
+}
+
+function createFavorite() {
+    favoriteForm.transform(() => ({
+        label: favoriteForm.label,
+        export_type: favoriteForm.export_type,
+        format: favoriteForm.format,
+        filters: { ...filters },
+    })).post(route('exports.favorites.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            favoriteForm.reset('label');
+            router.reload({ only: ['favorites'] });
+        },
+    });
+}
+
+function deleteFavorite(favorite) {
+    router.delete(route('exports.favorites.destroy', favorite.id), {
+        preserveScroll: true,
+        onSuccess: () => router.reload({ only: ['favorites'] }),
+    });
+}
+
+function favoriteDownloadUrl(favorite) {
+    const favoriteFilters = favorite.filters || {};
+
+    if (favorite.format === 'csv') {
+        return route('exports.' + favorite.export_type, favoriteFilters);
+    }
+
+    const routeName = favorite.format === 'pdf' ? 'exports.managerial-pdf' : 'exports.workbook';
+
+    return route(routeName, { ...favoriteFilters, types: favorite.export_type });
 }
 
 function formatDateTime(value) {

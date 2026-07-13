@@ -12,6 +12,8 @@ use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Models\ReportFavorite;
+use App\Models\SavedExportFilter;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
@@ -22,8 +24,10 @@ use App\Support\ExportDatasetBuilder;
 use App\Support\ExportFilter;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -102,6 +106,16 @@ class ExportController extends Controller
                 ->latest('id')
                 ->take(20)
                 ->get(['id', 'export_type', 'format', 'status', 'file_name', 'delivery_channel', 'delivery_target', 'created_at']),
+            'savedFilters' => SavedExportFilter::query()
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->get(['id', 'name', 'filters']),
+            'favorites' => ReportFavorite::query()
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->get(['id', 'label', 'export_type', 'format', 'filters']),
             'exportStats' => $exportStats,
             'filters' => $filters,
             'branding' => [
@@ -675,6 +689,78 @@ class ExportController extends Controller
         ]);
 
         return back()->with('success', 'Stare abonare actualizata.');
+    }
+
+    public function storeSavedFilter(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'filters' => ['nullable', 'array'],
+        ]);
+
+        SavedExportFilter::create([
+            'tenant_id' => TenantContext::id($request->user()),
+            'user_id' => $request->user()?->id,
+            'name' => $validated['name'],
+            'filters' => $validated['filters'] ?? [],
+        ]);
+
+        return back()->with('success', 'Filtrul a fost salvat.');
+    }
+
+    public function destroySavedFilter(Request $request, SavedExportFilter $savedExportFilter): RedirectResponse
+    {
+        abort_unless(
+            (int) $savedExportFilter->tenant_id === TenantContext::id($request->user())
+                && (int) $savedExportFilter->user_id === (int) $request->user()?->id,
+            404
+        );
+
+        $savedExportFilter->delete();
+
+        return back()->with('success', 'Filtrul salvat a fost sters.');
+    }
+
+    public function storeFavorite(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:255'],
+            'export_type' => ['required', 'in:' . implode(',', self::SUPPORTED_EXPORT_TYPES)],
+            'format' => [
+                'required',
+                Rule::in(ReportFavorite::FORMATS),
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === 'csv' && $request->input('export_type') === 'resource-comparison') {
+                        $fail('Formatul CSV nu este disponibil pentru raportul comparativ de resurse.');
+                    }
+                },
+            ],
+            'filters' => ['nullable', 'array'],
+        ]);
+
+        ReportFavorite::create([
+            'tenant_id' => TenantContext::id($request->user()),
+            'user_id' => $request->user()?->id,
+            'label' => $validated['label'],
+            'export_type' => $validated['export_type'],
+            'format' => $validated['format'],
+            'filters' => $validated['filters'] ?? [],
+        ]);
+
+        return back()->with('success', 'Raportul a fost salvat ca favorit.');
+    }
+
+    public function destroyFavorite(Request $request, ReportFavorite $reportFavorite): RedirectResponse
+    {
+        abort_unless(
+            (int) $reportFavorite->tenant_id === TenantContext::id($request->user())
+                && (int) $reportFavorite->user_id === (int) $request->user()?->id,
+            404
+        );
+
+        $reportFavorite->delete();
+
+        return back()->with('success', 'Favoritul a fost sters.');
     }
 
     public function projectPackage(Project $project)

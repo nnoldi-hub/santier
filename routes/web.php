@@ -1344,6 +1344,10 @@ Route::middleware('auth')->group(function () {
             Route::get('exports/stage-reports', [ExportController::class, 'stageReportsCsv'])->name('exports.stage-reports');
             Route::get('exports/stage-tasks', [ExportController::class, 'stageTasksCsv'])->name('exports.stage-tasks');
             Route::get('exports/stage-progress', [ExportController::class, 'stageProgressCsv'])->name('exports.stage-progress');
+            Route::post('exports/saved-filters', [ExportController::class, 'storeSavedFilter'])->name('exports.saved-filters.store');
+            Route::delete('exports/saved-filters/{savedExportFilter}', [ExportController::class, 'destroySavedFilter'])->name('exports.saved-filters.destroy');
+            Route::post('exports/favorites', [ExportController::class, 'storeFavorite'])->name('exports.favorites.store');
+            Route::delete('exports/favorites/{reportFavorite}', [ExportController::class, 'destroyFavorite'])->name('exports.favorites.destroy');
         });
 
         Route::middleware('plan:exports_enterprise')->group(function () {

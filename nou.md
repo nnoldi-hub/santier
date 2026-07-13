@@ -77,15 +77,21 @@ configurat sa bootstrap-eze acea aplicatie.
   predictii AI (risc intarziere/buget/subcontractor) cu explicabilitate (popover cu
   factori si ponderi), Plan vs Real pe etape.
 
-### 2.8. Exporturi enterprise - COMPLET pentru functiile de baza, PARTIAL pentru "premium"
+### 2.8. Exporturi enterprise - COMPLET pentru functiile de baza si Favorite/Filtre, PARTIAL pentru restul "premium"
 - Toate modulele exportabile CSV/XLSX/PDF, cu template-uri one-click (Proiect complet,
   Financiar complet, Calitate&Defecte, Utilaje&Resurse, Taskuri&Progres, Cost vs Buget,
   Materiale&Avize), cautare globala + intervale rapide, preview simplu (numar
   inregistrari + esantion), audit complet pe fiecare export, distribuire automata pe
   email (abonari programate), raport managerial PDF, raport comparativ
   `Materiale & Avize` (comandat/livrat/receptionat/consumat/diferente).
-- **Lipsesc** din planul "Exporturi Premium v2": Favorite Reports + Saved Filters
-  (salvare filtre/rapoarte preferate per user), preview cu grafice (doar tabel/sumar
+- **Favorite Reports + Filtre salvate** (`report_favorites`, `saved_export_filters`):
+  personale per user (tenant_id + user_id), sectiune dedicata in `Exports/Index.vue`.
+  Un favorit = tip raport + format (csv/xlsx/pdf) + filtrele curente, cu descarcare
+  directa cu un click (refoloseste rutele existente `exports.{type}` / `exports.workbook`
+  / `exports.managerial-pdf`, fara cod nou de export). Un filtru salvat = doar setul de
+  filtre, cu buton "Aplica" care il incarca peste filtrele curente. Doar creare+stergere
+  (fara editare), fara partajare pe tenant (decizie explicita).
+- **Lipsesc** din planul "Exporturi Premium v2": preview cu grafice (doar tabel/sumar
   text acum), raport managerial "avansat" multi-sectiune cu grafice + generator pe
   interval (saptamanal/lunar/trimestrial/anual) cu abonare, si inca 2 din cele 3
   rapoarte comparative Materiale&Avize planificate (Trasabilitate materiale completa,
@@ -144,8 +150,8 @@ Doar itemi din initiative deja pornite (nu propuneri noi). Ordinea nu implica pr
 3. ~~Comercial - log de actiuni~~ - FACUT (`commercial_actions`, vezi 2.10).
 4. ~~Comercial - inbox/widget dashboard~~ - FACUT (inbox pe `Admin/CommercialDashboard`
    + filtre noi pe `PilotInvites/Index`, vezi 2.10).
-5. **Exporturi - Favorite Reports + Saved Filters**: tabele noi `report_favorites` si
-   `saved_export_filters`, tab dedicat in pagina de exporturi.
+5. ~~Exporturi - Favorite Reports + Saved Filters~~ - FACUT (`report_favorites`,
+   `saved_export_filters`, sectiune dedicata in `Exports/Index.vue`, vezi 2.8).
 6. **Exporturi - preview cu grafice**: extindere endpoint preview cu structura
    `charts` (labels+series) pentru rapoartele manageriale, in loc de doar tabel/sumar.
 7. **Exporturi - raport managerial avansat + raport pe interval**: PDF multi-sectiune
