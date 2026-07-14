@@ -59,7 +59,7 @@ deja construit).
 | 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | **Facut** |
 | 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | **Facut** |
 | 7 | Buget initial | `site_budget_plans` (linii bugetare manuale + rezumat auto din materiale/utilaje) | **Facut** |
-| 8 | Rezumat & scor de pregatire | `site_readiness_summary` + `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje) | Neinceput |
+| 8 | Rezumat & scor de pregatire | `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje, calculat live) | **Facut** |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), extinde `ProjectAiToolsController` | Neinceput |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, extinde infrastructura de export existenta | Neinceput |
 
@@ -183,3 +183,19 @@ Acelasi flux stabilit in aceasta sesiune:
 - Test `tests/Feature/SiteBudgetPlanTest.php` (creare, validare, stergere, izolare
   tenant, plus un test dedicat care verifica agregarea corecta a rezumatului bugetar
   din materiale + linii manuale via `assertInertia`).
+
+### Faza 8 - Rezumat & scor de pregatire (Facut, 2026-07-14)
+- **Decizie de design fata de roadmap**: fara tabel `site_readiness_summary` -
+  scorul e calculat live la fiecare incarcare a paginii de `App\Support\
+  SiteReadinessCalculator::calculate()`, exact ca `budgetSummary` de la Faza 7 (fara
+  risc de desincronizare, fara nevoie de invalidare cache).
+- Tab-ul "Rezumat" devine functional: scor general 0-100 + eticheta semafor
+  (Pregatit/Necesita atentie/Nepregatit), scor pe fiecare din cele 7 domenii
+  (clickabil -> navigheaza direct la tab-ul respectiv), lista de blocaje concrete.
+- Euristici locale simple (medie neponderata a 7 sub-scoruri, fara integrare cu un
+  LLM extern) - acelasi tipar ca `ProjectAiToolsController`.
+- Limitare asumata explicit: un domeniu fara niciun plan primeste scor 0 chiar daca
+  domeniul respectiv nu e relevant pentru proiect - nuantarea "N/A" ramane candidat
+  pentru Faza 9 (AI Tools).
+- Test `tests/Feature/SiteReadinessCalculatorTest.php` (calculul in izolare pentru 3
+  scenarii + un test HTTP care confirma `readiness.score` in payload-ul Inertia).

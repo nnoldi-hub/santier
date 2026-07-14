@@ -17,6 +17,7 @@ use App\Models\SiteStaffPlan;
 use App\Models\StageEquipment;
 use App\Models\Team;
 use App\Support\EquipmentCostEstimator;
+use App\Support\SiteReadinessCalculator;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,12 +33,31 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
 
+        $staffPlans = SiteStaffPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
+            ->latest('id')
+            ->get();
+
+        $contractorPlans = $this->contractorPlansWithOverlap($project);
+
         $materialPlans = SiteMaterialPlan::where('project_id', $project->id)
             ->with(['phase:id,name', 'material:id,name,code,unit,unit_price'])
             ->latest('id')
             ->get();
 
         $equipmentPlans = $this->equipmentPlansWithEstimates($project);
+
+        $logisticsPlans = SiteLogisticsPlan::where('project_id', $project->id)
+            ->with('phase:id,name')
+            ->latest('id')
+            ->get();
+
+        $compliancePlans = SiteCompliancePlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'contractor:id,name'])
+            ->latest('id')
+            ->get();
+
+        $budgetSummary = $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans);
 
         return Inertia::render('SiteOrganization/Index', [
             'project' => [
@@ -48,12 +68,9 @@ class SiteOrganizationController extends Controller
             ],
             'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
-            'staffPlans' => SiteStaffPlan::where('project_id', $project->id)
-                ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
-                ->latest('id')
-                ->get(),
+            'staffPlans' => $staffPlans,
             'riskLevels' => SiteStaffPlan::$riskLabels,
-            'contractorPlans' => $this->contractorPlansWithOverlap($project),
+            'contractorPlans' => $contractorPlans,
             'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
             'materialPlans' => $materialPlans,
@@ -62,16 +79,10 @@ class SiteOrganizationController extends Controller
             'equipmentPlans' => $equipmentPlans,
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
             'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
-            'logisticsPlans' => SiteLogisticsPlan::where('project_id', $project->id)
-                ->with('phase:id,name')
-                ->latest('id')
-                ->get(),
+            'logisticsPlans' => $logisticsPlans,
             'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
             'logisticsRiskLevels' => SiteLogisticsPlan::$riskLabels,
-            'compliancePlans' => SiteCompliancePlan::where('project_id', $project->id)
-                ->with(['phase:id,name', 'contractor:id,name'])
-                ->latest('id')
-                ->get(),
+            'compliancePlans' => $compliancePlans,
             'complianceItemTypeLabels' => SiteCompliancePlan::$itemTypeLabels,
             'complianceStatusLabels' => SiteCompliancePlan::$statusLabels,
             'budgetPlans' => SiteBudgetPlan::where('project_id', $project->id)
@@ -79,7 +90,16 @@ class SiteOrganizationController extends Controller
                 ->latest('id')
                 ->get(),
             'budgetCategories' => SiteBudgetPlan::$categoryLabels,
-            'budgetSummary' => $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans),
+            'budgetSummary' => $budgetSummary,
+            'readiness' => SiteReadinessCalculator::calculate(
+                $staffPlans,
+                $contractorPlans,
+                $materialPlans,
+                $equipmentPlans,
+                $logisticsPlans,
+                $compliancePlans,
+                $budgetSummary
+            ),
         ]);
     }
 

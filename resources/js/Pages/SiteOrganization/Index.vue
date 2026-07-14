@@ -22,7 +22,55 @@
                 </button>
             </div>
 
-            <div v-if="activeTab === 'staff'" class="space-y-6">
+            <div v-if="activeTab === 'summary'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-6 text-center">
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Scor de pregatire santier</p>
+                    <p class="mt-2 text-5xl font-black" :class="readinessTone(readiness.score).text">{{ readiness.score }}</p>
+                    <span class="mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold" :class="readinessTone(readiness.score).badge">
+                        {{ readiness.label }}
+                    </span>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Scor pe domenii</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <button
+                            v-for="domain in readiness.domains"
+                            :key="domain.key"
+                            type="button"
+                            class="text-left border border-gray-200 rounded-lg p-3 hover:border-orange-300 transition"
+                            @click="activeTab = domain.key"
+                        >
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">{{ domain.label }}</span>
+                                <span class="text-sm font-semibold" :class="readinessTone(domain.score).text">{{ domain.score }}</span>
+                            </div>
+                            <div class="h-1.5 w-full rounded-full bg-gray-100">
+                                <div class="h-1.5 rounded-full" :class="readinessTone(domain.score).bar" :style="{ width: domain.score + '%' }"></div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="readiness.blockers.length" class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Blocaje</h3>
+                    <ul class="space-y-2">
+                        <li v-for="(blocker, index) in readiness.blockers" :key="index" class="flex items-start gap-2 text-sm text-gray-700">
+                            <span class="mt-0.5 h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                            {{ blocker }}
+                        </li>
+                    </ul>
+                </div>
+
+                <EmptyState
+                    v-else
+                    :icon="ChartBarIcon"
+                    title="Niciun blocaj identificat"
+                    description="Toate domeniile verificate arata bine pe baza datelor introduse pana acum."
+                />
+            </div>
+
+            <div v-else-if="activeTab === 'staff'" class="space-y-6">
                 <div class="bg-white border border-gray-200 rounded-xl p-5">
                     <h3 class="font-semibold text-gray-800 mb-3">Adauga plan de personal</h3>
                     <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitStaffPlan">
@@ -755,6 +803,7 @@ const props = defineProps({
     budgetPlans: { type: Array, default: () => [] },
     budgetCategories: { type: Object, default: () => ({}) },
     budgetSummary: { type: Object, default: () => ({}) },
+    readiness: { type: Object, default: () => ({ score: 0, label: '', domains: [], blockers: [] }) },
 });
 
 const tabs = [
@@ -975,6 +1024,12 @@ function categoryTone(category) {
     if (category === 'safety_zone') return 'bg-amber-100 text-amber-700';
     if (category === 'restriction') return 'bg-rose-100 text-rose-700';
     return 'bg-gray-100 text-gray-700';
+}
+
+function readinessTone(score) {
+    if (score >= 80) return { text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700', bar: 'bg-emerald-500' };
+    if (score >= 50) return { text: 'text-amber-600', badge: 'bg-amber-100 text-amber-700', bar: 'bg-amber-500' };
+    return { text: 'text-rose-600', badge: 'bg-rose-100 text-rose-700', bar: 'bg-rose-500' };
 }
 
 function formatCurrency(value) {
