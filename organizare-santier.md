@@ -62,12 +62,32 @@ deja construit).
 | 8 | Rezumat & scor de pregatire | `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje, calculat live) | **Facut** |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), calculat live in `SiteOrganizationController` | **Facut** |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, extinde infrastructura de export existenta | Neinceput |
+| 11 | Aprobare plan + activare executie | Buton "Aproba planul" in tab-ul Rezumat: tranzitie status proiect, istoric de aprobare, blocare editare planuri, generare automata de artefacte reale de executie (`Task`, `PhaseTeamAssignment`, `ResourceOrder`, `StageEquipment`) din cele 6 domenii de planificare | Neinceput |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
 dupa prioritate de business), dar faza 8 (scorul de pregatire) are nevoie de cel putin
-cateva din ele deja construite ca sa agrege ceva real, iar fazele 9-10 au nevoie de
+cateva din ele deja construite ca sa agrege ceva real, iar fazele 9-11 au nevoie de
 toate datele deja existente ca sa fie utile. Daca prioritatea de business cere alta
-ordine intre fazele 2-7, o schimbam fara probleme - doar 8/9/10 raman ultimele.
+ordine intre fazele 2-7, o schimbam fara probleme - doar 8/9/10/11 raman ultimele.
+
+**Faza 11 - context aditional** (adaugata dupa recitirea `plan_santier.md`, care
+descrie explicit acest flux la "PASUL 4-5", neinclus initial in fazele 1-10):
+verificat in cod (agent de explorare) ca **nu exista nicio infrastructura pentru
+asta azi** - `Project.status` are doar `draft/active/paused/completed/cancelled`
+(fara "Planificare"/"Executie activa"), nu exista tabel de istoric de status (doar
+`AccessAuditLog`, generic, pentru audit de securitate - reutilizabil ca inspiratie,
+nu ca atare), nu exista niciun mecanism de blocare a editarii dupa aprobare. Mai
+important: **conversia automata plan -> real NU e o mapare curata 1:1** pentru 4 din
+cele 6 domenii - `SiteStaffPlan` -> `Task` lipseste `assigned_to`/`title` (task e per
+persoana, planul e pe headcount), `SiteContractorPlan` -> `PhaseTeamAssignment`
+cere `team_id` pe care planul de subcontractor nu il are, `SiteMaterialPlan` ->
+`ResourceOrder` lipseste `unit_price`/`ordered_unit`/`responsible_user_id`, iar
+pentru logistica si buget nu exista deloc o entitate "reala" de conversie (checklist/
+KPI). Doar `SiteEquipmentPlan` -> `StageEquipment` e aproape 1:1. Aceste goluri
+trebuie rezolvate explicit in planul de implementare al Fazei 11 (decizii: de unde
+vine `assigned_to`, cum se aloca `team_id` din contractor, ce valori implicite
+pentru campurile lipsa) - nu sunt simplificari care se pot ignora, ca la fazele
+anterioare.
 
 ## 4. Cum lucram pe fiecare faza
 
