@@ -10,6 +10,7 @@ use App\Notifications\UserRoleChangedNotification;
 use App\Notifications\UserStatusChangedNotification;
 use App\Support\AccessAudit;
 use App\Support\IamLabels;
+use App\Support\PricingPlan;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -129,11 +130,19 @@ class TenantUserController extends Controller
         $role = Role::query()->findOrFail((int) $data['role_id']);
         abort_unless($role->tenant_id === null || (int) $role->tenant_id === $tenantId, 422, 'Rolul ales nu este disponibil pentru tenantul curent.');
 
-        $member = DB::transaction(function () use ($data, $tenantId, $actor, $role): User {
-            $email = strtolower(trim((string) $data['email']));
+        $email = strtolower(trim((string) $data['email']));
+        $existingUser = User::query()->firstWhere('email', $email);
+        $isExistingMember = $existingUser
+            && TenantUser::query()->where('tenant_id', $tenantId)->where('user_id', $existingUser->id)->exists();
+
+        if (!$isExistingMember && !PricingPlan::canInviteUser($actor)) {
+            return back()->withInput()->with('error', PricingPlan::usersLimitMessage($actor));
+        }
+
+        $member = DB::transaction(function () use ($data, $email, $existingUser, $tenantId, $actor, $role): User {
             $displayName = trim((string) ($data['name'] ?? ''));
 
-            $member = User::query()->firstWhere('email', $email);
+            $member = $existingUser;
             if (!$member) {
                 $member = User::query()->create([
                     'name' => $displayName !== '' ? $displayName : Str::before($email, '@'),

@@ -35,7 +35,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 
 | # | Faza | Domeniu | Status |
 |---|------|---------|--------|
-| 1 | Limite reale de utilizatori | `PricingPlan::canInviteUser()` (acelasi tipar ca `canCreateProject()`) + verificare in `TenantUserController::invite()` | Neinceput |
+| 1 | Limite reale de utilizatori | `PricingPlan::canInviteUser()` (acelasi tipar ca `canCreateProject()`) + verificare in `TenantUserController::invite()` | **Facut** |
 | 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri (`documents/pdf.blade.php`, `exports/managerial-pdf.blade.php`) si emailuri (`quote-sent.blade.php`, `UserInvitedNotification`) cand `PricingPlan::hasFeature($user,'white_label')` | Neinceput |
 | 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | Neinceput |
 | 4 | Aprobari documente (facturare) | Necesita clarificare cu utilizatorul ce inseamna exact ("aprobari" - flux de sign-off inainte de trimiterea unui document catre client?) inainte de plan | Neinceput |
@@ -60,4 +60,23 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
    in "## 5. Progres" dupa fiecare faza.
 
 ## 5. Progres
-(gol - nicio faza inceputa inca)
+
+### Faza 1 - Limite reale de utilizatori (Facut, 2026-07-14)
+- `App\Support\PricingPlan`: metode noi `usersLimit()`, `canInviteUser()`,
+  `usersLimitMessage()` - acelasi tipar ca `projectLimit()`/`canCreateProject()`/
+  `projectLimitMessage()`. Numaratoarea foloseste `TenantUser::where('tenant_id',
+  ...)->where('status', 'active')->count()` - un membru suspendat elibereaza locul.
+- `TenantUserController::invite()`: verificare adaugata inainte de tranzactie -
+  daca email-ul invitat NU e deja membru al tenantului (re-invitare/schimbare rol
+  raman neblocate, chiar daca tenantul e la capacitate) SI limita e atinsa,
+  `return back()->withInput()->with('error', ...)` - acelasi stil ca
+  `ProjectController::store()`.
+- Confirmat in cod: la inregistrare (`RegisteredUserController`), proprietarul
+  contului ocupa deja 1 loc activ de la inceput - un tenant nou pe planul `free`
+  (limita 1) nu poate invita pe nimeni fara upgrade.
+- Test extins in `tests/Feature/PricingPlanLimitsTest.php` (nu fisier nou): plan
+  `free` blocheaza orice invitatie noua, plan `starter` permite exact 2 invitatii
+  (owner + 2 = limita 3) apoi blocheaza a treia, re-invitarea unui membru existent
+  nu e blocata de limita.
+- Ramas explicit in afara scopului: indicator vizual "X din Y locuri" in pagina de
+  utilizatori (doar mesaj de eroare la limita in aceasta faza).

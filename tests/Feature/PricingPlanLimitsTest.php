@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Tenant;
+use App\Models\TenantUser;
 use App\Models\User;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PricingPlanLimitsTest extends TestCase
@@ -72,6 +74,82 @@ class PricingPlanLimitsTest extends TestCase
         $user = $this->createOnboardedUser('pro');
 
         $this->actingAs($user)->get('/exports/workbook')->assertStatus(200);
+    }
+
+    public function test_free_plan_cannot_invite_any_new_users(): void
+    {
+        $owner = $this->createOnboardedUser('free');
+        $role = Role::where('name', 'data_entry')->firstOrFail();
+
+        $response = $this->actingAs($owner)
+            ->from('/account/users')
+            ->post('/account/users/invite', [
+                'email' => 'noumembru@test.ro',
+                'role_id' => $role->id,
+            ]);
+
+        $response->assertRedirect('/account/users');
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('users', ['email' => 'noumembru@test.ro']);
+        $this->assertDatabaseCount('tenant_users', 1);
+    }
+
+    public function test_starter_plan_allows_invites_up_to_the_seat_limit(): void
+    {
+        $owner = $this->createOnboardedUser('starter');
+        $role = Role::where('name', 'data_entry')->firstOrFail();
+
+        $this->actingAs($owner)->post('/account/users/invite', [
+            'email' => 'membru1@test.ro',
+            'role_id' => $role->id,
+        ])->assertSessionMissing('error');
+
+        $this->actingAs($owner)->post('/account/users/invite', [
+            'email' => 'membru2@test.ro',
+            'role_id' => $role->id,
+        ])->assertSessionMissing('error');
+
+        $this->assertDatabaseCount('tenant_users', 3);
+
+        $response = $this->actingAs($owner)
+            ->from('/account/users')
+            ->post('/account/users/invite', [
+                'email' => 'membru3@test.ro',
+                'role_id' => $role->id,
+            ]);
+
+        $response->assertRedirect('/account/users');
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('users', ['email' => 'membru3@test.ro']);
+        $this->assertDatabaseCount('tenant_users', 3);
+    }
+
+    public function test_reinviting_an_existing_member_is_not_blocked_by_the_limit(): void
+    {
+        $owner = $this->createOnboardedUser('free');
+        $existingMember = User::factory()->create([
+            'tenant_id' => 1,
+            'current_tenant_id' => 1,
+            'email' => 'membruexistent@test.ro',
+        ]);
+        TenantUser::create([
+            'tenant_id' => 1,
+            'user_id' => $existingMember->id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $newRole = Role::where('name', 'quote_specialist')->firstOrFail();
+
+        $response = $this->actingAs($owner)->post('/account/users/invite', [
+            'email' => 'membruexistent@test.ro',
+            'role_id' => $newRole->id,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionMissing('error');
+        $response->assertSessionHas('success');
+        $this->assertTrue($existingMember->fresh()->hasRole('quote_specialist'));
     }
 
     private function createOnboardedUser(string $plan): User

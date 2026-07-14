@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Project;
 use App\Models\Tenant;
+use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -75,6 +76,40 @@ class PricingPlan
         }
 
         return "Ai atins limita de {$limit} proiect(e) pentru planul " . self::label($user) . '. Upgrade necesar pentru proiecte suplimentare.';
+    }
+
+    public static function usersLimit(User $user): ?int
+    {
+        $plan = self::current($user);
+
+        return config("pricing.plans.{$plan}.users_limit");
+    }
+
+    public static function canInviteUser(User $actor): bool
+    {
+        $limit = self::usersLimit($actor);
+
+        if ($limit === null) {
+            return true;
+        }
+
+        $currentCount = TenantUser::query()
+            ->where('tenant_id', TenantContext::id($actor))
+            ->where('status', 'active')
+            ->count();
+
+        return $currentCount < $limit;
+    }
+
+    public static function usersLimitMessage(User $user): string
+    {
+        $limit = self::usersLimit($user);
+
+        if ($limit === null) {
+            return 'Planul curent nu are limita la numarul de utilizatori.';
+        }
+
+        return "Ai atins limita de {$limit} utilizator(i) activi pentru planul " . self::label($user) . '. Upgrade necesar pentru a invita utilizatori suplimentari.';
     }
 
     public static function featureMessage(string $feature): string
