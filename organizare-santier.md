@@ -52,7 +52,7 @@ deja construit).
 
 | # | Faza | Domeniu | Status |
 |---|------|---------|--------|
-| 1 | Fundatie + Echipe & specialitati | Pagina noua "Organizare Șantier" (ruta, nav, layout cu sub-taburi) + `site_staff_plans` (planificare echipe/specialitati per etapa WBS) | Neinceput |
+| 1 | Fundatie + Echipe & specialitati | Pagina noua "Organizare Șantier" (ruta, nav, layout cu sub-taburi) + `site_staff_plans` (planificare echipe/specialitati per etapa WBS) | **Facut** |
 | 2 | Subcontractori | `site_contractor_plans` (contract, disponibilitate, suprapuneri) | Neinceput |
 | 3 | Materiale | `site_material_plans` (necesar, furnizor, termene livrare, risc) | Neinceput |
 | 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | Neinceput |
@@ -83,5 +83,15 @@ Acelasi flux stabilit in aceasta sesiune:
 
 ## 5. Progres
 
-_(Se completeaza pe masura ce se incheie fiecare faza - deocamdata nicio faza
-inceputa.)_
+### Faza 1 - Fundatie + Echipe & specialitati (Facut, 2026-07-14)
+- Pagina noua `projects/{project}/organizare` (`SiteOrganization/Index.vue`), cu bara
+  de sub-taburi pentru toate cele 8 domenii viitoare - doar "Echipe & specialitati"
+  e functional, restul afiseaza `EmptyState` cu mesaj clar ca urmeaza.
+- Tabel nou `site_staff_plans` (`App\Models\SiteStaffPlan`) + `SiteOrganizationController`
+  (index + store/update/destroy pentru planuri de personal), validare scoped corect
+  pe tenant/proiect (`Rule::exists` cu `where`, nu doar `exists:table,id` simplu).
+- Buton nou "Organizare Șantier" in `Projects/Show.vue`, langa "Editeaza".
+- Ramas explicit in afara scopului: conversia unui plan in alocare reala
+  (`phase_team_assignments`), calcul automat de suprapuneri/risc - vezi plan.
+- Test `tests/Feature/SiteStaffPlanTest.php` (creare, validare, stergere, izolare
+  tenant).

@@ -6,9 +6,14 @@
                 <h2 class="text-xl font-semibold text-gray-800">{{ project.name }}</h2>
                 <StatusBadge :status="project.status" />
             </div>
-            <Link :href="route('projects.edit', project.id)" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
-                Editeaza
-            </Link>
+            <div class="flex items-center gap-2">
+                <Link :href="route('site-organization.index', project.id)" class="border border-orange-300 text-orange-700 bg-orange-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-100 transition">
+                    Organizare Șantier
+                </Link>
+                <Link :href="route('projects.edit', project.id)" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
+                    Editeaza
+                </Link>
+            </div>
         </div>
 
         <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">

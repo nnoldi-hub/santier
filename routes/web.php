@@ -26,6 +26,7 @@ use App\Http\Controllers\PilotInviteController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\WbsController;
 use App\Http\Controllers\StageEquipmentController;
+use App\Http\Controllers\SiteOrganizationController;
 use App\Http\Controllers\QualityCheckController;
 use App\Http\Controllers\MaterialInvoiceController;
 use App\Http\Controllers\StageReportController;
@@ -1379,6 +1380,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('projects/{project}/phases/{phase}/assignments/{assignment}', [PhaseTeamAssignmentController::class, 'destroy'])->name('phase-assignments.destroy');
         Route::post('projects/{project}/phases/{phase}/equipment', [StageEquipmentController::class, 'store'])->name('stage-equipment.store');
         Route::delete('projects/{project}/phases/{phase}/equipment/{reservation}', [StageEquipmentController::class, 'destroy'])->name('stage-equipment.destroy');
+
+        // Organizare santier
+        Route::get('projects/{project}/organizare', [SiteOrganizationController::class, 'index'])->name('site-organization.index');
+        Route::post('projects/{project}/organizare/staff-plans', [SiteOrganizationController::class, 'storeStaffPlan'])->name('site-organization.staff-plans.store');
+        Route::patch('projects/{project}/organizare/staff-plans/{staffPlan}', [SiteOrganizationController::class, 'updateStaffPlan'])->name('site-organization.staff-plans.update');
+        Route::delete('projects/{project}/organizare/staff-plans/{staffPlan}', [SiteOrganizationController::class, 'destroyStaffPlan'])->name('site-organization.staff-plans.destroy');
         Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
         Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
         Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');
