@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SitePlanningWorkbookExport;
+use App\Models\AppSetting;
 use App\Models\Contractor;
 use App\Models\Equipment;
 use App\Models\Material;
@@ -16,16 +18,22 @@ use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\StageEquipment;
 use App\Models\Team;
+use App\Support\DocumentBranding;
 use App\Support\EquipmentCostEstimator;
+use App\Support\ExportAudit;
 use App\Support\SitePlanningAIAdvisor;
+use App\Support\SitePlanningExporter;
 use App\Support\SiteReadinessCalculator;
 use App\Support\TenantContext;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SiteOrganizationController extends Controller
 {
@@ -34,6 +42,84 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
 
+        $data = $this->gatherPlanningData($project);
+
+        return Inertia::render('SiteOrganization/Index', array_merge([
+            'project' => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'total_budget' => $project->total_budget,
+                'phases' => $data['phases'],
+            ],
+            'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
+            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
+            'riskLevels' => SiteStaffPlan::$riskLabels,
+            'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
+            'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
+            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
+            'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
+            'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
+            'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
+            'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
+            'logisticsRiskLevels' => SiteLogisticsPlan::$riskLabels,
+            'complianceItemTypeLabels' => SiteCompliancePlan::$itemTypeLabels,
+            'complianceStatusLabels' => SiteCompliancePlan::$statusLabels,
+            'budgetCategories' => SiteBudgetPlan::$categoryLabels,
+        ], $data));
+    }
+
+    public function exportPdf(Request $request, Project $project)
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $data = $this->gatherPlanningData($project);
+        $sections = SitePlanningExporter::buildSections($data);
+        $fileName = 'plan-organizare-' . Str::slug($project->name) . '-' . now()->format('Ymd_His') . '.pdf';
+
+        $branding = AppSetting::allForTenant(config('platform.defaults', []), $tenantId);
+        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+
+        ExportAudit::log('site-planning-pdf', 'pdf', ['project_id' => $project->id], [
+            'file_name' => $fileName,
+        ]);
+
+        return Pdf::loadView('exports.managerial-pdf', [
+            'title' => 'Plan organizare santier - ' . $project->name,
+            'branding' => [
+                'company_name' => $branding['company_name'] ?? config('exports.company_name'),
+                'company_email' => $branding['support_email'] ?? config('exports.company_email'),
+                'company_phone' => $branding['company_phone'] ?? config('exports.company_phone'),
+                'company_address' => $branding['company_address'] ?? '',
+                'document_logo_url' => $branding['document_logo_url'] ?? '',
+                'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
+            ],
+            'generatedAt' => now()->toDateTimeString(),
+            'filters' => ['project' => $project->name],
+            'sections' => $sections,
+        ])->setOptions([
+            'isRemoteEnabled' => true,
+        ])->setPaper('a4')->download($fileName);
+    }
+
+    public function exportXlsx(Request $request, Project $project)
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $data = $this->gatherPlanningData($project);
+        $sections = SitePlanningExporter::buildSections($data);
+        $fileName = 'plan-organizare-' . Str::slug($project->name) . '-' . now()->format('Ymd_His') . '.xlsx';
+
+        ExportAudit::log('site-planning-xlsx', 'xlsx', ['project_id' => $project->id], [
+            'file_name' => $fileName,
+        ]);
+
+        return Excel::download(new SitePlanningWorkbookExport($sections), $fileName);
+    }
+
+    private function gatherPlanningData(Project $project): array
+    {
         $staffPlans = SiteStaffPlan::where('project_id', $project->id)
             ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
             ->latest('id')
@@ -58,41 +144,24 @@ class SiteOrganizationController extends Controller
             ->latest('id')
             ->get();
 
+        $budgetPlans = SiteBudgetPlan::where('project_id', $project->id)
+            ->with('phase:id,name')
+            ->latest('id')
+            ->get();
+
         $budgetSummary = $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans);
 
         $phases = $project->phases()->orderBy('order')->get(['id', 'name', 'order', 'type', 'duration_days']);
 
-        return Inertia::render('SiteOrganization/Index', [
-            'project' => [
-                'id' => $project->id,
-                'name' => $project->name,
-                'total_budget' => $project->total_budget,
-                'phases' => $phases,
-            ],
-            'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
-            'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
+        return [
+            'phases' => $phases,
             'staffPlans' => $staffPlans,
-            'riskLevels' => SiteStaffPlan::$riskLabels,
             'contractorPlans' => $contractorPlans,
-            'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
-            'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
             'materialPlans' => $materialPlans,
-            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
-            'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
             'equipmentPlans' => $equipmentPlans,
-            'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
-            'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
             'logisticsPlans' => $logisticsPlans,
-            'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
-            'logisticsRiskLevels' => SiteLogisticsPlan::$riskLabels,
             'compliancePlans' => $compliancePlans,
-            'complianceItemTypeLabels' => SiteCompliancePlan::$itemTypeLabels,
-            'complianceStatusLabels' => SiteCompliancePlan::$statusLabels,
-            'budgetPlans' => SiteBudgetPlan::where('project_id', $project->id)
-                ->with('phase:id,name')
-                ->latest('id')
-                ->get(),
-            'budgetCategories' => SiteBudgetPlan::$categoryLabels,
+            'budgetPlans' => $budgetPlans,
             'budgetSummary' => $budgetSummary,
             'readiness' => SiteReadinessCalculator::calculate(
                 $staffPlans,
@@ -104,7 +173,7 @@ class SiteOrganizationController extends Controller
                 $budgetSummary
             ),
             'aiSuggestions' => SitePlanningAIAdvisor::suggest($phases, $staffPlans, $materialPlans),
-        ]);
+        ];
     }
 
     public function storeStaffPlan(Request $request, Project $project): RedirectResponse

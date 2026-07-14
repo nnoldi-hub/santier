@@ -61,7 +61,7 @@ deja construit).
 | 7 | Buget initial | `site_budget_plans` (linii bugetare manuale + rezumat auto din materiale/utilaje) | **Facut** |
 | 8 | Rezumat & scor de pregatire | `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje, calculat live) | **Facut** |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), calculat live in `SiteOrganizationController` | **Facut** |
-| 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, extinde infrastructura de export existenta | Neinceput |
+| 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, refoloseste sablonul PDF si `CollectionSheetExport` existente | **Facut** |
 | 11 | Aprobare plan + activare executie | Buton "Aproba planul" in tab-ul Rezumat: tranzitie status proiect, istoric de aprobare, blocare editare planuri, generare automata de artefacte reale de executie (`Task`, `PhaseTeamAssignment`, `ResourceOrder`, `StageEquipment`) din cele 6 domenii de planificare | Neinceput |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
@@ -238,3 +238,27 @@ Acelasi flux stabilit in aceasta sesiune:
   faza), orice integrare cu un LLM extern.
 - Test `tests/Feature/SitePlanningAIAdvisorTest.php` (4 scenarii izolate + un test
   HTTP care confirma `aiSuggestions` in payload-ul Inertia).
+
+### Faza 10 - Export plan organizare (Facut, 2026-07-14)
+- **Decizie de design fata de roadmap**: NU extinde `ExportDatasetBuilder`/
+  `EnterpriseWorkbookExport` (legate strict de un `match` inchis, filter-driven,
+  gandit pentru rapoarte multi-proiect la nivel de portofoliu). In schimb:
+  `App\Support\SitePlanningExporter::buildSections()` construieste 10 sectiuni
+  (cate una per domeniu, plus buget-linii/buget-rezumat/rezumat-scor/AI-sugestii)
+  o singura data, refolosite atat pentru PDF (direct in `sections`, sablonul
+  `exports/managerial-pdf.blade.php` ramas neschimbat) cat si pentru XLSX
+  (`App\Exports\SitePlanningWorkbookExport`, care instantiaza
+  `App\Exports\Sheets\CollectionSheetExport` existenta per sectiune).
+- Logica de asamblare a datelor (8 domenii + `budgetSummary` + `readiness` +
+  `aiSuggestions`) extrasa din `index()` intr-o metoda noua `gatherPlanningData()`,
+  refolosita de pagina si de cele 2 actiuni noi de export - fara interogari
+  duplicate.
+- Branding + audit refolosite ca atare (`AppSetting::allForTenant()`,
+  `DocumentBranding::resolveLogoPath()`, `App\Support\ExportAudit::log()`) - acelasi
+  tipar ca `ExportController::workbook()`/`managerialPdf()`.
+- Doua butoane noi ("Export PDF"/"Export XLSX") in header-ul paginii Organizare
+  Șantier - linkuri directe, fara flux de generare-apoi-descarcare.
+- Ramas explicit in afara scopului: grafice in PDF (ar necesita extinderea unui
+  `match` inchis de categorii), istoric de exporturi dedicat pentru acest tip.
+- Test `tests/Feature/SitePlanningExportTest.php` (export PDF/XLSX cu succes,
+  izolare tenant).

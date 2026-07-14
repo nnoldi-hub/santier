@@ -7,6 +7,14 @@
                     <h2 class="mt-1 text-2xl font-black text-slate-900">Organizare Șantier</h2>
                     <p class="mt-1 text-sm text-gray-500">Pregatirea santierului inainte de executie: echipe, subcontractori, resurse, logistica si buget.</p>
                 </div>
+                <div class="flex gap-2 shrink-0">
+                    <a :href="route('site-organization.export.pdf', project.id)" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Export PDF
+                    </a>
+                    <a :href="route('site-organization.export.xlsx', project.id)" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Export XLSX
+                    </a>
+                </div>
             </div>
 
             <div class="flex flex-wrap gap-2">
