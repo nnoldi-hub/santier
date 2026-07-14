@@ -58,7 +58,7 @@ deja construit).
 | 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | **Facut** |
 | 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | **Facut** |
 | 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | **Facut** |
-| 7 | Buget initial | `site_budget_plans` (agrega costuri din fazele 2-6 + manopera) | Neinceput |
+| 7 | Buget initial | `site_budget_plans` (linii bugetare manuale + rezumat auto din materiale/utilaje) | **Facut** |
 | 8 | Rezumat & scor de pregatire | `site_readiness_summary` + `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje) | Neinceput |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), extinde `ProjectAiToolsController` | Neinceput |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, extinde infrastructura de export existenta | Neinceput |
@@ -161,3 +161,25 @@ Acelasi flux stabilit in aceasta sesiune:
   de conformitate.
 - Test `tests/Feature/SiteCompliancePlanTest.php` (creare, validare, stergere,
   izolare tenant, izolare `contractor_id` pe tenant).
+
+### Faza 7 - Buget initial (Facut, 2026-07-14)
+- **Decizie de design fata de presupunerea initiala din roadmap** ("agrega costuri
+  din fazele 2-6 + manopera"): verificat in cod ca doar `SiteMaterialPlan` (via
+  `Material.unit_price`) si `SiteEquipmentPlan` (via `EquipmentCostEstimator`, deja
+  construit la Faza 4) au o sursa de cost fiabila. `Team`/`Contractor` nu au niciun
+  camp de tarif - singurul tarif din aplicatie e `TeamMember.hourly_rate` (per
+  membru, nu per echipa/headcount planificat), insuficient pentru un calcul automat
+  de manopera. Deci `site_budget_plans` e un tabel de **linii bugetare manuale**
+  (manopera, subcontractori, logistica, conformitate, rezerva, altele - fara
+  materiale/utilaje, ca sa nu se dubleze), plus un **rezumat calculat live**
+  (`buildBudgetSummary()` in `SiteOrganizationController`) care aduna cost materiale
+  auto + cost utilaje auto + suma liniilor manuale, comparat cu `Project.total_budget`.
+- Tab-ul "Buget" devine functional cu un card de rezumat (materiale/utilaje/manual/
+  total/buget alocat/diferenta) deasupra formularului si tabelului de linii.
+- Ramas explicit in afara scopului: calcul automat de manopera din
+  `TeamMember.hourly_rate` (neconcludent), conversia bugetului estimat in
+  `Project.total_budget` real, integrare cu `Quote`/`CostTrackingController` (raman
+  mecanisme separate).
+- Test `tests/Feature/SiteBudgetPlanTest.php` (creare, validare, stergere, izolare
+  tenant, plus un test dedicat care verifica agregarea corecta a rezumatului bugetar
+  din materiale + linii manuale via `assertInertia`).

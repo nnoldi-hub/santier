@@ -603,6 +603,108 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'budget'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Rezumat buget estimat</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Cost materiale (auto)</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.materials_cost) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Cost utilaje (auto)</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.equipment_cost) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Cost manual adaugat</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.manual_cost) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Total estimat</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.total_estimated) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Buget alocat proiect</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.project_budget) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Diferenta</p>
+                            <p class="text-sm font-semibold" :class="budgetSummary.difference >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                                {{ formatCurrency(budgetSummary.difference) }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga linie bugetara</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitBudgetPlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="budgetPlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Categorie *</label>
+                            <select v-model="budgetPlanForm.category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in budgetCategories" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Descriere *</label>
+                            <input v-model="budgetPlanForm.description" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: Manopera echipa structura" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Cost estimat (lei) *</label>
+                            <input v-model.number="budgetPlanForm.estimated_cost" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="budgetPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="budgetPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ budgetPlanForm.processing ? 'Se salveaza...' : 'Adauga linie' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="budgetPlans.length === 0"
+                    :icon="BanknotesIcon"
+                    title="Nicio linie bugetara manuala"
+                    description="Adauga linii bugetare pentru manopera, subcontractori, logistica, conformitate sau rezerva."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Categorie</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Descriere</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cost</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in budgetPlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ budgetCategories[plan.category] || plan.category }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.description }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteBudgetPlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -650,6 +752,9 @@ const props = defineProps({
     compliancePlans: { type: Array, default: () => [] },
     complianceItemTypeLabels: { type: Object, default: () => ({}) },
     complianceStatusLabels: { type: Object, default: () => ({}) },
+    budgetPlans: { type: Array, default: () => [] },
+    budgetCategories: { type: Object, default: () => ({}) },
+    budgetSummary: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -828,6 +933,31 @@ function submitCompliancePlan() {
 
 function deleteCompliancePlan(plan) {
     router.delete(route('site-organization.compliance-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+const budgetPlanForm = useForm({
+    phase_id: '',
+    category: 'labor',
+    description: '',
+    estimated_cost: 0,
+    notes: '',
+});
+
+function submitBudgetPlan() {
+    budgetPlanForm.post(route('site-organization.budget-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            budgetPlanForm.reset();
+            budgetPlanForm.category = 'labor';
+            budgetPlanForm.estimated_cost = 0;
+        },
+    });
+}
+
+function deleteBudgetPlan(plan) {
+    router.delete(route('site-organization.budget-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
     });
 }

@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\SiteBudgetPlan;
 use App\Models\SiteCompliancePlan;
 use App\Models\SiteContractorPlan;
 use App\Models\SiteEquipmentPlan;
@@ -31,10 +32,18 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
 
+        $materialPlans = SiteMaterialPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'material:id,name,code,unit,unit_price'])
+            ->latest('id')
+            ->get();
+
+        $equipmentPlans = $this->equipmentPlansWithEstimates($project);
+
         return Inertia::render('SiteOrganization/Index', [
             'project' => [
                 'id' => $project->id,
                 'name' => $project->name,
+                'total_budget' => $project->total_budget,
                 'phases' => $project->phases()->orderBy('order')->get(['id', 'name', 'order']),
             ],
             'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
@@ -47,13 +56,10 @@ class SiteOrganizationController extends Controller
             'contractorPlans' => $this->contractorPlansWithOverlap($project),
             'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
-            'materialPlans' => SiteMaterialPlan::where('project_id', $project->id)
-                ->with(['phase:id,name', 'material:id,name,code,unit'])
-                ->latest('id')
-                ->get(),
+            'materialPlans' => $materialPlans,
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
             'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
-            'equipmentPlans' => $this->equipmentPlansWithEstimates($project),
+            'equipmentPlans' => $equipmentPlans,
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
             'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
             'logisticsPlans' => SiteLogisticsPlan::where('project_id', $project->id)
@@ -68,6 +74,12 @@ class SiteOrganizationController extends Controller
                 ->get(),
             'complianceItemTypeLabels' => SiteCompliancePlan::$itemTypeLabels,
             'complianceStatusLabels' => SiteCompliancePlan::$statusLabels,
+            'budgetPlans' => SiteBudgetPlan::where('project_id', $project->id)
+                ->with('phase:id,name')
+                ->latest('id')
+                ->get(),
+            'budgetCategories' => SiteBudgetPlan::$categoryLabels,
+            'budgetSummary' => $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans),
         ]);
     }
 
@@ -427,6 +439,82 @@ class SiteOrganizationController extends Controller
             'due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+    }
+
+    public function storeBudgetPlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateBudgetPlan($request, $project);
+
+        SiteBudgetPlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Linia bugetara a fost adaugata.');
+    }
+
+    public function updateBudgetPlan(Request $request, Project $project, SiteBudgetPlan $budgetPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $budgetPlan->project_id === $project->id, 404);
+
+        $validated = $this->validateBudgetPlan($request, $project);
+
+        $budgetPlan->update($validated);
+
+        return back()->with('success', 'Linia bugetara a fost actualizata.');
+    }
+
+    public function destroyBudgetPlan(Request $request, Project $project, SiteBudgetPlan $budgetPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $budgetPlan->project_id === $project->id, 404);
+
+        $budgetPlan->delete();
+
+        return back()->with('success', 'Linia bugetara a fost stearsa.');
+    }
+
+    private function validateBudgetPlan(Request $request, Project $project): array
+    {
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'category' => ['required', 'in:' . implode(',', array_keys(SiteBudgetPlan::$categoryLabels))],
+            'description' => ['required', 'string', 'max:200'],
+            'estimated_cost' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    private function buildBudgetSummary(Project $project, Collection $materialPlans, Collection $equipmentPlans): array
+    {
+        $materialsCost = $materialPlans->sum(function (SiteMaterialPlan $plan) {
+            return (float) $plan->planned_quantity * (float) ($plan->material?->unit_price ?? 0);
+        });
+
+        $equipmentCost = $equipmentPlans->sum(function (SiteEquipmentPlan $plan) {
+            return (float) $plan->estimated_cost;
+        });
+
+        $manualCost = (float) SiteBudgetPlan::where('project_id', $project->id)->sum('estimated_cost');
+
+        $totalEstimated = $materialsCost + $equipmentCost + $manualCost;
+        $projectBudget = (float) $project->total_budget;
+
+        return [
+            'materials_cost' => round($materialsCost, 2),
+            'equipment_cost' => round($equipmentCost, 2),
+            'manual_cost' => round($manualCost, 2),
+            'total_estimated' => round($totalEstimated, 2),
+            'project_budget' => round($projectBudget, 2),
+            'difference' => round($projectBudget - $totalEstimated, 2),
+        ];
     }
 
     private function contractorPlansWithOverlap(Project $project): Collection
