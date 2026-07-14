@@ -208,14 +208,10 @@ class PilotInviteController extends Controller
         $owner = $pilotInvite->owner;
         $senderName = $sender?->name ?? $owner?->name ?? 'Echipa Modulia';
         $replyToEmail = $owner?->email ?? $sender?->email;
+        $replyToName = $owner?->name ?? $senderName;
 
-        $mail = Mail::to($pilotInvite->contact_email);
-
-        if ($replyToEmail) {
-            $mail->replyTo($replyToEmail, $owner?->name ?? $senderName);
-        }
-
-        $mail->send(new PilotInvitationMail($pilotInvite, $senderName));
+        Mail::to($pilotInvite->contact_email)
+            ->send(new PilotInvitationMail($pilotInvite, $senderName, $replyToEmail, $replyToName));
 
         CommercialAction::create([
             'tenant_id' => $tenantId,
