@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
+use App\Mail\PilotInvitationMail;
 use App\Models\CommercialAction;
 use App\Models\CommercialTask;
 use App\Models\PilotInvite;
@@ -12,6 +13,7 @@ use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -194,6 +196,38 @@ class PilotInviteController extends Controller
         $pilotInvite->update(['last_contacted_at' => now()]);
 
         return back()->with('success', 'Actiunea a fost inregistrata.');
+    }
+
+    public function sendInvitation(Request $request, PilotInvite $pilotInvite): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $pilotInvite->tenant_id === $tenantId, 404);
+        abort_if(trim((string) $pilotInvite->contact_email) === '', 422, 'Invitatia nu are un email de contact.');
+
+        $sender = $request->user();
+        $owner = $pilotInvite->owner;
+        $senderName = $sender?->name ?? $owner?->name ?? 'Echipa Modulia';
+        $replyToEmail = $owner?->email ?? $sender?->email;
+
+        $mail = Mail::to($pilotInvite->contact_email);
+
+        if ($replyToEmail) {
+            $mail->replyTo($replyToEmail, $owner?->name ?? $senderName);
+        }
+
+        $mail->send(new PilotInvitationMail($pilotInvite, $senderName));
+
+        CommercialAction::create([
+            'tenant_id' => $tenantId,
+            'pilot_invite_id' => $pilotInvite->id,
+            'actor_id' => $sender?->id,
+            'action_type' => 'email',
+            'notes' => 'Invitatie initiala trimisa pe email catre ' . $pilotInvite->contact_email,
+        ]);
+
+        $pilotInvite->update(['last_contacted_at' => now()]);
+
+        return back()->with('success', 'Invitatia a fost trimisa catre ' . $pilotInvite->contact_email . '.');
     }
 
     public function markHandoff(Request $request, PilotInvite $pilotInvite): RedirectResponse

@@ -222,6 +222,15 @@
                                 <div v-else class="text-xs text-gray-400 mb-1">Nicio actiune inregistrata.</div>
 
                                 <button
+                                    type="button"
+                                    :disabled="sendingInviteId === invite.id"
+                                    @click="sendInvitationEmail(invite)"
+                                    class="text-[11px] text-orange-600 hover:underline disabled:opacity-60 block"
+                                >
+                                    {{ sendingInviteId === invite.id ? 'Se trimite...' : '✉ Trimite invitatie' }}
+                                </button>
+
+                                <button
                                     v-if="expandedActionInviteId !== invite.id"
                                     type="button"
                                     @click="expandActionForm(invite.id)"
@@ -292,6 +301,7 @@ const noNextStepFilter = ref(Boolean(props.filters?.no_next_step));
 const stagnantFilter = ref(Boolean(props.filters?.stagnant));
 const updatingInviteId = ref(null);
 const expandedActionInviteId = ref(null);
+const sendingInviteId = ref(null);
 
 const actionForm = useForm({
     action_type: 'apel',
@@ -405,6 +415,17 @@ function submitAction(invite) {
         preserveScroll: true,
         onSuccess: () => {
             expandedActionInviteId.value = null;
+        },
+    });
+}
+
+function sendInvitationEmail(invite) {
+    sendingInviteId.value = invite.id;
+
+    router.post(route('pilot-invites.send-invitation', invite.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            sendingInviteId.value = null;
         },
     });
 }
