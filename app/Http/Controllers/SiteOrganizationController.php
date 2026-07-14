@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\SiteContractorPlan;
 use App\Models\SiteEquipmentPlan;
+use App\Models\SiteLogisticsPlan;
 use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\StageEquipment;
@@ -54,6 +55,12 @@ class SiteOrganizationController extends Controller
             'equipmentPlans' => $this->equipmentPlansWithEstimates($project),
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
             'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
+            'logisticsPlans' => SiteLogisticsPlan::where('project_id', $project->id)
+                ->with('phase:id,name')
+                ->latest('id')
+                ->get(),
+            'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
+            'logisticsRiskLevels' => SiteLogisticsPlan::$riskLabels,
         ]);
     }
 
@@ -305,6 +312,59 @@ class SiteOrganizationController extends Controller
 
             return $plan;
         });
+    }
+
+    public function storeLogisticsPlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateLogisticsPlan($request, $project);
+
+        SiteLogisticsPlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Planul de logistica a fost adaugat.');
+    }
+
+    public function updateLogisticsPlan(Request $request, Project $project, SiteLogisticsPlan $logisticsPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $logisticsPlan->project_id === $project->id, 404);
+
+        $validated = $this->validateLogisticsPlan($request, $project);
+
+        $logisticsPlan->update($validated);
+
+        return back()->with('success', 'Planul de logistica a fost actualizat.');
+    }
+
+    public function destroyLogisticsPlan(Request $request, Project $project, SiteLogisticsPlan $logisticsPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $logisticsPlan->project_id === $project->id, 404);
+
+        $logisticsPlan->delete();
+
+        return back()->with('success', 'Planul de logistica a fost sters.');
+    }
+
+    private function validateLogisticsPlan(Request $request, Project $project): array
+    {
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'category' => ['required', 'in:' . implode(',', array_keys(SiteLogisticsPlan::$categoryLabels))],
+            'title' => ['required', 'string', 'max:150'],
+            'location_description' => ['nullable', 'string', 'max:255'],
+            'capacity_notes' => ['nullable', 'string', 'max:150'],
+            'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteLogisticsPlan::$riskLabels))],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
     }
 
     private function contractorPlansWithOverlap(Project $project): Collection

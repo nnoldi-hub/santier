@@ -56,7 +56,7 @@ deja construit).
 | 2 | Subcontractori | `site_contractor_plans` (contract, disponibilitate, suprapuneri) | **Facut** |
 | 3 | Materiale | `site_material_plans` (necesar, furnizor, termene livrare, risc) | **Facut** |
 | 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | **Facut** |
-| 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | Neinceput |
+| 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | **Facut** |
 | 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | Neinceput |
 | 7 | Buget initial | `site_budget_plans` (agrega costuri din fazele 2-6 + manopera) | Neinceput |
 | 8 | Rezumat & scor de pregatire | `site_readiness_summary` + `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje) | Neinceput |
@@ -136,4 +136,15 @@ Acelasi flux stabilit in aceasta sesiune:
 - Ramas explicit in afara scopului: conversia unui plan in `StageEquipment` real,
   blocare stricta la suprapunere.
 - Test `tests/Feature/SiteEquipmentPlanTest.php` (creare, validare, stergere,
+  izolare tenant).
+
+### Faza 5 - Logistica (Facut, 2026-07-14)
+- Tab-ul "Logistica" devine functional: tabel nou `site_logistics_plans`
+  (`App\Models\SiteLogisticsPlan`) - 4 categorii (acces, depozitare, zona de
+  siguranta, restrictie), fiecare cu titlu, locatie descriptiva, note de capacitate
+  si nivel de risc. Domeniu genuin nou - confirmat prin cautare in cod ca nu exista
+  niciun tabel real de executie de care sa ne separam (spre deosebire de Fazele 1-4).
+- Ramas explicit in afara scopului: harta vizuala/plan de amplasament (schema
+  grafica a zonelor) - doar text structurat in aceasta faza.
+- Test `tests/Feature/SiteLogisticsPlanTest.php` (creare, validare, stergere,
   izolare tenant).

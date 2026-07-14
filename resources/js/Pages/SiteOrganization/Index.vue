@@ -420,6 +420,98 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'logistics'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga element logistic</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitLogisticsPlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="logisticsPlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Categorie *</label>
+                            <select v-model="logisticsPlanForm.category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in logisticsCategories" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Titlu *</label>
+                            <input v-model="logisticsPlanForm.title" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: Poarta acces principala" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Locatie</label>
+                            <input v-model="logisticsPlanForm.location_description" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Capacitate / note cantitative</label>
+                            <input v-model="logisticsPlanForm.capacity_notes" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: 2 camioane simultan" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Risc</label>
+                            <select v-model="logisticsPlanForm.risk_level" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in logisticsRiskLevels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="logisticsPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="logisticsPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ logisticsPlanForm.processing ? 'Se salveaza...' : 'Adauga element' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="logisticsPlans.length === 0"
+                    :icon="MapPinIcon"
+                    title="Niciun element logistic"
+                    description="Adauga primul element de logistica (acces, depozitare, zona de siguranta sau restrictie) pentru a incepe pregatirea santierului."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Categorie</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Titlu</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Locatie</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Capacitate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in logisticsPlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="categoryTone(plan.category)">
+                                        {{ logisticsCategories[plan.category] || plan.category }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.title }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.location_description || '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.capacity_notes || '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
+                                        {{ logisticsRiskLevels[plan.risk_level] || plan.risk_level }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteLogisticsPlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -461,6 +553,9 @@ const props = defineProps({
     equipmentPlans: { type: Array, default: () => [] },
     equipmentCatalog: { type: Array, default: () => [] },
     equipmentRiskLevels: { type: Object, default: () => ({}) },
+    logisticsPlans: { type: Array, default: () => [] },
+    logisticsCategories: { type: Object, default: () => ({}) },
+    logisticsRiskLevels: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -587,6 +682,41 @@ function deleteEquipmentPlan(plan) {
     router.delete(route('site-organization.equipment-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
     });
+}
+
+const logisticsPlanForm = useForm({
+    phase_id: '',
+    category: 'access',
+    title: '',
+    location_description: '',
+    capacity_notes: '',
+    risk_level: 'medium',
+    notes: '',
+});
+
+function submitLogisticsPlan() {
+    logisticsPlanForm.post(route('site-organization.logistics-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            logisticsPlanForm.reset();
+            logisticsPlanForm.category = 'access';
+            logisticsPlanForm.risk_level = 'medium';
+        },
+    });
+}
+
+function deleteLogisticsPlan(plan) {
+    router.delete(route('site-organization.logistics-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+function categoryTone(category) {
+    if (category === 'access') return 'bg-blue-100 text-blue-700';
+    if (category === 'storage') return 'bg-purple-100 text-purple-700';
+    if (category === 'safety_zone') return 'bg-amber-100 text-amber-700';
+    if (category === 'restriction') return 'bg-rose-100 text-rose-700';
+    return 'bg-gray-100 text-gray-700';
 }
 
 function formatCurrency(value) {
