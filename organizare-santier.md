@@ -53,7 +53,7 @@ deja construit).
 | # | Faza | Domeniu | Status |
 |---|------|---------|--------|
 | 1 | Fundatie + Echipe & specialitati | Pagina noua "Organizare Șantier" (ruta, nav, layout cu sub-taburi) + `site_staff_plans` (planificare echipe/specialitati per etapa WBS) | **Facut** |
-| 2 | Subcontractori | `site_contractor_plans` (contract, disponibilitate, suprapuneri) | Neinceput |
+| 2 | Subcontractori | `site_contractor_plans` (contract, disponibilitate, suprapuneri) | **Facut** |
 | 3 | Materiale | `site_material_plans` (necesar, furnizor, termene livrare, risc) | Neinceput |
 | 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | Neinceput |
 | 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | Neinceput |
@@ -95,3 +95,15 @@ Acelasi flux stabilit in aceasta sesiune:
   (`phase_team_assignments`), calcul automat de suprapuneri/risc - vezi plan.
 - Test `tests/Feature/SiteStaffPlanTest.php` (creare, validare, stergere, izolare
   tenant).
+
+### Faza 2 - Subcontractori (Facut, 2026-07-14)
+- Tab-ul "Subcontractori" devine functional: tabel nou `site_contractor_plans`
+  (`App\Models\SiteContractorPlan`) - evaluare candidati subcontractori per etapa
+  (status contract draft/semnat/lipsa, disponibilitate ok/risc/conflict), separat de
+  `ProjectPhase.contractor_id` (asignarea reala), la fel ca la Faza 1.
+- `parallel_projects_count` calculat live in `SiteOrganizationController` (nu stocat
+  redundant) - numara etapele active ale aceluiasi subcontractor pe alte proiecte.
+- Ramas explicit in afara scopului: checklist de documente per subcontractor (merge
+  in Faza 6), conversie automata in `phase.contractor_id`.
+- Test `tests/Feature/SiteContractorPlanTest.php` (creare, validare, stergere,
+  izolare tenant).

@@ -124,6 +124,103 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'contractors'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga plan de subcontractor</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitContractorPlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="contractorPlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Subcontractor *</label>
+                            <select v-model="contractorPlanForm.contractor_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Selecteaza —</option>
+                                <option v-for="contractor in contractors" :key="contractor.id" :value="contractor.id">{{ contractor.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Status contract</label>
+                            <select v-model="contractorPlanForm.contract_status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in contractStatusLabels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Disponibilitate</label>
+                            <select v-model="contractorPlanForm.availability_status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in availabilityLabels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Inceput planificat</label>
+                            <input v-model="contractorPlanForm.planned_start" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Sfarsit planificat</label>
+                            <input v-model="contractorPlanForm.planned_end" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="contractorPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="contractorPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ contractorPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="contractorPlans.length === 0"
+                    :icon="BuildingOffice2Icon"
+                    title="Niciun plan de subcontractor"
+                    description="Adauga primul candidat de subcontractor pentru a evalua disponibilitatea si contractul."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Subcontractor</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Contract</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Disponibilitate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Proiecte paralele</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in contractorPlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.contractor?.name || '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="contractTone(plan.contract_status)">
+                                        {{ contractStatusLabels[plan.contract_status] || plan.contract_status }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="availabilityTone(plan.availability_status)">
+                                        {{ availabilityLabels[plan.availability_status] || plan.availability_status }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.parallel_projects_count ?? 0 }}</td>
+                                <td class="px-4 py-3 text-gray-600 text-xs">
+                                    {{ formatDate(plan.planned_start) }} → {{ formatDate(plan.planned_end) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteContractorPlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -156,6 +253,9 @@ const props = defineProps({
     contractors: { type: Array, default: () => [] },
     staffPlans: { type: Array, default: () => [] },
     riskLevels: { type: Object, default: () => ({}) },
+    contractorPlans: { type: Array, default: () => [] },
+    contractStatusLabels: { type: Object, default: () => ({}) },
+    availabilityLabels: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -201,6 +301,33 @@ function deleteStaffPlan(plan) {
     });
 }
 
+const contractorPlanForm = useForm({
+    phase_id: '',
+    contractor_id: '',
+    contract_status: 'missing',
+    availability_status: 'ok',
+    planned_start: '',
+    planned_end: '',
+    notes: '',
+});
+
+function submitContractorPlan() {
+    contractorPlanForm.post(route('site-organization.contractor-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            contractorPlanForm.reset();
+            contractorPlanForm.contract_status = 'missing';
+            contractorPlanForm.availability_status = 'ok';
+        },
+    });
+}
+
+function deleteContractorPlan(plan) {
+    router.delete(route('site-organization.contractor-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
 function formatDate(value) {
     if (!value) return '-';
     return new Date(value).toLocaleDateString('ro-RO');
@@ -210,5 +337,17 @@ function riskTone(level) {
     if (level === 'high') return 'bg-rose-100 text-rose-700';
     if (level === 'medium') return 'bg-amber-100 text-amber-700';
     return 'bg-emerald-100 text-emerald-700';
+}
+
+function contractTone(status) {
+    if (status === 'signed') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'draft') return 'bg-amber-100 text-amber-700';
+    return 'bg-rose-100 text-rose-700';
+}
+
+function availabilityTone(status) {
+    if (status === 'ok') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'risk') return 'bg-amber-100 text-amber-700';
+    return 'bg-rose-100 text-rose-700';
 }
 </script>

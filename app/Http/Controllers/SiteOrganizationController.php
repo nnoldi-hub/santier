@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Contractor;
 use App\Models\Project;
+use App\Models\ProjectPhase;
+use App\Models\SiteContractorPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\Team;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,6 +36,9 @@ class SiteOrganizationController extends Controller
                 ->latest('id')
                 ->get(),
             'riskLevels' => SiteStaffPlan::$riskLabels,
+            'contractorPlans' => $this->contractorPlansWithOverlap($project),
+            'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
+            'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
         ]);
     }
 
@@ -91,5 +97,86 @@ class SiteOrganizationController extends Controller
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteStaffPlan::$riskLabels))],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+    }
+
+    public function storeContractorPlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateContractorPlan($request, $project);
+
+        SiteContractorPlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Planul de subcontractor a fost adaugat.');
+    }
+
+    public function updateContractorPlan(Request $request, Project $project, SiteContractorPlan $contractorPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $contractorPlan->project_id === $project->id, 404);
+
+        $validated = $this->validateContractorPlan($request, $project);
+
+        $contractorPlan->update($validated);
+
+        return back()->with('success', 'Planul de subcontractor a fost actualizat.');
+    }
+
+    public function destroyContractorPlan(Request $request, Project $project, SiteContractorPlan $contractorPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $contractorPlan->project_id === $project->id, 404);
+
+        $contractorPlan->delete();
+
+        return back()->with('success', 'Planul de subcontractor a fost sters.');
+    }
+
+    private function validateContractorPlan(Request $request, Project $project): array
+    {
+        $tenantId = TenantContext::id($request->user());
+
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'contractor_id' => ['required', 'integer', Rule::exists('contractors', 'id')->where('tenant_id', $tenantId)],
+            'contract_status' => ['required', 'in:' . implode(',', array_keys(SiteContractorPlan::$contractStatusLabels))],
+            'availability_status' => ['required', 'in:' . implode(',', array_keys(SiteContractorPlan::$availabilityLabels))],
+            'planned_start' => ['nullable', 'date'],
+            'planned_end' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    private function contractorPlansWithOverlap(Project $project): Collection
+    {
+        $plans = SiteContractorPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'contractor:id,name'])
+            ->latest('id')
+            ->get();
+
+        $overlapCounts = [];
+
+        return $plans->map(function (SiteContractorPlan $plan) use ($project, &$overlapCounts) {
+            $contractorId = (int) $plan->contractor_id;
+
+            if (! array_key_exists($contractorId, $overlapCounts)) {
+                $overlapCounts[$contractorId] = ProjectPhase::where('contractor_id', $contractorId)
+                    ->where('project_id', '!=', $project->id)
+                    ->whereNotIn('status', ['completed', 'cancelled'])
+                    ->distinct()
+                    ->count('project_id');
+            }
+
+            $plan->setAttribute('parallel_projects_count', $overlapCounts[$contractorId]);
+
+            return $plan;
+        });
     }
 }
