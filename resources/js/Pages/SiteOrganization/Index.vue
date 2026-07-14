@@ -30,6 +30,34 @@
                 </button>
             </div>
 
+            <div
+                class="rounded-xl border p-4 flex items-center justify-between gap-4 flex-wrap"
+                :class="isLocked ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'"
+            >
+                <div class="text-sm" :class="isLocked ? 'text-emerald-800' : 'text-amber-800'">
+                    <p v-if="isLocked" class="font-semibold">Plan aprobat pe {{ formatDate(project.plan_approved_at) }} de {{ project.plan_approved_by_name || 'un utilizator' }}.</p>
+                    <p v-if="isLocked">Editarea planurilor este blocata. Elementele de executie au fost generate.</p>
+                    <p v-else class="font-semibold">Planul nu este inca aprobat.</p>
+                    <p v-if="!isLocked">Cand toate domeniile sunt pregatite, aproba planul pentru a genera automat elementele de executie.</p>
+                </div>
+                <button
+                    v-if="!isLocked"
+                    type="button"
+                    class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 shrink-0"
+                    @click="approvePlan"
+                >
+                    Aproba planul si activeaza executia
+                </button>
+                <button
+                    v-else
+                    type="button"
+                    class="border border-emerald-300 text-emerald-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-100 shrink-0"
+                    @click="unapprovePlan"
+                >
+                    Anuleaza aprobarea
+                </button>
+            </div>
+
             <div v-if="activeTab === 'summary'" class="space-y-6">
                 <div class="bg-white border border-gray-200 rounded-xl p-6 text-center">
                     <p class="text-xs uppercase tracking-wide text-gray-500">Scor de pregatire santier</p>
@@ -130,8 +158,8 @@
                             <textarea v-model="staffPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="staffPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ staffPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            <button :disabled="staffPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (staffPlanForm.processing ? 'Se salveaza...' : 'Adauga plan') }}
                             </button>
                         </div>
                     </form>
@@ -172,7 +200,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteStaffPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteStaffPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -223,8 +251,8 @@
                             <textarea v-model="contractorPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="contractorPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ contractorPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            <button :disabled="contractorPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (contractorPlanForm.processing ? 'Se salveaza...' : 'Adauga plan') }}
                             </button>
                         </div>
                     </form>
@@ -269,7 +297,7 @@
                                     {{ formatDate(plan.planned_start) }} → {{ formatDate(plan.planned_end) }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteContractorPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteContractorPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -326,8 +354,8 @@
                             <textarea v-model="materialPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="materialPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ materialPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            <button :disabled="materialPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (materialPlanForm.processing ? 'Se salveaza...' : 'Adauga plan') }}
                             </button>
                         </div>
                     </form>
@@ -370,7 +398,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteMaterialPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteMaterialPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -419,8 +447,8 @@
                             <textarea v-model="equipmentPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="equipmentPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ equipmentPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            <button :disabled="equipmentPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (equipmentPlanForm.processing ? 'Se salveaza...' : 'Adauga plan') }}
                             </button>
                         </div>
                     </form>
@@ -468,7 +496,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteEquipmentPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteEquipmentPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -516,8 +544,8 @@
                             <textarea v-model="logisticsPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="logisticsPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ logisticsPlanForm.processing ? 'Se salveaza...' : 'Adauga element' }}
+                            <button :disabled="logisticsPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (logisticsPlanForm.processing ? 'Se salveaza...' : 'Adauga element') }}
                             </button>
                         </div>
                     </form>
@@ -560,7 +588,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteLogisticsPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteLogisticsPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -611,8 +639,8 @@
                             <textarea v-model="compliancePlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="compliancePlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ compliancePlanForm.processing ? 'Se salveaza...' : 'Adauga element' }}
+                            <button :disabled="compliancePlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (compliancePlanForm.processing ? 'Se salveaza...' : 'Adauga element') }}
                             </button>
                         </div>
                     </form>
@@ -651,7 +679,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteCompliancePlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteCompliancePlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -721,8 +749,8 @@
                             <textarea v-model="budgetPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                         </div>
                         <div class="md:col-span-3">
-                            <button :disabled="budgetPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
-                                {{ budgetPlanForm.processing ? 'Se salveaza...' : 'Adauga linie' }}
+                            <button :disabled="budgetPlanForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ isLocked ? 'Editare blocata (plan aprobat)' : (budgetPlanForm.processing ? 'Se salveaza...' : 'Adauga linie') }}
                             </button>
                         </div>
                     </form>
@@ -753,7 +781,7 @@
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ plan.description }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
                                 <td class="px-4 py-3">
-                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteBudgetPlan(plan)">Sterge</button>
+                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteBudgetPlan(plan)">Sterge</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -880,6 +908,24 @@ const tabs = [
 
 const activeTab = ref('staff');
 const activeTabInfo = computed(() => tabs.find((tab) => tab.key === activeTab.value));
+
+const isLocked = computed(() => !!props.project.plan_approved_at);
+
+function approvePlan() {
+    if (!window.confirm('Aprobi planul de organizare? Se vor genera automat sarcini de personal, alocari de subcontractori, comenzi de materiale si rezervari de utilaje, iar editarea planurilor va fi blocata.')) {
+        return;
+    }
+
+    router.post(route('site-organization.approve', props.project.id), {}, { preserveScroll: true });
+}
+
+function unapprovePlan() {
+    if (!window.confirm('Anulezi aprobarea planului? Editarea planurilor va fi din nou permisa. Elementele de executie deja generate nu vor fi sterse.')) {
+        return;
+    }
+
+    router.post(route('site-organization.unapprove', props.project.id), {}, { preserveScroll: true });
+}
 
 const staffPlanForm = useForm({
     phase_id: '',

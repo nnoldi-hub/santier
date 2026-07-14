@@ -15,12 +15,14 @@ class Project extends Model
     protected $fillable = [
         'tenant_id', 'client_id', 'created_by', 'name', 'description',
         'address', 'status', 'start_date', 'end_date', 'total_budget', 'notes',
+        'plan_approved_at', 'plan_approved_by',
     ];
 
     protected $casts = [
-        'start_date'   => 'date',
-        'end_date'     => 'date',
-        'total_budget' => 'decimal:2',
+        'start_date'       => 'date',
+        'end_date'         => 'date',
+        'total_budget'     => 'decimal:2',
+        'plan_approved_at' => 'datetime',
     ];
 
     public function client(): BelongsTo
@@ -31,6 +33,11 @@ class Project extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function planApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'plan_approved_by');
     }
 
     public function phases(): HasMany

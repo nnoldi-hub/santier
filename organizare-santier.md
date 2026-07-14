@@ -62,7 +62,7 @@ deja construit).
 | 8 | Rezumat & scor de pregatire | `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje, calculat live) | **Facut** |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), calculat live in `SiteOrganizationController` | **Facut** |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, refoloseste sablonul PDF si `CollectionSheetExport` existente | **Facut** |
-| 11 | Aprobare plan + activare executie | Buton "Aproba planul" in tab-ul Rezumat: tranzitie status proiect, istoric de aprobare, blocare editare planuri, generare automata de artefacte reale de executie (`Task`, `PhaseTeamAssignment`, `ResourceOrder`, `StageEquipment`) din cele 6 domenii de planificare | Neinceput |
+| 11 | Aprobare plan + activare executie | Bara "Aproba planul": campuri noi `plan_approved_at`/`plan_approved_by` pe proiect, istoric `site_plan_approvals`, blocare editare pe toate cele 7 domenii, generare automata de `Task`/`ResourceOrder`/`StageEquipment` + `ProjectPhase.contractor_id` | **Facut** |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
 dupa prioritate de business), dar faza 8 (scorul de pregatire) are nevoie de cel putin
@@ -262,3 +262,30 @@ Acelasi flux stabilit in aceasta sesiune:
   `match` inchis de categorii), istoric de exporturi dedicat pentru acest tip.
 - Test `tests/Feature/SitePlanningExportTest.php` (export PDF/XLSX cu succes,
   izolare tenant).
+
+### Faza 11 - Aprobare plan + activare executie (Facut, 2026-07-14)
+- **Corectie fata de analiza initiala din runda trecuta**: `SiteContractorPlan` NU
+  se converteste in `PhaseTeamAssignment` (care cere `team_id`, inexistent pe plan)
+  - mapare corecta, deja stabilita la Faza 2: scriere directa pe
+  `ProjectPhase.contractor_id`, pentru planurile cu `contract_status === 'signed'`
+  si `phase_id` setat.
+- Campuri noi `plan_approved_at`/`plan_approved_by` pe `projects` (separat de
+  `status`, ca sa nu ating logica existenta din restul aplicatiei) + tabel nou
+  `site_plan_approvals` (istoric aprobare/anulare).
+- Butonul "Aproba planul" (bara persistenta, vizibila pe toate tab-urile) genereaza
+  automat: un task de coordonare per plan de personal (`Task`, `assigned_to` gol -
+  nu se pot fabrica alocari per persoana dintr-un headcount), `ResourceOrder`
+  (status `draft`) per plan de material (completat cu `unit_price`/`ordered_unit`
+  din catalogul `Material`), `StageEquipment` per plan de utilaj CU etapa (planurile
+  fara etapa sunt sarite - `stage_id` e obligatoriu la nivel de schema),
+  `contractor_id` pe etapele cu subcontractor semnat. Daca `total_budget` era gol,
+  se completeaza cu `budgetSummary.total_estimated`.
+- Dupa aprobare, toate cele 7 domenii de planificare devin needitabile (verificare
+  server-side `abort_if(..., 423)` pe toate cele 21 de metode store/update/destroy,
+  plus dezactivare vizuala in Vue).
+- Ramas explicit in afara scopului: deduplicare la re-aprobare dupa o anulare,
+  stergerea automata a elementelor de executie la anulare, schimbarea
+  `Project.status`.
+- Test `tests/Feature/SitePlanApprovalTest.php` (generare artefacte, plan de
+  utilaj fara etapa sarit corect, blocare editare dupa aprobare, anulare aprobare,
+  imposibilitatea de a aproba de doua ori, izolare tenant).

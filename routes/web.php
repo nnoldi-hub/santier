@@ -1406,6 +1406,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('projects/{project}/organizare/budget-plans/{budgetPlan}', [SiteOrganizationController::class, 'destroyBudgetPlan'])->name('site-organization.budget-plans.destroy');
         Route::get('projects/{project}/organizare/export/pdf', [SiteOrganizationController::class, 'exportPdf'])->name('site-organization.export.pdf');
         Route::get('projects/{project}/organizare/export/xlsx', [SiteOrganizationController::class, 'exportXlsx'])->name('site-organization.export.xlsx');
+        Route::post('projects/{project}/organizare/approve', [SiteOrganizationController::class, 'approvePlan'])->name('site-organization.approve');
+        Route::post('projects/{project}/organizare/unapprove', [SiteOrganizationController::class, 'unapprovePlan'])->name('site-organization.unapprove');
         Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
         Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
         Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');

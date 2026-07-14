@@ -9,14 +9,17 @@ use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\ResourceOrder;
 use App\Models\SiteBudgetPlan;
 use App\Models\SiteCompliancePlan;
 use App\Models\SiteContractorPlan;
 use App\Models\SiteEquipmentPlan;
 use App\Models\SiteLogisticsPlan;
 use App\Models\SiteMaterialPlan;
+use App\Models\SitePlanApproval;
 use App\Models\SiteStaffPlan;
 use App\Models\StageEquipment;
+use App\Models\Task;
 use App\Models\Team;
 use App\Support\DocumentBranding;
 use App\Support\EquipmentCostEstimator;
@@ -29,6 +32,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -50,6 +54,8 @@ class SiteOrganizationController extends Controller
                 'name' => $project->name,
                 'total_budget' => $project->total_budget,
                 'phases' => $data['phases'],
+                'plan_approved_at' => $project->plan_approved_at?->toDateTimeString(),
+                'plan_approved_by_name' => $project->planApprovedBy?->name,
             ],
             'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
@@ -118,6 +124,125 @@ class SiteOrganizationController extends Controller
         return Excel::download(new SitePlanningWorkbookExport($sections), $fileName);
     }
 
+    public function approvePlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_if($project->plan_approved_at !== null, 422, 'Planul este deja aprobat.');
+
+        $data = $this->gatherPlanningData($project);
+        $userId = $request->user()->id;
+
+        DB::transaction(function () use ($project, $tenantId, $userId, $data) {
+            $tasksCreated = 0;
+
+            foreach ($data['staffPlans'] as $plan) {
+                Task::create([
+                    'tenant_id' => $tenantId,
+                    'project_id' => $project->id,
+                    'phase_id' => $plan->phase_id,
+                    'assigned_to' => null,
+                    'created_by' => $userId,
+                    'title' => 'Aloca personal: ' . $plan->specialty . ' (' . $plan->planned_headcount . ' persoane)',
+                    'description' => 'Responsabil planificat: ' . ($plan->team?->name ?? $plan->contractor?->name ?? 'nespecificat'),
+                    'status' => 'todo',
+                    'priority' => 'medium',
+                    'deadline' => $plan->planned_start,
+                ]);
+                $tasksCreated++;
+            }
+
+            $contractorsAssigned = 0;
+
+            foreach ($data['contractorPlans'] as $plan) {
+                if ($plan->contract_status === 'signed' && $plan->phase_id) {
+                    ProjectPhase::where('id', $plan->phase_id)->update(['contractor_id' => $plan->contractor_id]);
+                    $contractorsAssigned++;
+                }
+            }
+
+            $ordersCreated = 0;
+
+            foreach ($data['materialPlans'] as $plan) {
+                ResourceOrder::create([
+                    'tenant_id' => $tenantId,
+                    'project_id' => $project->id,
+                    'phase_id' => $plan->phase_id,
+                    'resource_type' => 'material',
+                    'material_id' => $plan->material_id,
+                    'supplier_name' => $plan->supplier_name,
+                    'ordered_quantity' => $plan->planned_quantity,
+                    'ordered_unit' => $plan->material?->unit,
+                    'unit_price' => $plan->material?->unit_price ?? 0,
+                    'delivery_date' => $plan->planned_delivery_date,
+                    'responsible_user_id' => $userId,
+                    'status' => 'draft',
+                    'notes' => $plan->notes,
+                ]);
+                $ordersCreated++;
+            }
+
+            $reservationsCreated = 0;
+
+            foreach ($data['equipmentPlans'] as $plan) {
+                if ($plan->phase_id) {
+                    StageEquipment::create([
+                        'stage_id' => $plan->phase_id,
+                        'equipment_id' => $plan->equipment_id,
+                        'quantity' => $plan->quantity,
+                        'usage_start' => $plan->usage_start,
+                        'usage_end' => $plan->usage_end,
+                        'notes' => $plan->notes,
+                    ]);
+                    $reservationsCreated++;
+                }
+            }
+
+            if (empty($project->total_budget)) {
+                $project->total_budget = $data['budgetSummary']['total_estimated'];
+            }
+
+            $project->plan_approved_at = now();
+            $project->plan_approved_by = $userId;
+            $project->save();
+
+            SitePlanApproval::create([
+                'tenant_id' => $tenantId,
+                'project_id' => $project->id,
+                'user_id' => $userId,
+                'action' => 'approved',
+                'notes' => "Generat: {$tasksCreated} sarcini personal, {$contractorsAssigned} alocari subcontractori, {$ordersCreated} comenzi materiale, {$reservationsCreated} rezervari utilaje.",
+            ]);
+        });
+
+        return back()->with('success', 'Planul a fost aprobat si s-au generat elementele de executie.');
+    }
+
+    public function unapprovePlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_if($project->plan_approved_at === null, 422, 'Planul nu este aprobat.');
+
+        $project->plan_approved_at = null;
+        $project->plan_approved_by = null;
+        $project->save();
+
+        SitePlanApproval::create([
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+            'user_id' => $request->user()->id,
+            'action' => 'unapproved',
+        ]);
+
+        return back()->with('success', 'Aprobarea planului a fost anulata. Editarea este din nou permisa.');
+    }
+
+    private function abortIfPlanLocked(Project $project): void
+    {
+        abort_if($project->plan_approved_at !== null, 423, 'Planul a fost aprobat si editarea este blocata.');
+    }
+
     private function gatherPlanningData(Project $project): array
     {
         $staffPlans = SiteStaffPlan::where('project_id', $project->id)
@@ -180,6 +305,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateStaffPlan($request, $project);
 
@@ -197,6 +323,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $staffPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateStaffPlan($request, $project);
 
@@ -210,6 +337,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $staffPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $staffPlan->delete();
 
@@ -237,6 +365,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateContractorPlan($request, $project);
 
@@ -254,6 +383,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $contractorPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateContractorPlan($request, $project);
 
@@ -267,6 +397,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $contractorPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $contractorPlan->delete();
 
@@ -292,6 +423,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateMaterialPlan($request, $project);
 
@@ -309,6 +441,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $materialPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateMaterialPlan($request, $project);
 
@@ -322,6 +455,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $materialPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $materialPlan->delete();
 
@@ -349,6 +483,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateEquipmentPlan($request, $project);
 
@@ -366,6 +501,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $equipmentPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateEquipmentPlan($request, $project);
 
@@ -379,6 +515,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $equipmentPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $equipmentPlan->delete();
 
@@ -430,6 +567,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateLogisticsPlan($request, $project);
 
@@ -447,6 +585,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $logisticsPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateLogisticsPlan($request, $project);
 
@@ -460,6 +599,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $logisticsPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $logisticsPlan->delete();
 
@@ -483,6 +623,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateCompliancePlan($request, $project);
 
@@ -500,6 +641,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $compliancePlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateCompliancePlan($request, $project);
 
@@ -513,6 +655,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $compliancePlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $compliancePlan->delete();
 
@@ -538,6 +681,7 @@ class SiteOrganizationController extends Controller
     {
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateBudgetPlan($request, $project);
 
@@ -555,6 +699,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $budgetPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $validated = $this->validateBudgetPlan($request, $project);
 
@@ -568,6 +713,7 @@ class SiteOrganizationController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $project->tenant_id === $tenantId, 404);
         abort_unless((int) $budgetPlan->project_id === $project->id, 404);
+        $this->abortIfPlanLocked($project);
 
         $budgetPlan->delete();
 
