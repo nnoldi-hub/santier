@@ -221,6 +221,107 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'materials'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga plan de material</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitMaterialPlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="materialPlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Material *</label>
+                            <select v-model="materialPlanForm.material_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Selecteaza —</option>
+                                <option v-for="material in materials" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Cantitate planificata *</label>
+                            <input v-model.number="materialPlanForm.planned_quantity" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Furnizor</label>
+                            <input v-model="materialPlanForm.supplier_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Lead-time (zile)</label>
+                            <input v-model.number="materialPlanForm.lead_time_days" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Risc</label>
+                            <select v-model="materialPlanForm.risk_level" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in materialRiskLevels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data comanda planificata</label>
+                            <input v-model="materialPlanForm.planned_order_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data livrare planificata</label>
+                            <input v-model="materialPlanForm.planned_delivery_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="materialPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="materialPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ materialPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="materialPlans.length === 0"
+                    :icon="CubeIcon"
+                    title="Niciun plan de material"
+                    description="Adauga primul plan de necesar de materiale pentru a incepe pregatirea santierului."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Material</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cantitate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Furnizor</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Lead-time</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in materialPlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.material?.name || '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.planned_quantity }} {{ plan.material?.unit }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.supplier_name || '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.lead_time_days ?? '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600 text-xs">
+                                    {{ formatDate(plan.planned_order_date) }} → {{ formatDate(plan.planned_delivery_date) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
+                                        {{ materialRiskLevels[plan.risk_level] || plan.risk_level }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteMaterialPlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -256,6 +357,9 @@ const props = defineProps({
     contractorPlans: { type: Array, default: () => [] },
     contractStatusLabels: { type: Object, default: () => ({}) },
     availabilityLabels: { type: Object, default: () => ({}) },
+    materialPlans: { type: Array, default: () => [] },
+    materials: { type: Array, default: () => [] },
+    materialRiskLevels: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -324,6 +428,35 @@ function submitContractorPlan() {
 
 function deleteContractorPlan(plan) {
     router.delete(route('site-organization.contractor-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+const materialPlanForm = useForm({
+    phase_id: '',
+    material_id: '',
+    planned_quantity: 0,
+    supplier_name: '',
+    lead_time_days: '',
+    planned_order_date: '',
+    planned_delivery_date: '',
+    risk_level: 'medium',
+    notes: '',
+});
+
+function submitMaterialPlan() {
+    materialPlanForm.post(route('site-organization.material-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            materialPlanForm.reset();
+            materialPlanForm.risk_level = 'medium';
+            materialPlanForm.planned_quantity = 0;
+        },
+    });
+}
+
+function deleteMaterialPlan(plan) {
+    router.delete(route('site-organization.material-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
     });
 }

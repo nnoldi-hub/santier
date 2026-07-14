@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contractor;
+use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\SiteContractorPlan;
+use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\Team;
 use App\Support\TenantContext;
@@ -39,6 +41,12 @@ class SiteOrganizationController extends Controller
             'contractorPlans' => $this->contractorPlansWithOverlap($project),
             'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
+            'materialPlans' => SiteMaterialPlan::where('project_id', $project->id)
+                ->with(['phase:id,name', 'material:id,name,code,unit'])
+                ->latest('id')
+                ->get(),
+            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
+            'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
         ]);
     }
 
@@ -150,6 +158,63 @@ class SiteOrganizationController extends Controller
             'availability_status' => ['required', 'in:' . implode(',', array_keys(SiteContractorPlan::$availabilityLabels))],
             'planned_start' => ['nullable', 'date'],
             'planned_end' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    public function storeMaterialPlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateMaterialPlan($request, $project);
+
+        SiteMaterialPlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Planul de material a fost adaugat.');
+    }
+
+    public function updateMaterialPlan(Request $request, Project $project, SiteMaterialPlan $materialPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $materialPlan->project_id === $project->id, 404);
+
+        $validated = $this->validateMaterialPlan($request, $project);
+
+        $materialPlan->update($validated);
+
+        return back()->with('success', 'Planul de material a fost actualizat.');
+    }
+
+    public function destroyMaterialPlan(Request $request, Project $project, SiteMaterialPlan $materialPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $materialPlan->project_id === $project->id, 404);
+
+        $materialPlan->delete();
+
+        return back()->with('success', 'Planul de material a fost sters.');
+    }
+
+    private function validateMaterialPlan(Request $request, Project $project): array
+    {
+        $tenantId = TenantContext::id($request->user());
+
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'material_id' => ['required', 'integer', Rule::exists('materials', 'id')->where('tenant_id', $tenantId)],
+            'planned_quantity' => ['required', 'numeric', 'min:0'],
+            'supplier_name' => ['nullable', 'string', 'max:150'],
+            'lead_time_days' => ['nullable', 'integer', 'min:0'],
+            'planned_order_date' => ['nullable', 'date'],
+            'planned_delivery_date' => ['nullable', 'date'],
+            'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteMaterialPlan::$riskLabels))],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }
