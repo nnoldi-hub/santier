@@ -60,7 +60,7 @@ deja construit).
 | 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | **Facut** |
 | 7 | Buget initial | `site_budget_plans` (linii bugetare manuale + rezumat auto din materiale/utilaje) | **Facut** |
 | 8 | Rezumat & scor de pregatire | `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje, calculat live) | **Facut** |
-| 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), extinde `ProjectAiToolsController` | Neinceput |
+| 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), calculat live in `SiteOrganizationController` | **Facut** |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, extinde infrastructura de export existenta | Neinceput |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
@@ -199,3 +199,22 @@ Acelasi flux stabilit in aceasta sesiune:
   pentru Faza 9 (AI Tools).
 - Test `tests/Feature/SiteReadinessCalculatorTest.php` (calculul in izolare pentru 3
   scenarii + un test HTTP care confirma `readiness.score` in payload-ul Inertia).
+
+### Faza 9 - AI Tools organizare (Facut, 2026-07-14)
+- **Decizie de design fata de roadmap**: NU extinde `ProjectAiToolsController` (acel
+  controller gestioneaza actiuni cu efecte secundare - creeaza `Quote`/`ProjectPhase`/
+  `Document` reale). Sugestiile din aceasta faza sunt pur informative, calculate live
+  in `SiteOrganizationController::index()` (acelasi tipar ca `SiteReadinessCalculator`
+  de la Faza 8), fara rute noi, fara efecte secundare.
+- `App\Support\SitePlanningAIAdvisor` - catalog hardcodat per tip de etapa WBS
+  (12 din cele 13 tipuri, exclus `custom`), acelasi tipar ca `normDefinition()` din
+  `ProjectAiToolsController`. 3 euristici: personal necesar (etape fara
+  `SiteStaffPlan`), materiale necesare (etape fara `SiteMaterialPlan`), timeline
+  realist (durata planificata in afara intervalului tipic din catalog).
+- Tab nou "AI Tools" in pagina Organizare Șantier, cu 3 sectiuni read-only (fara
+  formular, fara conversie automata a sugestiilor in planuri reale).
+- Ramas explicit in afara scopului: estimare bazata pe date istorice reale
+  (`Task`/`StageTask` nu au camp de ore/durata estimata - catalog static in aceasta
+  faza), orice integrare cu un LLM extern.
+- Test `tests/Feature/SitePlanningAIAdvisorTest.php` (4 scenarii izolate + un test
+  HTTP care confirma `aiSuggestions` in payload-ul Inertia).

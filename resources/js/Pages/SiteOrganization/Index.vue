@@ -753,6 +753,56 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'ai-tools'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Personal necesar</h3>
+                    <EmptyState
+                        v-if="aiSuggestions.staff.length === 0"
+                        :icon="SparklesIcon"
+                        title="Nicio sugestie"
+                        description="Toate etapele acoperite de catalog au deja un plan de personal."
+                    />
+                    <ul v-else class="space-y-2">
+                        <li v-for="item in aiSuggestions.staff" :key="item.phase_id" class="flex items-start gap-2 text-sm text-gray-700">
+                            <SparklesIcon class="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                            <span><strong>{{ item.phase_name }}</strong>: {{ item.message }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Materiale necesare</h3>
+                    <EmptyState
+                        v-if="aiSuggestions.materials.length === 0"
+                        :icon="SparklesIcon"
+                        title="Nicio sugestie"
+                        description="Toate etapele acoperite de catalog au deja un plan de materiale."
+                    />
+                    <ul v-else class="space-y-2">
+                        <li v-for="item in aiSuggestions.materials" :key="item.phase_id" class="flex items-start gap-2 text-sm text-gray-700">
+                            <SparklesIcon class="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                            <span><strong>{{ item.phase_name }}</strong>: {{ item.message }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Timeline realist</h3>
+                    <EmptyState
+                        v-if="aiSuggestions.timeline.length === 0"
+                        :icon="SparklesIcon"
+                        title="Nicio sugestie"
+                        description="Durata planificata a etapelor se incadreaza in intervalele tipice."
+                    />
+                    <ul v-else class="space-y-2">
+                        <li v-for="item in aiSuggestions.timeline" :key="item.phase_id" class="flex items-start gap-2 text-sm text-gray-700">
+                            <SparklesIcon class="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                            <span><strong>{{ item.phase_name }}</strong>: {{ item.message }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -777,6 +827,7 @@ import {
     DocumentTextIcon,
     BanknotesIcon,
     ChartBarIcon,
+    SparklesIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -804,6 +855,7 @@ const props = defineProps({
     budgetCategories: { type: Object, default: () => ({}) },
     budgetSummary: { type: Object, default: () => ({}) },
     readiness: { type: Object, default: () => ({ score: 0, label: '', domains: [], blockers: [] }) },
+    aiSuggestions: { type: Object, default: () => ({ staff: [], materials: [], timeline: [] }) },
 });
 
 const tabs = [
@@ -815,6 +867,7 @@ const tabs = [
     { key: 'logistics', label: 'Logistica', icon: MapPinIcon },
     { key: 'documents', label: 'Documente', icon: DocumentTextIcon },
     { key: 'budget', label: 'Buget', icon: BanknotesIcon },
+    { key: 'ai-tools', label: 'AI Tools', icon: SparklesIcon },
 ];
 
 const activeTab = ref('staff');

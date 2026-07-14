@@ -17,6 +17,7 @@ use App\Models\SiteStaffPlan;
 use App\Models\StageEquipment;
 use App\Models\Team;
 use App\Support\EquipmentCostEstimator;
+use App\Support\SitePlanningAIAdvisor;
 use App\Support\SiteReadinessCalculator;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -59,12 +60,14 @@ class SiteOrganizationController extends Controller
 
         $budgetSummary = $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans);
 
+        $phases = $project->phases()->orderBy('order')->get(['id', 'name', 'order', 'type', 'duration_days']);
+
         return Inertia::render('SiteOrganization/Index', [
             'project' => [
                 'id' => $project->id,
                 'name' => $project->name,
                 'total_budget' => $project->total_budget,
-                'phases' => $project->phases()->orderBy('order')->get(['id', 'name', 'order']),
+                'phases' => $phases,
             ],
             'teams' => Team::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'contractors' => Contractor::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
@@ -100,6 +103,7 @@ class SiteOrganizationController extends Controller
                 $compliancePlans,
                 $budgetSummary
             ),
+            'aiSuggestions' => SitePlanningAIAdvisor::suggest($phases, $staffPlans, $materialPlans),
         ]);
     }
 
