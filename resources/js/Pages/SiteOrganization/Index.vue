@@ -322,6 +322,104 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'equipment'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga plan de utilaj</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitEquipmentPlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="equipmentPlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Utilaj *</label>
+                            <select v-model="equipmentPlanForm.equipment_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Selecteaza —</option>
+                                <option v-for="equipment in equipmentCatalog" :key="equipment.id" :value="equipment.id">{{ equipment.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Cantitate *</label>
+                            <input v-model.number="equipmentPlanForm.quantity" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Inceput planificat</label>
+                            <input v-model="equipmentPlanForm.usage_start" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Sfarsit planificat</label>
+                            <input v-model="equipmentPlanForm.usage_end" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Risc</label>
+                            <select v-model="equipmentPlanForm.risk_level" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in equipmentRiskLevels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="equipmentPlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="equipmentPlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ equipmentPlanForm.processing ? 'Se salveaza...' : 'Adauga plan' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="equipmentPlans.length === 0"
+                    :icon="TruckIcon"
+                    title="Niciun plan de utilaj"
+                    description="Adauga primul plan de necesar de utilaje pentru a incepe pregatirea santierului."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Utilaj</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cantitate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Zile</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cost estimat</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in equipmentPlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">
+                                    {{ plan.equipment?.name || '-' }}
+                                    <span v-if="plan.reserved_elsewhere_count > 0" class="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                                        {{ plan.reserved_elsewhere_count }} rezervari suprapuse
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.quantity }}</td>
+                                <td class="px-4 py-3 text-gray-600 text-xs">
+                                    {{ formatDate(plan.usage_start) }} → {{ formatDate(plan.usage_end) }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.reserved_days }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
+                                        {{ equipmentRiskLevels[plan.risk_level] || plan.risk_level }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteEquipmentPlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -360,6 +458,9 @@ const props = defineProps({
     materialPlans: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
     materialRiskLevels: { type: Object, default: () => ({}) },
+    equipmentPlans: { type: Array, default: () => [] },
+    equipmentCatalog: { type: Array, default: () => [] },
+    equipmentRiskLevels: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -459,6 +560,37 @@ function deleteMaterialPlan(plan) {
     router.delete(route('site-organization.material-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
     });
+}
+
+const equipmentPlanForm = useForm({
+    phase_id: '',
+    equipment_id: '',
+    quantity: 1,
+    usage_start: '',
+    usage_end: '',
+    risk_level: 'medium',
+    notes: '',
+});
+
+function submitEquipmentPlan() {
+    equipmentPlanForm.post(route('site-organization.equipment-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            equipmentPlanForm.reset();
+            equipmentPlanForm.risk_level = 'medium';
+            equipmentPlanForm.quantity = 1;
+        },
+    });
+}
+
+function deleteEquipmentPlan(plan) {
+    router.delete(route('site-organization.equipment-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 2 }).format(value || 0) + ' lei';
 }
 
 function formatDate(value) {

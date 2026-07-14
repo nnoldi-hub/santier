@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\SiteEquipmentPlan;
 use App\Models\StageEquipment;
 use Carbon\Carbon;
 
@@ -16,7 +17,7 @@ class EquipmentCostEstimator
      * new pages don't duplicate it (the codebase previously had 2 other, inconsistent,
      * variants of this formula in EquipmentCalendarController and routes/web.php).
      */
-    public static function estimate(StageEquipment $reservation): float
+    public static function estimate(StageEquipment|SiteEquipmentPlan $reservation): float
     {
         $days = self::reservedDays($reservation);
         $hourlyCost = (float) ($reservation->equipment?->cost_per_hour ?? 0);
@@ -25,7 +26,7 @@ class EquipmentCostEstimator
         return round($hourlyCost * $quantity * $days * self::DAILY_HOURS, 2);
     }
 
-    public static function reservedDays(StageEquipment $reservation): int
+    public static function reservedDays(StageEquipment|SiteEquipmentPlan $reservation): int
     {
         if (! $reservation->usage_start || ! $reservation->usage_end) {
             return 1;

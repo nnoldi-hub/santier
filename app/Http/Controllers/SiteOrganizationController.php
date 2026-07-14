@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contractor;
+use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\SiteContractorPlan;
+use App\Models\SiteEquipmentPlan;
 use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
+use App\Models\StageEquipment;
 use App\Models\Team;
+use App\Support\EquipmentCostEstimator;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +51,9 @@ class SiteOrganizationController extends Controller
                 ->get(),
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
             'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
+            'equipmentPlans' => $this->equipmentPlansWithEstimates($project),
+            'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
+            'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
         ]);
     }
 
@@ -217,6 +224,87 @@ class SiteOrganizationController extends Controller
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteMaterialPlan::$riskLabels))],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+    }
+
+    public function storeEquipmentPlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateEquipmentPlan($request, $project);
+
+        SiteEquipmentPlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Planul de utilaj a fost adaugat.');
+    }
+
+    public function updateEquipmentPlan(Request $request, Project $project, SiteEquipmentPlan $equipmentPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $equipmentPlan->project_id === $project->id, 404);
+
+        $validated = $this->validateEquipmentPlan($request, $project);
+
+        $equipmentPlan->update($validated);
+
+        return back()->with('success', 'Planul de utilaj a fost actualizat.');
+    }
+
+    public function destroyEquipmentPlan(Request $request, Project $project, SiteEquipmentPlan $equipmentPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $equipmentPlan->project_id === $project->id, 404);
+
+        $equipmentPlan->delete();
+
+        return back()->with('success', 'Planul de utilaj a fost sters.');
+    }
+
+    private function validateEquipmentPlan(Request $request, Project $project): array
+    {
+        $tenantId = TenantContext::id($request->user());
+
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'equipment_id' => ['required', 'integer', Rule::exists('equipment', 'id')->where('tenant_id', $tenantId)],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'usage_start' => ['nullable', 'date'],
+            'usage_end' => ['nullable', 'date'],
+            'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteEquipmentPlan::$riskLabels))],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    private function equipmentPlansWithEstimates(Project $project): Collection
+    {
+        $plans = SiteEquipmentPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'equipment:id,name,type,cost_per_hour'])
+            ->latest('id')
+            ->get();
+
+        return $plans->map(function (SiteEquipmentPlan $plan) {
+            $plan->setAttribute('estimated_cost', EquipmentCostEstimator::estimate($plan));
+            $plan->setAttribute('reserved_days', EquipmentCostEstimator::reservedDays($plan));
+
+            $reservedElsewhereCount = 0;
+
+            if ($plan->usage_start && $plan->usage_end) {
+                $reservedElsewhereCount = StageEquipment::where('equipment_id', $plan->equipment_id)
+                    ->where('usage_start', '<=', $plan->usage_end)
+                    ->where('usage_end', '>=', $plan->usage_start)
+                    ->count();
+            }
+
+            $plan->setAttribute('reserved_elsewhere_count', $reservedElsewhereCount);
+
+            return $plan;
+        });
     }
 
     private function contractorPlansWithOverlap(Project $project): Collection

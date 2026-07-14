@@ -55,7 +55,7 @@ deja construit).
 | 1 | Fundatie + Echipe & specialitati | Pagina noua "Organizare Șantier" (ruta, nav, layout cu sub-taburi) + `site_staff_plans` (planificare echipe/specialitati per etapa WBS) | **Facut** |
 | 2 | Subcontractori | `site_contractor_plans` (contract, disponibilitate, suprapuneri) | **Facut** |
 | 3 | Materiale | `site_material_plans` (necesar, furnizor, termene livrare, risc) | **Facut** |
-| 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | Neinceput |
+| 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | **Facut** |
 | 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | Neinceput |
 | 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | Neinceput |
 | 7 | Buget initial | `site_budget_plans` (agrega costuri din fazele 2-6 + manopera) | Neinceput |
@@ -118,4 +118,22 @@ Acelasi flux stabilit in aceasta sesiune:
   calcul automat de risc din `lead_time_days` vs. data etapei (candidat pentru Faza 9
   - AI Tools).
 - Test `tests/Feature/SiteMaterialPlanTest.php` (creare, validare, stergere,
+  izolare tenant).
+
+### Faza 4 - Utilaje (Facut, 2026-07-14)
+- Tab-ul "Utilaje" devine functional: tabel nou `site_equipment_plans`
+  (`App\Models\SiteEquipmentPlan`) - necesar planificat de utilaj per etapa
+  (cantitate, perioada de folosire, risc), separat de `Equipment` (catalog) si de
+  `StageEquipment` (rezervarea reala), la fel ca la Fazele 1-3.
+- Reutilizeaza direct `App\Support\EquipmentCostEstimator` (type-hint relaxat la
+  `StageEquipment|SiteEquipmentPlan`, fara alt refactor) - fiecare plan afiseaza live
+  `estimated_cost` si `reserved_days` calculate cu acelasi tipar folosit deja in
+  exportul de trasabilitate utilaje.
+- `reserved_elsewhere_count` calculat live in `SiteOrganizationController` - numara
+  rezervarile reale `StageEquipment` ale aceluiasi utilaj cu perioada suprapusa, ca
+  semnal informativ de risc (fara blocare la salvare, spre deosebire de
+  `StageEquipmentController`).
+- Ramas explicit in afara scopului: conversia unui plan in `StageEquipment` real,
+  blocare stricta la suprapunere.
+- Test `tests/Feature/SiteEquipmentPlanTest.php` (creare, validare, stergere,
   izolare tenant).
