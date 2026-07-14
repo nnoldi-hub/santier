@@ -1398,6 +1398,9 @@ Route::middleware('auth')->group(function () {
         Route::post('projects/{project}/organizare/logistics-plans', [SiteOrganizationController::class, 'storeLogisticsPlan'])->name('site-organization.logistics-plans.store');
         Route::patch('projects/{project}/organizare/logistics-plans/{logisticsPlan}', [SiteOrganizationController::class, 'updateLogisticsPlan'])->name('site-organization.logistics-plans.update');
         Route::delete('projects/{project}/organizare/logistics-plans/{logisticsPlan}', [SiteOrganizationController::class, 'destroyLogisticsPlan'])->name('site-organization.logistics-plans.destroy');
+        Route::post('projects/{project}/organizare/compliance-plans', [SiteOrganizationController::class, 'storeCompliancePlan'])->name('site-organization.compliance-plans.store');
+        Route::patch('projects/{project}/organizare/compliance-plans/{compliancePlan}', [SiteOrganizationController::class, 'updateCompliancePlan'])->name('site-organization.compliance-plans.update');
+        Route::delete('projects/{project}/organizare/compliance-plans/{compliancePlan}', [SiteOrganizationController::class, 'destroyCompliancePlan'])->name('site-organization.compliance-plans.destroy');
         Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
         Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
         Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');

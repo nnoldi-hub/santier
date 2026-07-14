@@ -512,6 +512,97 @@
                 </div>
             </div>
 
+            <div v-else-if="activeTab === 'documents'" class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Adauga element de conformitate</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitCompliancePlan">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="compliancePlanForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Tip *</label>
+                            <select v-model="compliancePlanForm.item_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in complianceItemTypeLabels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Subcontractor (optional)</label>
+                            <select v-model="compliancePlanForm.contractor_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Neselectat —</option>
+                                <option v-for="contractor in contractors" :key="contractor.id" :value="contractor.id">{{ contractor.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Titlu *</label>
+                            <input v-model="compliancePlanForm.title" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: Autorizatie de construire" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data scadenta</label>
+                            <input v-model="compliancePlanForm.due_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Status</label>
+                            <select v-model="compliancePlanForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option v-for="(label, key) in complianceStatusLabels" :key="key" :value="key">{{ label }}</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">Note</label>
+                            <textarea v-model="compliancePlanForm.notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button :disabled="compliancePlanForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                                {{ compliancePlanForm.processing ? 'Se salveaza...' : 'Adauga element' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <EmptyState
+                    v-if="compliancePlans.length === 0"
+                    :icon="DocumentTextIcon"
+                    title="Niciun element de conformitate"
+                    description="Adauga primul element din checklist-ul de contracte, avize si autorizatii."
+                />
+
+                <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Tip</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Titlu</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Subcontractor</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Scadenta</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="plan in compliancePlans" :key="plan.id">
+                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ complianceItemTypeLabels[plan.item_type] || plan.item_type }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.title }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.contractor?.name || '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600 text-xs">{{ formatDate(plan.due_date) }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="complianceStatusTone(plan.status)">
+                                        {{ complianceStatusLabels[plan.status] || plan.status }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteCompliancePlan(plan)">Sterge</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <EmptyState
                 v-else
                 :icon="activeTabInfo?.icon"
@@ -556,6 +647,9 @@ const props = defineProps({
     logisticsPlans: { type: Array, default: () => [] },
     logisticsCategories: { type: Object, default: () => ({}) },
     logisticsRiskLevels: { type: Object, default: () => ({}) },
+    compliancePlans: { type: Array, default: () => [] },
+    complianceItemTypeLabels: { type: Object, default: () => ({}) },
+    complianceStatusLabels: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -709,6 +803,40 @@ function deleteLogisticsPlan(plan) {
     router.delete(route('site-organization.logistics-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
     });
+}
+
+const compliancePlanForm = useForm({
+    phase_id: '',
+    item_type: 'contract',
+    contractor_id: '',
+    title: '',
+    due_date: '',
+    status: 'missing',
+    notes: '',
+});
+
+function submitCompliancePlan() {
+    compliancePlanForm.post(route('site-organization.compliance-plans.store', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            compliancePlanForm.reset();
+            compliancePlanForm.item_type = 'contract';
+            compliancePlanForm.status = 'missing';
+        },
+    });
+}
+
+function deleteCompliancePlan(plan) {
+    router.delete(route('site-organization.compliance-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+function complianceStatusTone(status) {
+    if (status === 'valid') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'expiring_soon') return 'bg-amber-100 text-amber-700';
+    if (status === 'expired') return 'bg-rose-100 text-rose-700';
+    return 'bg-gray-100 text-gray-700';
 }
 
 function categoryTone(category) {

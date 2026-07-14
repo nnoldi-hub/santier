@@ -57,7 +57,7 @@ deja construit).
 | 3 | Materiale | `site_material_plans` (necesar, furnizor, termene livrare, risc) | **Facut** |
 | 4 | Utilaje | `site_equipment_plans` (refoloseste `EquipmentCostEstimator`) | **Facut** |
 | 5 | Logistica | `site_logistics_plans` (acces, depozitare, zone siguranta, restrictii) | **Facut** |
-| 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | Neinceput |
+| 6 | Documente & conformitate | `site_compliance_plans` (checklist contracte/avize/autorizatii cu semafor) | **Facut** |
 | 7 | Buget initial | `site_budget_plans` (agrega costuri din fazele 2-6 + manopera) | Neinceput |
 | 8 | Rezumat & scor de pregatire | `site_readiness_summary` + `SiteReadinessCalculator` (agrega toate fazele 1-7 intr-un scor 0-100 + blocaje) | Neinceput |
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), extinde `ProjectAiToolsController` | Neinceput |
@@ -148,3 +148,16 @@ Acelasi flux stabilit in aceasta sesiune:
   grafica a zonelor) - doar text structurat in aceasta faza.
 - Test `tests/Feature/SiteLogisticsPlanTest.php` (creare, validare, stergere,
   izolare tenant).
+
+### Faza 6 - Documente & conformitate (Facut, 2026-07-14)
+- Tab-ul "Documente" devine functional: tabel nou `site_compliance_plans`
+  (`App\Models\SiteCompliancePlan`) - checklist de contracte/avize/autorizatii, cu
+  status semafor (valid/expira curand/expirat/lipsa) si legatura optionala cu o
+  etapa WBS si cu un subcontractor. Confirmat prin cautare in cod ca `Document` nu
+  are niciun concept de "aviz de conformitate"/"autorizatie"/expirare - domeniu
+  genuin nou.
+- Ramas explicit in afara scopului: calcul automat al statusului semafor din
+  `due_date` (candidat pentru Faza 9 - AI Tools), atasare de fisiere la elementele
+  de conformitate.
+- Test `tests/Feature/SiteCompliancePlanTest.php` (creare, validare, stergere,
+  izolare tenant, izolare `contractor_id` pe tenant).

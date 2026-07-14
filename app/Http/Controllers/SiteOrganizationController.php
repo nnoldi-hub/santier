@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\SiteCompliancePlan;
 use App\Models\SiteContractorPlan;
 use App\Models\SiteEquipmentPlan;
 use App\Models\SiteLogisticsPlan;
@@ -61,6 +62,12 @@ class SiteOrganizationController extends Controller
                 ->get(),
             'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
             'logisticsRiskLevels' => SiteLogisticsPlan::$riskLabels,
+            'compliancePlans' => SiteCompliancePlan::where('project_id', $project->id)
+                ->with(['phase:id,name', 'contractor:id,name'])
+                ->latest('id')
+                ->get(),
+            'complianceItemTypeLabels' => SiteCompliancePlan::$itemTypeLabels,
+            'complianceStatusLabels' => SiteCompliancePlan::$statusLabels,
         ]);
     }
 
@@ -363,6 +370,61 @@ class SiteOrganizationController extends Controller
             'location_description' => ['nullable', 'string', 'max:255'],
             'capacity_notes' => ['nullable', 'string', 'max:150'],
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteLogisticsPlan::$riskLabels))],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    public function storeCompliancePlan(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
+        $validated = $this->validateCompliancePlan($request, $project);
+
+        SiteCompliancePlan::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+        ]);
+
+        return back()->with('success', 'Elementul de conformitate a fost adaugat.');
+    }
+
+    public function updateCompliancePlan(Request $request, Project $project, SiteCompliancePlan $compliancePlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $compliancePlan->project_id === $project->id, 404);
+
+        $validated = $this->validateCompliancePlan($request, $project);
+
+        $compliancePlan->update($validated);
+
+        return back()->with('success', 'Elementul de conformitate a fost actualizat.');
+    }
+
+    public function destroyCompliancePlan(Request $request, Project $project, SiteCompliancePlan $compliancePlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $compliancePlan->project_id === $project->id, 404);
+
+        $compliancePlan->delete();
+
+        return back()->with('success', 'Elementul de conformitate a fost sters.');
+    }
+
+    private function validateCompliancePlan(Request $request, Project $project): array
+    {
+        $tenantId = TenantContext::id($request->user());
+
+        return $request->validate([
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'contractor_id' => ['nullable', 'integer', Rule::exists('contractors', 'id')->where('tenant_id', $tenantId)],
+            'item_type' => ['required', 'in:' . implode(',', array_keys(SiteCompliancePlan::$itemTypeLabels))],
+            'title' => ['required', 'string', 'max:150'],
+            'status' => ['required', 'in:' . implode(',', array_keys(SiteCompliancePlan::$statusLabels))],
+            'due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }
