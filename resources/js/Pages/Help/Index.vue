@@ -1,52 +1,6 @@
 <template>
     <AppLayout title="Ajutor">
         <div class="space-y-6">
-            <section class="rounded-3xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm">
-                <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-semibold text-[#F57C00]">
-                            Recomandare premium 2.0
-                        </div>
-                        <h2 class="mt-3 text-2xl sm:text-3xl font-black text-[#1A237E]">Cum functioneaza Modulia in 1 minut</h2>
-                        <p class="mt-2 text-sm sm:text-base text-slate-600">Video scurt (30-45 sec) pentru onboarding rapid: proiect, taskuri, cost tracking si raportare.</p>
-                        <div class="mt-4 flex flex-wrap gap-3">
-                            <a
-                                href="https://modulia.ro/help"
-                                target="_blank"
-                                rel="noopener"
-                                class="inline-flex items-center rounded-xl bg-[#F57C00] px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
-                            >
-                                Vezi video onboarding
-                            </a>
-                            <a
-                                href="https://modulia.ro/help"
-                                target="_blank"
-                                rel="noopener"
-                                class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                            >
-                                Deschide documentatia externa
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="rounded-2xl border border-slate-200 bg-[#1A237E] p-5 text-slate-100 shadow-xl">
-                        <div class="text-xs uppercase tracking-[0.2em] text-slate-300">Preview Video</div>
-                        <div class="mt-3 rounded-xl border border-white/10 bg-gradient-to-br from-[#1A237E] to-[#0d1442] p-4">
-                            <div class="text-sm font-semibold">Modulia in 1 minut</div>
-                            <p class="mt-1 text-xs text-slate-300">30-45 sec • onboarding pentru utilizatori noi</p>
-                            <a
-                                href="https://modulia.ro/help"
-                                target="_blank"
-                                rel="noopener"
-                                class="mt-4 inline-flex rounded-lg bg-[#F57C00] px-4 py-2 text-xs font-semibold text-white hover:bg-orange-600"
-                            >
-                                Play tutorial
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <section class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-50 via-white to-slate-50"></div>
                 <div class="relative p-6 sm:p-8 lg:p-10 grid lg:grid-cols-[1.4fr_0.9fr] gap-8 items-center">
@@ -203,9 +157,6 @@
                         <h2 class="mt-2 text-2xl font-black text-[#1A237E]">Arata-mi cum fac rapid</h2>
                         <p class="mt-2 text-sm text-slate-600">Tutoriale scurte pentru actiunile cele mai frecvente in Modulia.</p>
                     </div>
-                    <a href="https://modulia.ro/help" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                        modulia.ro/help
-                    </a>
                 </div>
 
                 <div class="mt-6 grid gap-4 lg:grid-cols-3">
@@ -374,6 +325,12 @@ const miniTutorials = [
         text: 'Seteaza template-uri, branding si elemente obligatorii pentru documente.',
         href: route('documents.branding.index'),
         cta: 'Configureaza documente',
+    },
+    {
+        title: 'Arata-mi cum pregatesc santierul inainte de executie',
+        text: 'Deschide un proiect, apasa "Organizare Santier" si completeaza echipe, materiale, utilaje, buget si scorul de pregatire.',
+        href: route('projects.index'),
+        cta: 'Deschide proiectele',
     },
 ];
 

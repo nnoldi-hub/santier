@@ -1042,7 +1042,7 @@ Route::middleware('auth')->get('/help', function () {
             ],
             [
                 'title' => '3. Planifica executia',
-                'text' => 'Completeaza WBS, taskuri, echipe si utilaje pentru a vedea calendarul real.',
+                'text' => 'Completeaza WBS-ul, apoi in fiecare proiect deschide "Organizare Santier" pentru echipe, materiale, utilaje si buget inainte de executie.',
                 'href' => route('wbs.index'),
                 'cta' => 'Deschide WBS',
             ],
@@ -1065,6 +1065,12 @@ Route::middleware('auth')->get('/help', function () {
                 'summary' => 'Structura proiectului, etape, progres si responsabilitati.',
                 'route' => route('projects.index'),
                 'example' => 'Pornesti cu proiectul, apoi spargi lucrarile in etape si sub-etape.',
+            ],
+            [
+                'name' => 'Organizare Santier',
+                'summary' => 'Pregatirea santierului inainte de executie: echipe, subcontractori, materiale, utilaje, logistica, documente, buget si scor de pregatire pe 8 domenii.',
+                'route' => route('projects.index'),
+                'example' => 'Deschizi un proiect, apesi butonul "Organizare Santier" si completezi domeniile pana scorul de pregatire arata verde, apoi aprobi planul.',
             ],
             [
                 'name' => 'Planificare',
@@ -1162,6 +1168,19 @@ Route::middleware('auth')->get('/help', function () {
                     ['label' => 'Oferte / Devize', 'href' => route('quotes.index')],
                 ],
             ],
+            [
+                'title' => 'Exemplu: pregatesti santierul inainte de executie',
+                'steps' => [
+                    'Deschizi proiectul si apesi butonul "Organizare Santier".',
+                    'Completezi echipele, subcontractorii, materialele, utilajele, logistica, documentele si bugetul initial.',
+                    'Verifici in tab-ul Rezumat scorul de pregatire si rezolvi blocajele semnalate.',
+                    'Cand totul e pregatit, aprobi planul - se genereaza automat sarcini, comenzi si rezervari pentru executie.',
+                ],
+                'links' => [
+                    ['label' => 'Proiectele mele', 'href' => route('projects.index')],
+                    ['label' => 'WBS', 'href' => route('wbs.index')],
+                ],
+            ],
         ],
         'focusGuides' => [
             [
@@ -1226,6 +1245,22 @@ Route::middleware('auth')->get('/help', function () {
             [
                 'question' => 'Unde setez emitentul, logo-ul si culorile pentru PDF?',
                 'answer' => 'Din Documente > Configurare documente. Acolo ai setarile de branding si preview inainte de salvare.',
+            ],
+            [
+                'question' => 'Ce este "Organizare Santier" si cand il folosesc?',
+                'answer' => 'Este pasul de pre-productie dintre WBS si executie: raspunde la "suntem pregatiti sa incepem santierul?" pe 8 domenii (echipe, subcontractori, materiale, utilaje, logistica, documente, buget, rezumat). Il deschizi din pagina proiectului, inainte sa incepi lucrul efectiv.',
+            ],
+            [
+                'question' => 'Ce inseamna scorul de pregatire si cum il cresc?',
+                'answer' => 'Scorul (0-100) arata cat de complet e planul pe fiecare domeniu. In tab-ul Rezumat vezi scorul pe fiecare domeniu si o lista de blocaje - rezolvi blocajele (ex: adauga plan de personal, semneaza contractul subcontractorului) ca sa creasca scorul.',
+            ],
+            [
+                'question' => 'Ce se intampla cand aprob planul de organizare?',
+                'answer' => 'Editarea planurilor se blocheaza si se genereaza automat elementele reale de executie: sarcini pentru echipe, comenzi de materiale, rezervari de utilaje si alocarea subcontractorilor pe etape. Poti oricand anula aprobarea daca mai trebuie ajustat ceva.',
+            ],
+            [
+                'question' => 'Pot exporta planul de organizare pentru echipa sau client?',
+                'answer' => 'Da - din pagina Organizare Santier ai butoanele Export PDF si Export XLSX, cu toate cele 8 domenii, scorul de pregatire si sugestiile AI intr-un singur document.',
             ],
         ],
     ]);
