@@ -1364,6 +1364,12 @@ Route::middleware('auth')->group(function () {
         Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->middleware('permission:quotes.view')->name('quotes.pdf');
         Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept'])->middleware('permission:quotes.approve')->name('quotes.accept');
         Route::patch('quotes/{quote}/send', [QuoteController::class, 'send'])->middleware('permission:quotes.edit')->name('quotes.send');
+        Route::patch('quotes/{quote}/approve-internally', [QuoteController::class, 'approveInternally'])
+            ->middleware(['permission:quotes.internal_approve', 'plan:document_approvals'])
+            ->name('quotes.approve-internally');
+        Route::patch('quotes/{quote}/unapprove-internally', [QuoteController::class, 'unapproveInternally'])
+            ->middleware(['permission:quotes.internal_approve', 'plan:document_approvals'])
+            ->name('quotes.unapprove-internally');
         Route::post('quotes/{quote}/convert', [QuoteController::class, 'convertToProject'])->middleware('permission:quotes.edit|projects.create')->name('quotes.convert');
         Route::post('quotes/{quote}/template', [QuoteController::class, 'saveAsTemplate'])->middleware('permission:quotes.create|quotes.edit')->name('quotes.template.store');
         Route::resource('material-invoices', MaterialInvoiceController::class)->except('show');

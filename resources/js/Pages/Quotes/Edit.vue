@@ -327,6 +327,26 @@
 
                 <section class="rounded-xl border border-gray-200 p-4">
                     <h3 class="text-sm font-semibold text-gray-800 mb-3">I. Actiuni</h3>
+                    <div v-if="documentApprovalsEnabled" class="mb-3 rounded-lg border px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2" :class="needsInternalApproval ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'">
+                        <span v-if="needsInternalApproval">Oferta necesita aprobare interna inainte de trimitere.</span>
+                        <span v-else>Aprobata intern{{ internalApprovedByName ? ' de ' + internalApprovedByName : '' }}.</span>
+                        <button
+                            v-if="canApproveInternally && needsInternalApproval"
+                            type="button"
+                            @click="approveInternally"
+                            class="rounded-lg bg-amber-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-amber-700"
+                        >
+                            Aproba oferta
+                        </button>
+                        <button
+                            v-else-if="canApproveInternally"
+                            type="button"
+                            @click="unapproveInternally"
+                            class="rounded-lg border border-emerald-300 text-emerald-700 px-3 py-1.5 text-xs font-medium hover:bg-emerald-100"
+                        >
+                            Anuleaza aprobarea
+                        </button>
+                    </div>
                     <div v-if="onboardingPercent < 100" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                         Oferta nu este complet pregatita pentru trimitere ({{ onboardingCompletedCount }}/{{ onboardingChecks.length }}).
                         Lipsesc: {{ onboardingIncompleteLabels.join(', ') }}.
@@ -340,7 +360,9 @@
                             <button
                                 type="button"
                                 @click="sendToClient"
-                                class="px-6 py-2 rounded-lg text-sm transition"
+                                :disabled="needsInternalApproval"
+                                :title="needsInternalApproval ? 'Oferta trebuie aprobata intern inainte de trimitere.' : ''"
+                                class="px-6 py-2 rounded-lg text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 :class="onboardingPercent === 100
                                     ? 'border border-blue-200 text-blue-700 hover:bg-blue-50'
                                     : 'border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100'"
@@ -369,7 +391,24 @@ const props = defineProps({
     projects: Array,
     materials: { type: Array, default: () => [] },
     equipment: { type: Array, default: () => [] },
+    documentApprovalsEnabled: { type: Boolean, default: false },
+    canApproveInternally: { type: Boolean, default: false },
+    internalApprovedByName: { type: String, default: null },
 });
+
+const needsInternalApproval = computed(() => props.documentApprovalsEnabled && !props.quote.internal_approved_at);
+
+function approveInternally() {
+    if (confirm(`Aprobi intern oferta "${props.quote.title}"? Dupa aprobare va putea fi trimisa clientului.`)) {
+        router.patch(route('quotes.approve-internally', props.quote.id), {}, { preserveScroll: true });
+    }
+}
+
+function unapproveInternally() {
+    if (confirm(`Anulezi aprobarea interna a ofertei "${props.quote.title}"? Trimiterea catre client va fi blocata din nou.`)) {
+        router.patch(route('quotes.unapprove-internally', props.quote.id), {}, { preserveScroll: true });
+    }
+}
 
 const showQuoteHelp = ref(true);
 
@@ -916,6 +955,10 @@ function remove() {
 }
 
 function sendToClient() {
+    if (needsInternalApproval.value) {
+        return;
+    }
+
     if (onboardingPercent.value < 100) {
         const warningMessage = `Oferta este incompleta (${onboardingCompletedCount.value}/${onboardingChecks.value.length}).\n\nLipsesc:\n- ${onboardingIncompleteLabels.value.join('\n- ')}\n\nVrei sa trimiti totusi clientului?`;
         if (!confirm(warningMessage)) {

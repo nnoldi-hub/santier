@@ -126,6 +126,7 @@ class IamSeeder extends Seeder
         $permissions[] = 'finance.view_limited';
         $permissions[] = 'roles.manage';
         $permissions[] = 'tenants.manage';
+        $permissions[] = 'quotes.internal_approve';
 
         return array_values(array_unique($permissions));
     }

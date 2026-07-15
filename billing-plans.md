@@ -38,7 +38,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 | 1 | Limite reale de utilizatori | `PricingPlan::canInviteUser()` (acelasi tipar ca `canCreateProject()`) + verificare in `TenantUserController::invite()` | **Facut** |
 | 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri, exporturi, oferte, export programat si notificari interne de echipa cand tenantul are `white_label` in plan | **Facut** |
 | 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | **Facut** |
-| 4 | Aprobari documente (facturare) | Necesita clarificare cu utilizatorul ce inseamna exact ("aprobari" - flux de sign-off inainte de trimiterea unui document catre client?) inainte de plan | Neinceput |
+| 4 | Aprobari documente (facturare) | Sign-off intern (manager/owner) inainte de trimiterea unei Oferte catre client | **Facut** |
 | 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan. **Blocaje externe**: necesita cont Stripe + chei de test de la utilizator; `laravel/cashier` trebuie verificat pentru compatibilitate cu Laravel `^13.8` (posibil prea nou fata de ce documenteaza Cashier azi) inainte de a incepe | Neinceput |
 | 6 | Domeniu propriu per tenant | Cea mai grea din punct de vedere infrastructura (DNS, SSL, verificare domeniu) - hosting-ul actual e shared hosting Hostico/cPanel, trebuie verificat ce suporta inainte de a promite ceva | Neinceput |
 
@@ -159,3 +159,35 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
   `pro` fara nimic salvat primeste `'classic'` implicit; HTTP - `GET
   /quotes/{quote}/pdf` si `GET /documents/{document}/pdf` raspund 200 atat pentru
   `classic` cat si pentru `modern`.
+
+### Faza 4 - Aprobari documente (Facut, 2026-07-15)
+- Scop confirmat cu utilizatorul: sign-off intern (un al doilea om din firma)
+  inainte ca o **Oferta** sa poata fi trimisa clientului. Documentele (Proces
+  verbal) raman neschimbate - nu au azi niciun flux de "trimitere catre client"
+  (doar descarcare PDF), deci nu exista ce sa blocam acolo.
+- Tipar reutilizat de la `SitePlanApproval` (Organizare Santier): coloane
+  `internal_approved_at`/`internal_approved_by` direct pe `Quote` (migratie
+  `2026_07_15_120000_...`) + tabel de audit `quote_approvals` (migratie
+  `2026_07_15_130000_...`, model nou `App\Models\QuoteApproval`) - fiecare
+  aprobare/dezaprobare adauga un rand cu `action`. Diferenta fata de
+  `SitePlanApproval`: aici chiar exista o verificare de permisiune reala
+  (`quotes.internal_approve`, permisiune noua, distincta de `quotes.approve` care
+  ramane exclusiv pentru "clientul a acceptat oferta").
+- `QuoteController::approveInternally()`/`unapproveInternally()` (noi, rutele
+  `PATCH quotes/{quote}/approve-internally` / `unapprove-internally`, gatate de
+  `permission:quotes.internal_approve` + `plan:document_approvals`).
+  `QuoteController::send()` blocheaza trimiterea cu eroare daca tenantul are
+  feature-ul `document_approvals` (`PricingPlan::tenantHasFeature()`) SI oferta nu
+  e aprobata intern - tenantii fara acest feature (majoritatea) nu sunt afectati
+  deloc, comportament identic cu inainte.
+- `Quotes/Edit.vue`: banner (amber/emerald, acelasi stil ca in
+  `SiteOrganization/Index.vue`) langa actiuni, vizibil doar cand
+  `documentApprovalsEnabled`; buton "Aproba oferta"/"Anuleaza aprobarea" vizibil
+  doar pentru useri cu `quotes.internal_approve`; butonul "Trimite clientului" e
+  dezactivat client-side cat timp oferta nu e aprobata (blocajul real ramane
+  server-side).
+- Test `tests/Feature/QuoteInternalApprovalTest.php`: trimitere blocata pana la
+  aprobare apoi deblocata (`Mail::fake()`), aprobare dubla -> 422, dezaprobare
+  reblocheaza trimiterea, user fara permisiune -> 403, tenant `starter` (fara
+  feature) trimite fara nicio aprobare si rutele de aprobare sunt blocate de
+  `plan:document_approvals`.

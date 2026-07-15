@@ -27,6 +27,8 @@ class Quote extends Model
         'total_gross',
         'sent_at',
         'accepted_at',
+        'internal_approved_at',
+        'internal_approved_by',
         'created_by',
     ];
 
@@ -34,6 +36,7 @@ class Quote extends Model
         'valid_until' => 'date',
         'sent_at' => 'datetime',
         'accepted_at' => 'datetime',
+        'internal_approved_at' => 'datetime',
         'discount_pct' => 'decimal:2',
         'tva_pct' => 'decimal:2',
         'meta' => 'array',
@@ -55,5 +58,10 @@ class Quote extends Model
     public function items(): HasMany
     {
         return $this->hasMany(QuoteItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function internalApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'internal_approved_by');
     }
 }

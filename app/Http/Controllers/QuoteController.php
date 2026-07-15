@@ -8,9 +8,11 @@ use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\Quote;
+use App\Models\QuoteApproval;
 use App\Models\QuoteItem;
 use App\Models\QuoteTemplate;
 use App\Support\DocumentBranding;
+use App\Support\PricingPlan;
 use App\Support\QuotePdfPresenter;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -179,11 +181,11 @@ class QuoteController extends Controller
         return redirect()->route('quotes.index')->with('success', 'Oferta creata cu succes!');
     }
 
-    public function edit(Quote $quote): Response
+    public function edit(Quote $quote, Request $request): Response
     {
-        $this->ensureTenantAccess($quote);
+        $this->ensureTenantAccess($quote, $request->user());
         $tenantId = TenantContext::id();
-        $quote->loadMissing('items');
+        $quote->loadMissing(['items', 'internalApprovedBy:id,name']);
         $catalog = $this->quoteCatalogData();
 
         return Inertia::render('Quotes/Edit', [
@@ -191,6 +193,9 @@ class QuoteController extends Controller
             'projects' => Project::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'materials' => $catalog['materials'],
             'equipment' => $catalog['equipment'],
+            'documentApprovalsEnabled' => PricingPlan::hasFeature($request->user(), 'document_approvals'),
+            'canApproveInternally' => (bool) $request->user()?->can('quotes.internal_approve'),
+            'internalApprovedByName' => $quote->internalApprovedBy?->name,
         ]);
     }
 
@@ -290,9 +295,54 @@ class QuoteController extends Controller
         return redirect()->route('quotes.index')->with('success', 'Oferta a fost marcata ca acceptata. Poti continua executia in proiect.');
     }
 
+    public function approveInternally(Quote $quote, Request $request): RedirectResponse
+    {
+        $this->ensureTenantAccess($quote, $request->user());
+        abort_if($quote->internal_approved_at !== null, 422, 'Oferta este deja aprobata intern.');
+
+        $quote->update([
+            'internal_approved_at' => now(),
+            'internal_approved_by' => $request->user()->id,
+        ]);
+
+        QuoteApproval::create([
+            'tenant_id' => $quote->tenant_id,
+            'quote_id' => $quote->id,
+            'user_id' => $request->user()->id,
+            'action' => 'approved',
+        ]);
+
+        return back()->with('success', 'Oferta a fost aprobata intern si poate fi trimisa clientului.');
+    }
+
+    public function unapproveInternally(Quote $quote, Request $request): RedirectResponse
+    {
+        $this->ensureTenantAccess($quote, $request->user());
+        abort_if($quote->internal_approved_at === null, 422, 'Oferta nu este aprobata intern.');
+
+        $quote->update([
+            'internal_approved_at' => null,
+            'internal_approved_by' => null,
+        ]);
+
+        QuoteApproval::create([
+            'tenant_id' => $quote->tenant_id,
+            'quote_id' => $quote->id,
+            'user_id' => $request->user()->id,
+            'action' => 'unapproved',
+        ]);
+
+        return back()->with('success', 'Aprobarea interna a fost anulata.');
+    }
+
     public function send(Quote $quote): RedirectResponse
     {
         $this->ensureTenantAccess($quote);
+
+        if (PricingPlan::tenantHasFeature((int) $quote->tenant_id, 'document_approvals') && $quote->internal_approved_at === null) {
+            return back()->with('error', 'Oferta trebuie aprobata intern inainte de a fi trimisa clientului.');
+        }
+
         $quote->loadMissing(['project.client:id,name,email', 'project:id,name,client_id', 'creator:id,name', 'items']);
 
         $clientEmail = trim((string) ($quote->project?->client?->email ?? ''));
