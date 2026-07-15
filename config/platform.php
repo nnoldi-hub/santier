@@ -18,6 +18,7 @@ return [
         'social_youtube_url' => env('PLATFORM_SOCIAL_YOUTUBE_URL', ''),
         'document_logo_url' => env('PLATFORM_DOCUMENT_LOGO_URL', '/brand/logo_modulia.png'),
         'document_brand_color' => env('PLATFORM_DOCUMENT_BRAND_COLOR', '#FF7A00'),
+        'document_template' => env('PLATFORM_DOCUMENT_TEMPLATE', 'classic'),
         'trial_days' => (int) env('PLATFORM_TRIAL_DAYS', 14),
         'public_signup_enabled' => filter_var(env('PLATFORM_PUBLIC_SIGNUP_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'demo_mode_enabled' => filter_var(env('PLATFORM_DEMO_MODE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),

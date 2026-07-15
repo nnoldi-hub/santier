@@ -30,6 +30,12 @@ class DocumentBranding
         $branding['document_logo_url'] = self::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
         $branding['white_label'] = $whiteLabel;
 
+        $template = (string) ($branding['document_template'] ?? 'classic');
+        $templatesAllowed = PricingPlan::tenantHasFeature($tenantId, 'document_templates');
+        $branding['document_template'] = ($templatesAllowed && in_array($template, ['classic', 'modern'], true))
+            ? $template
+            : 'classic';
+
         return $branding;
     }
 

@@ -37,7 +37,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 |---|------|---------|--------|
 | 1 | Limite reale de utilizatori | `PricingPlan::canInviteUser()` (acelasi tipar ca `canCreateProject()`) + verificare in `TenantUserController::invite()` | **Facut** |
 | 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri, exporturi, oferte, export programat si notificari interne de echipa cand tenantul are `white_label` in plan | **Facut** |
-| 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | Neinceput |
+| 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | **Facut** |
 | 4 | Aprobari documente (facturare) | Necesita clarificare cu utilizatorul ce inseamna exact ("aprobari" - flux de sign-off inainte de trimiterea unui document catre client?) inainte de plan | Neinceput |
 | 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan. **Blocaje externe**: necesita cont Stripe + chei de test de la utilizator; `laravel/cashier` trebuie verificat pentru compatibilitate cu Laravel `^13.8` (posibil prea nou fata de ce documenteaza Cashier azi) inainte de a incepe | Neinceput |
 | 6 | Domeniu propriu per tenant | Cea mai grea din punct de vedere infrastructura (DNS, SSL, verificare domeniu) - hosting-ul actual e shared hosting Hostico/cPanel, trebuie verificat ce suporta inainte de a promite ceva | Neinceput |
@@ -114,3 +114,48 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
   branding propriu -> valorile proprii), `QuoteSentMail.whiteLabel` corect dupa plan
   (`Mail::fake()`), `UserInvitedNotification.whiteLabel` corect dupa plan
   (`Notification::fake()`).
+
+### Faza 3 - Sabloane multiple de documente (Facut, 2026-07-15)
+- Blocurile `@php` de calcul din `quotes/pdf.blade.php` si `documents/pdf.blade.php`
+  au fost extrase in doua clase noi (`App\Support\QuotePdfPresenter::present()`,
+  `App\Support\DocumentPdfPresenter::present()`) - sursa unica de adevar pentru
+  datele derivate, folosita de ambele layout-uri vizuale ale fiecarui tip de
+  document. Numite deliberat "Presenter" si nu "Template" ca sa nu se confunde cu
+  `App\Models\QuoteTemplate` (feature existent, neinlegatura - reutilizare de
+  continut la crearea unei oferte noi, nu aspect vizual).
+- `quotes/pdf.blade.php` si `documents/pdf.blade.php` (fisierele vechi, unic
+  layout) au fost sterse si inlocuite cu cate doua fisiere: `pdf-classic.blade.php`
+  (continut vizual identic cu ce exista inainte) si `pdf-modern.blade.php` (nou -
+  banda de antet plina cu culoarea de brand si text alb, titluri de sectiune ca
+  etichete/pastile colorate, un "hero" cu totalul de plata / situatia financiara
+  sub antet in loc de grid-ul de carduri, blocuri cu chenar rotunjit pentru
+  sectiunile narative; tabelele raman `<table>`-based, dompdf nu suporta
+  flexbox/grid).
+- `App\Support\DocumentBranding::resolve()`: adauga `document_template` in
+  array-ul rezultat, citit din `AppSetting`, FORTAT la `'classic'` daca tenantul nu
+  are feature-ul `document_templates` pe plan (aparare in adancime la downgrade de
+  plan) sau daca valoarea salvata nu e `classic`/`modern`. `config/platform.php`
+  are cheia noua `document_template` (default `'classic'`) in `defaults`.
+- `QuoteController::pdf()`/`::send()` si `DocumentController::pdf()` apeleaza acum
+  presenterul relevant si randeaza view-ul dinamic `quotes.pdf-{template}` /
+  `documents.pdf-{template}` in functie de `$branding['document_template']`.
+- `DocumentBrandingController`: `index()` trimite catalogul fix de sabloane
+  (`documentTemplates`) si `documentTemplatesAllowed`
+  (`PricingPlan::hasFeature($request->user(), 'document_templates')`) catre
+  Inertia; `update()` valideaza si salveaza `document_template`
+  (`nullable, in:classic,modern`) - fara blocare la salvare, singurul punct de
+  aplicare a regulii de plan ramane `DocumentBranding::resolve()`.
+- `resources/js/Pages/Documents/Branding.vue`: sectiune noua "Sablon document"
+  dupa selectorul de culoare, acelasi tipar de butoane pastila ca la culori;
+  dezactivata vizual (opacitate redusa, click ignorat) cu textul "Disponibil de la
+  planul Brand complet" cand `documentTemplatesAllowed` e `false`.
+- **Bug pre-existent gasit si corectat, neinlegatura cu sabloanele**:
+  footer-ul din `documents/pdf.blade.php` continea textul literal "H. Footer:"
+  inaintea continutului real (leftover de la o eticheta de sectiune, niciodata
+  curatat) - eliminat in ambele layout-uri noi.
+- Test `tests/Feature/DocumentTemplateTest.php`: `DocumentBranding::resolve()` -
+  tenant `starter` cu `document_template=modern` salvat manual tot primeste
+  `'classic'` (aplicare fortata), tenant `pro` primeste `'modern'` daca l-a salvat,
+  `pro` fara nimic salvat primeste `'classic'` implicit; HTTP - `GET
+  /quotes/{quote}/pdf` si `GET /documents/{document}/pdf` raspund 200 atat pentru
+  `classic` cat si pentru `modern`.

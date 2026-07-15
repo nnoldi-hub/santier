@@ -10,6 +10,7 @@ use App\Models\ProjectPhase;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\DemoScope;
 use App\Support\DocumentBranding;
+use App\Support\DocumentPdfPresenter;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -254,13 +255,15 @@ class DocumentController extends Controller
             'contractor:id,name',
         ]);
         $branding = DocumentBranding::resolve((int) $document->tenant_id);
+        $presented = DocumentPdfPresenter::present($document, $branding);
+        $template = in_array($branding['document_template'] ?? 'classic', ['classic', 'modern'], true) ? $branding['document_template'] : 'classic';
 
         $fileName = sprintf('%s-%d.pdf', str($document->title)->slug('-'), $document->id);
 
-        $pdf = Pdf::loadView('documents.pdf', [
+        $pdf = Pdf::loadView('documents.pdf-' . $template, array_merge($presented, [
             'document' => $document,
             'branding' => $branding,
-        ])->setPaper('a4')->setOptions([
+        ]))->setPaper('a4')->setOptions([
             'isRemoteEnabled' => true,
         ]);
 

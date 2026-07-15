@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Support\PricingPlan;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,11 @@ class DocumentBrandingController extends Controller
                 ['name' => 'Rosu Premium', 'value' => '#b91c1c'],
                 ['name' => 'Turcoaz Modern', 'value' => '#0f766e'],
             ],
+            'documentTemplates' => [
+                ['id' => 'classic', 'name' => 'Clasic', 'description' => 'Antet subtire cu bordura de culoare si carduri de sumar.'],
+                ['id' => 'modern', 'name' => 'Modern', 'description' => 'Banda de antet colorata, etichete de sectiune si un rezumat de tip "hero".'],
+            ],
+            'documentTemplatesAllowed' => PricingPlan::hasFeature($request->user(), 'document_templates'),
         ]);
     }
 
@@ -51,6 +57,7 @@ class DocumentBrandingController extends Controller
             ],
             'document_logo_file' => ['nullable', 'image', 'max:2048'],
             'document_brand_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'document_template' => ['nullable', 'in:classic,modern'],
         ]);
 
         $documentLogoUrl = $validated['document_logo_url'] ?? '';
@@ -69,6 +76,7 @@ class DocumentBrandingController extends Controller
             'sales_email' => $validated['sales_email'],
             'document_logo_url' => $documentLogoUrl,
             'document_brand_color' => $validated['document_brand_color'],
+            'document_template' => $validated['document_template'] ?? 'classic',
         ], $tenantId);
 
         return back()->with('success', 'Configurarea documentelor a fost actualizata.');

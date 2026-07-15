@@ -147,6 +147,31 @@
                     <p v-if="settingsForm.errors.document_brand_color" class="mt-1 text-xs text-red-600">{{ settingsForm.errors.document_brand_color }}</p>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Sablon document</label>
+                    <p class="mb-2 text-[11px] text-slate-500">Alegerea se aplica pentru toate ofertele si procesele verbale generate de firma.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-for="tpl in documentTemplates"
+                            :key="tpl.id"
+                            type="button"
+                            :disabled="!documentTemplatesAllowed"
+                            class="flex-1 min-w-[220px] rounded-xl border px-4 py-3 text-left transition"
+                            :class="[
+                                settingsForm.document_template === tpl.id ? 'border-slate-900' : 'border-slate-300',
+                                documentTemplatesAllowed ? 'hover:bg-slate-50' : 'opacity-50 cursor-not-allowed',
+                            ]"
+                            @click="documentTemplatesAllowed && (settingsForm.document_template = tpl.id)"
+                        >
+                            <div class="text-sm font-semibold text-slate-900">{{ tpl.name }}</div>
+                            <div class="mt-1 text-xs text-slate-600">{{ tpl.description }}</div>
+                        </button>
+                    </div>
+                    <p v-if="!documentTemplatesAllowed" class="mt-2 text-xs font-medium text-orange-700">
+                        Disponibil de la planul Brand complet.
+                    </p>
+                </div>
+
                 <div class="flex items-center gap-3">
                     <button type="submit" class="rounded-xl bg-[#1A237E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#141b5c] disabled:opacity-60" :disabled="settingsForm.processing">
                         {{ settingsForm.processing ? 'Se salveaza...' : 'Salveaza configurarea' }}
@@ -170,6 +195,8 @@ import { DocumentTextIcon } from '@heroicons/vue/24/outline';
 const props = defineProps({
     settings: { type: Object, required: true },
     colorPresets: { type: Array, default: () => [] },
+    documentTemplates: { type: Array, default: () => [] },
+    documentTemplatesAllowed: { type: Boolean, default: false },
 });
 
 const showPreview = ref(true);
@@ -199,6 +226,7 @@ const settingsForm = useForm({
     document_logo_url: props.settings.document_logo_url || '',
     document_logo_file: null,
     document_brand_color: props.settings.document_brand_color || '#f97316',
+    document_template: props.settings.document_template || 'classic',
 });
 
 const uploadedLogoPreviewUrl = ref('');

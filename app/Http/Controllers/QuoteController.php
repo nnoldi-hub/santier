@@ -11,6 +11,7 @@ use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\QuoteTemplate;
 use App\Support\DocumentBranding;
+use App\Support\QuotePdfPresenter;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -263,13 +264,14 @@ class QuoteController extends Controller
             $breakdown = $this->buildBreakdownFromItems($quote->items);
         }
 
-        $pdf = Pdf::loadView('quotes.pdf', [
+        $meta = is_array($quote->meta) ? $quote->meta : [];
+        $presented = QuotePdfPresenter::present($quote, $meta, is_array($breakdown) ? $breakdown : [], $displayNotes, $branding);
+        $template = in_array($branding['document_template'] ?? 'classic', ['classic', 'modern'], true) ? $branding['document_template'] : 'classic';
+
+        $pdf = Pdf::loadView('quotes.pdf-' . $template, array_merge($presented, [
             'quote' => $quote,
-            'notes' => $displayNotes,
-            'breakdown' => $breakdown,
-            'meta' => is_array($quote->meta) ? $quote->meta : [],
             'branding' => $branding,
-        ])->setPaper('a4')->setOptions([
+        ]))->setPaper('a4')->setOptions([
             'isRemoteEnabled' => true,
         ]);
 
@@ -306,14 +308,13 @@ class QuoteController extends Controller
 
         $branding = DocumentBranding::resolve((int) $quote->tenant_id);
         $meta = is_array($quote->meta) ? $quote->meta : [];
+        $presented = QuotePdfPresenter::present($quote, $meta, is_array($breakdown) ? $breakdown : [], $displayNotes, $branding);
+        $template = in_array($branding['document_template'] ?? 'classic', ['classic', 'modern'], true) ? $branding['document_template'] : 'classic';
 
-        $pdfBinary = Pdf::loadView('quotes.pdf', [
+        $pdfBinary = Pdf::loadView('quotes.pdf-' . $template, array_merge($presented, [
             'quote' => $quote,
-            'notes' => $displayNotes,
-            'breakdown' => $breakdown,
-            'meta' => $meta,
             'branding' => $branding,
-        ])->setPaper('a4')->setOptions([
+        ]))->setPaper('a4')->setOptions([
             'isRemoteEnabled' => true,
         ])->output();
 
