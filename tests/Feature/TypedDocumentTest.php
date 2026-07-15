@@ -66,6 +66,49 @@ class TypedDocumentTest extends TestCase
         ]);
     }
 
+    public function test_pv_predare_primire_requires_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'proc_verbal_predare_primire'));
+
+        $response->assertSessionHasErrors([
+            'type_data.predat_de',
+            'type_data.primit_de',
+            'type_data.obiecte',
+            'type_data.stare',
+        ]);
+    }
+
+    public function test_pv_remediere_defecte_requires_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'proc_verbal_remediere_defecte'));
+
+        $response->assertSessionHasErrors([
+            'type_data.defect_identificat',
+            'type_data.responsabil_remediere',
+            'type_data.termen',
+            'type_data.stare_remediere',
+        ]);
+    }
+
+    public function test_pv_constatare_requires_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'proc_verbal_constatare'));
+
+        $response->assertSessionHasErrors([
+            'type_data.situatie_constatata',
+            'type_data.martori',
+        ]);
+    }
+
     public function test_pdf_renders_for_new_types_classic_and_modern(): void
     {
         $user = $this->createOnboardedUser('pro');
@@ -79,9 +122,24 @@ class TypedDocumentTest extends TestCase
             'tenant_id' => 1,
             'type_data' => ['descriere_lucrari_ascunse' => 'Descriere', 'verificari_efectuate' => 'Verificari', 'responsabil_tehnic' => 'Ion Ionescu'],
         ]);
+        $pvPredarePrimire = Document::create($this->basePayload($project, 'proc_verbal_predare_primire') + [
+            'tenant_id' => 1,
+            'type_data' => ['predat_de' => 'A', 'primit_de' => 'B', 'obiecte' => 'Schela', 'stare' => 'Buna'],
+        ]);
+        $pvRemediere = Document::create($this->basePayload($project, 'proc_verbal_remediere_defecte') + [
+            'tenant_id' => 1,
+            'type_data' => ['defect_identificat' => 'Fisura', 'responsabil_remediere' => 'C', 'termen' => now()->toDateString(), 'stare_remediere' => 'remediat'],
+        ]);
+        $pvConstatare = Document::create($this->basePayload($project, 'proc_verbal_constatare') + [
+            'tenant_id' => 1,
+            'type_data' => ['situatie_constatata' => 'Infiltratii', 'martori' => 'D'],
+        ]);
 
         $this->actingAs($user)->get("/documents/{$pvReceptie->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvAscunse->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$pvPredarePrimire->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$pvRemediere->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$pvConstatare->id}/pdf")->assertStatus(200);
     }
 
     public function test_existing_document_type_is_unaffected(): void

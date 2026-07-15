@@ -115,6 +115,75 @@
                     </div>
                 </div>
 
+                <div v-else-if="form.type === 'proc_verbal_predare_primire'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii proces verbal de predare-primire</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Predat de *</label>
+                        <input v-model="form.type_data.predat_de" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.predat_de']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.predat_de'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Primit de *</label>
+                        <input v-model="form.type_data.primit_de" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.primit_de']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.primit_de'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Obiecte / materiale / echipamente *</label>
+                        <textarea v-model="form.type_data.obiecte" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Cate un obiect pe linie" />
+                        <p v-if="form.errors['type_data.obiecte']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.obiecte'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Stare la predare *</label>
+                        <textarea v-model="form.type_data.stare" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.stare']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.stare'] }}</p>
+                    </div>
+                </div>
+
+                <div v-else-if="form.type === 'proc_verbal_remediere_defecte'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii proces verbal de remediere defecte</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Defect identificat *</label>
+                        <textarea v-model="form.type_data.defect_identificat" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.defect_identificat']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.defect_identificat'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Responsabil remediere *</label>
+                        <input v-model="form.type_data.responsabil_remediere" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.responsabil_remediere']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.responsabil_remediere'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Termen *</label>
+                        <input v-model="form.type_data.termen" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.termen']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.termen'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Stare remediere *</label>
+                        <select v-model="form.type_data.stare_remediere" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="remediat">Remediat</option>
+                            <option value="nerezolvat">Nerezolvat</option>
+                        </select>
+                        <p v-if="form.errors['type_data.stare_remediere']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.stare_remediere'] }}</p>
+                    </div>
+                </div>
+
+                <div v-else-if="form.type === 'proc_verbal_constatare'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii proces verbal de constatare</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Situatie constatata *</label>
+                        <textarea v-model="form.type_data.situatie_constatata" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.situatie_constatata']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.situatie_constatata'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Martori *</label>
+                        <textarea v-model="form.type_data.martori" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Cate un martor pe linie" />
+                        <p v-if="form.errors['type_data.martori']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.martori'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Masuri recomandate</label>
+                        <textarea v-model="form.type_data.masuri_recomandate" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                </div>
+
                 <div class="flex gap-2 pt-2">
                     <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
                         {{ form.processing ? 'Se salveaza...' : 'Salveaza modificari' }}
@@ -158,6 +227,17 @@ const form = useForm({
         descriere_lucrari_ascunse: props.document.type_data?.descriere_lucrari_ascunse || '',
         verificari_efectuate: props.document.type_data?.verificari_efectuate || '',
         responsabil_tehnic: props.document.type_data?.responsabil_tehnic || '',
+        predat_de: props.document.type_data?.predat_de || '',
+        primit_de: props.document.type_data?.primit_de || '',
+        obiecte: props.document.type_data?.obiecte || '',
+        stare: props.document.type_data?.stare || '',
+        defect_identificat: props.document.type_data?.defect_identificat || '',
+        responsabil_remediere: props.document.type_data?.responsabil_remediere || '',
+        termen: props.document.type_data?.termen || '',
+        stare_remediere: props.document.type_data?.stare_remediere || 'remediat',
+        situatie_constatata: props.document.type_data?.situatie_constatata || '',
+        martori: props.document.type_data?.martori || '',
+        masuri_recomandate: props.document.type_data?.masuri_recomandate || '',
     },
 });
 

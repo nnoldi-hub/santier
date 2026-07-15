@@ -50,6 +50,23 @@ class StoreDocumentRequest extends FormRequest
                 'type_data.verificari_efectuate' => ['required', 'string', 'max:4000'],
                 'type_data.responsabil_tehnic' => ['required', 'string', 'max:255'],
             ],
+            'proc_verbal_predare_primire' => [
+                'type_data.predat_de' => ['required', 'string', 'max:255'],
+                'type_data.primit_de' => ['required', 'string', 'max:255'],
+                'type_data.obiecte' => ['required', 'string', 'max:4000'],
+                'type_data.stare' => ['required', 'string', 'max:4000'],
+            ],
+            'proc_verbal_remediere_defecte' => [
+                'type_data.defect_identificat' => ['required', 'string', 'max:4000'],
+                'type_data.responsabil_remediere' => ['required', 'string', 'max:255'],
+                'type_data.termen' => ['required', 'date'],
+                'type_data.stare_remediere' => ['required', Rule::in(['remediat', 'nerezolvat'])],
+            ],
+            'proc_verbal_constatare' => [
+                'type_data.situatie_constatata' => ['required', 'string', 'max:4000'],
+                'type_data.martori' => ['required', 'string', 'max:2000'],
+                'type_data.masuri_recomandate' => ['nullable', 'string', 'max:4000'],
+            ],
             default => [],
         };
     }

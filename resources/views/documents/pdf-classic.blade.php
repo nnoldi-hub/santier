@@ -111,6 +111,21 @@
                     <div style="margin-top:6px;"><strong>Verificari efectuate:</strong></div>
                     <div style="white-space: pre-line;">{{ $typeData['verificari_efectuate'] ?? '-' }}</div>
                     <div style="margin-top:6px;"><strong>Responsabil tehnic:</strong> {{ $typeData['responsabil_tehnic'] ?? '-' }}</div>
+                @elseif($document->type === 'proc_verbal_predare_primire')
+                    <div><strong>Predat de:</strong> {{ $typeData['predat_de'] ?? '-' }}</div>
+                    <div><strong>Primit de:</strong> {{ $typeData['primit_de'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Obiecte / materiale / echipamente:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['obiecte'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Stare la predare:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['stare'] ?? '-' }}</div>
+                @elseif($document->type === 'proc_verbal_remediere_defecte')
+                    <div><strong>Defect identificat:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['defect_identificat'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Responsabil remediere:</strong> {{ $typeData['responsabil_remediere'] ?? '-' }}</div>
+                    <div><strong>Termen:</strong> {{ !empty($typeData['termen']) ? \Illuminate\Support\Carbon::parse($typeData['termen'])->format('d.m.Y') : '-' }}</div>
+                @elseif($document->type === 'proc_verbal_constatare')
+                    <div><strong>Situatie constatata:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['situatie_constatata'] ?? '-' }}</div>
                 @else
                     <div><strong>Ce s-a executat:</strong> {{ $document->title }}</div>
                     <div><strong>Conformitate cu proiectul:</strong> {{ $isConform ? 'Conforma cu cerintele stabilite' : 'Necesita verificari suplimentare' }}</div>
@@ -130,7 +145,24 @@
                     <div style="white-space: pre-line;">{{ $typeData['defecte'] ?? 'Nu au fost consemnate defecte.' }}</div>
                 </div>
             </div>
-        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse'], true))
+        @elseif($document->type === 'proc_verbal_remediere_defecte')
+            <div class="section">
+                <h3 class="section-title">D. Stare remediere</h3>
+                <div class="box">
+                    <div>Stare: {!! ($typeData['stare_remediere'] ?? null) === 'remediat' ? '<span class="status-ok">Remediat</span>' : '<span class="status-no">Nerezolvat</span>' !!}</div>
+                </div>
+            </div>
+        @elseif($document->type === 'proc_verbal_constatare')
+            <div class="section">
+                <h3 class="section-title">D. Martori si masuri</h3>
+                <div class="box">
+                    <div><strong>Martori:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['martori'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Masuri recomandate:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['masuri_recomandate'] ?? 'Nu au fost recomandate masuri suplimentare.' }}</div>
+                </div>
+            </div>
+        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse', 'proc_verbal_predare_primire'], true))
             <div class="section">
                 <h3 class="section-title">D. Constatari la receptie</h3>
                 <div class="box">

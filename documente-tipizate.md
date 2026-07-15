@@ -27,7 +27,7 @@ tipul real (bug pre-existent, corectat la Faza 1).
 | # | Faza | Tipuri | Status |
 |---|------|--------|--------|
 | 1 | Fundatie + PV obligatorii legal | PV receptie lucrari, PV lucrari ascunse | **Facut** |
-| 2 | Restul proceselor verbale | PV predare-primire, PV remediere defecte, PV constatare | Neinceput |
+| 2 | Restul proceselor verbale | PV predare-primire, PV remediere defecte, PV constatare | **Facut** |
 | 3 | Contract | Contract prestari servicii | Neinceput |
 | 4 | Documente financiare/logistice | Factura, Aviz de insotire marfa | Neinceput |
 
@@ -70,3 +70,26 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`billing-
   noi obligatorii (ambele tipuri noi), succes + `type_data` salvat corect cand
   sunt complete, PDF raspunde 200 pentru ambele tipuri (clasic implicit), un tip
   vechi (`invoice`) ramane neschimbat (regression check).
+
+### Faza 2 - Restul proceselor verbale (Facut, 2026-07-15)
+- Acelasi tipar tehnic ca Faza 1, extins la 3 tipuri: **PV predare-primire**
+  (tip nou `proc_verbal_predare_primire`), **PV remediere defecte** (tip nou
+  `proc_verbal_remediere_defecte`) si **PV constatare** (tip existent
+  `proc_verbal_constatare` - primeste pentru prima data campuri si sectiuni PDF
+  proprii, nu mai cade pe formularul/PDF-ul generic).
+- Fara migratie noua - `documents.type_data` (json) exista deja din Faza 1.
+- `StoreDocumentRequest::typeDataRules()`: 3 branch-uri noi in `match` (aceleasi
+  reguli descrise in plan - `stare_remediere` foloseste acelasi tipar binar
+  `Rule::in()` ca `concluzie` de la PV receptie).
+- `DocumentPdfPresenter`: prefixe cod intern noi (`PVP`, `PVD`; `PVC` exista deja
+  pentru constatare).
+- `documents/pdf-classic.blade.php` + `pdf-modern.blade.php`: sectiunile C si D
+  extinse cu cate un branch per tip nou; pentru PV predare-primire sectiunea D
+  ("Constatari...") se omite (nu se aplica conceptual, la fel ca PV lucrari
+  ascunse); pentru PV remediere defecte sectiunea D devine "Stare remediere";
+  pentru PV constatare sectiunea D devine "Martori si masuri".
+- `Documents/Create.vue` + `Edit.vue`: 3 blocuri noi de campuri in lantul
+  `v-if`/`v-else-if`, acelasi stil vizual ca Faza 1.
+- `tests/Feature/TypedDocumentTest.php` extins (nu fisier nou): validare pentru
+  cele 3 tipuri, plus PDF 200 pentru toate cele 5 tipuri tratate pana acum
+  (clasic implicit).

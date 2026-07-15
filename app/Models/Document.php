@@ -26,6 +26,8 @@ class Document extends Model
         'proc_verbal_receptie' => 'Proces verbal de receptie',
         'proc_verbal_constatare' => 'Proces verbal de constatare',
         'proc_verbal_lucrari_ascunse' => 'Proces verbal de lucrari ascunse',
+        'proc_verbal_predare_primire' => 'Proces verbal de predare-primire',
+        'proc_verbal_remediere_defecte' => 'Proces verbal de remediere defecte',
     ];
 
     public static array $paymentStatusLabels = [
