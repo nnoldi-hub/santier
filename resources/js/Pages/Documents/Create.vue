@@ -68,6 +68,51 @@
                     </div>
                 </div>
 
+                <div v-if="form.type === 'proc_verbal_receptie'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii proces verbal de receptie</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Comisie de receptie *</label>
+                        <textarea v-model="form.type_data.comisie" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Nume si functie, cate un membru pe linie" />
+                        <p v-if="form.errors['type_data.comisie']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.comisie'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Descriere lucrari receptionate *</label>
+                        <textarea v-model="form.type_data.descriere_lucrari" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.descriere_lucrari']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.descriere_lucrari'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Defecte constatate</label>
+                        <textarea v-model="form.type_data.defecte" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Concluzie *</label>
+                        <select v-model="form.type_data.concluzie" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="admis">Admis</option>
+                            <option value="respins">Respins</option>
+                        </select>
+                        <p v-if="form.errors['type_data.concluzie']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.concluzie'] }}</p>
+                    </div>
+                </div>
+
+                <div v-else-if="form.type === 'proc_verbal_lucrari_ascunse'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii proces verbal de lucrari ascunse</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Descriere lucrari ascunse *</label>
+                        <textarea v-model="form.type_data.descriere_lucrari_ascunse" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.descriere_lucrari_ascunse']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.descriere_lucrari_ascunse'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Verificari efectuate *</label>
+                        <textarea v-model="form.type_data.verificari_efectuate" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.verificari_efectuate']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.verificari_efectuate'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Responsabil tehnic *</label>
+                        <input v-model="form.type_data.responsabil_tehnic" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.responsabil_tehnic']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.responsabil_tehnic'] }}</p>
+                    </div>
+                </div>
+
                 <div class="flex gap-2 pt-2">
                     <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
                         {{ form.processing ? 'Se salveaza...' : 'Salveaza document' }}
@@ -102,6 +147,15 @@ const form = useForm({
     payment_status: 'unpaid',
     notes: '',
     attachment: null,
+    type_data: {
+        comisie: '',
+        descriere_lucrari: '',
+        defecte: '',
+        concluzie: 'admis',
+        descriere_lucrari_ascunse: '',
+        verificari_efectuate: '',
+        responsabil_tehnic: '',
+    },
 });
 
 function onFileChange(event) {

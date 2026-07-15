@@ -25,6 +25,7 @@ class Document extends Model
         'quality_confirmation' => 'Confirmare calitate',
         'proc_verbal_receptie' => 'Proces verbal de receptie',
         'proc_verbal_constatare' => 'Proces verbal de constatare',
+        'proc_verbal_lucrari_ascunse' => 'Proces verbal de lucrari ascunse',
     ];
 
     public static array $paymentStatusLabels = [
@@ -50,12 +51,14 @@ class Document extends Model
         'mime_type',
         'file_size',
         'notes',
+        'type_data',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'issued_at' => 'date',
         'file_size' => 'integer',
+        'type_data' => 'array',
     ];
 
     public function getTypeLabelAttribute(): string

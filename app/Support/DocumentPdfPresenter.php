@@ -21,7 +21,12 @@ class DocumentPdfPresenter
             $executionPeriod = $document->project->start_date->format('d.m.Y') . ' - ' . $document->project->end_date->format('d.m.Y');
         }
 
-        $internalCodePrefix = $document->type === 'proc_verbal_receptie' ? 'PVR' : ($document->type === 'proc_verbal_constatare' ? 'PVC' : 'DOC');
+        $internalCodePrefix = match ($document->type) {
+            'proc_verbal_receptie' => 'PVR',
+            'proc_verbal_constatare' => 'PVC',
+            'proc_verbal_lucrari_ascunse' => 'PVA',
+            default => 'DOC',
+        };
         $internalCode = $internalCodePrefix . '-' . ($document->issued_at ? $document->issued_at->format('Ym') : now()->format('Ym')) . '-' . str_pad((string) $document->id, 5, '0', STR_PAD_LEFT);
         $uniqueCode = 'UID-' . strtoupper(substr(sha1((string) $document->id . '|' . (string) $document->created_at . '|' . $document->title), 0, 12));
         $isConform = $document->payment_status !== 'cancelled';
@@ -45,6 +50,7 @@ class DocumentPdfPresenter
             'whiteLabel' => $whiteLabel,
             'logoSource' => $logoSource,
             'acceptanceText' => $acceptanceText,
+            'typeData' => is_array($document->type_data ?? null) ? $document->type_data : [],
         ];
     }
 }

@@ -16,7 +16,7 @@ class StoreDocumentRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(array_keys(Document::$typeLabels))],
             'project_id' => ['required', 'exists:projects,id'],
@@ -27,7 +27,31 @@ class StoreDocumentRequest extends FormRequest
             'payment_status' => ['required', Rule::in(array_keys(Document::$paymentStatusLabels))],
             'notes' => ['nullable', 'string', 'max:4000'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,xlsx,xls,csv,doc,docx,png,jpg,jpeg', 'max:10240'],
+            'type_data' => ['nullable', 'array'],
         ];
+
+        return array_merge($rules, $this->typeDataRules((string) $this->input('type')));
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function typeDataRules(string $type): array
+    {
+        return match ($type) {
+            'proc_verbal_receptie' => [
+                'type_data.comisie' => ['required', 'string', 'max:2000'],
+                'type_data.descriere_lucrari' => ['required', 'string', 'max:4000'],
+                'type_data.defecte' => ['nullable', 'string', 'max:4000'],
+                'type_data.concluzie' => ['required', Rule::in(['admis', 'respins'])],
+            ],
+            'proc_verbal_lucrari_ascunse' => [
+                'type_data.descriere_lucrari_ascunse' => ['required', 'string', 'max:4000'],
+                'type_data.verificari_efectuate' => ['required', 'string', 'max:4000'],
+                'type_data.responsabil_tehnic' => ['required', 'string', 'max:255'],
+            ],
+            default => [],
+        };
     }
 
     public function after(): array

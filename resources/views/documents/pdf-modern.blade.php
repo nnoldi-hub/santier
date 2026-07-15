@@ -47,7 +47,7 @@
                         @unless($whiteLabel)
                             <div class="doc-subtitle" style="margin-top: 0; margin-bottom: 4px;">Șantierul devine clar.</div>
                         @endunless
-                        <p class="doc-title">Proces verbal de receptie</p>
+                        <p class="doc-title">{{ $document->type_label }}</p>
                         <div class="doc-subtitle">{{ $document->title }}</div>
                         <div class="doc-meta">Nr. document: {{ $document->id }} · Data emitere: {{ $issuedAt }} · <span class="code-pill">Cod intern: {{ $internalCode }}</span></div>
                     </td>
@@ -112,23 +112,47 @@
         <div class="section">
             <div class="section-title">C. Descrierea lucrarii</div>
             <div class="box">
-                <div><strong>Ce s-a executat:</strong> {{ $document->title }}</div>
-                <div><strong>Conformitate cu proiectul:</strong> {{ $isConform ? 'Conforma cu cerintele stabilite' : 'Necesita verificari suplimentare' }}</div>
-                <div><strong>Materiale folosite:</strong> Conform documentatiei tehnice si devizului aferent.</div>
-                <div><strong>Observatii tehnice:</strong></div>
-                <div style="white-space: pre-line;">{{ !empty($document->notes) ? $document->notes : 'Nu au fost consemnate observatii tehnice suplimentare.' }}</div>
+                @if($document->type === 'proc_verbal_receptie')
+                    <div><strong>Comisie de receptie:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['comisie'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Descriere lucrari receptionate:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['descriere_lucrari'] ?? '-' }}</div>
+                @elseif($document->type === 'proc_verbal_lucrari_ascunse')
+                    <div><strong>Descriere lucrari ascunse:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['descriere_lucrari_ascunse'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Verificari efectuate:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['verificari_efectuate'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Responsabil tehnic:</strong> {{ $typeData['responsabil_tehnic'] ?? '-' }}</div>
+                @else
+                    <div><strong>Ce s-a executat:</strong> {{ $document->title }}</div>
+                    <div><strong>Conformitate cu proiectul:</strong> {{ $isConform ? 'Conforma cu cerintele stabilite' : 'Necesita verificari suplimentare' }}</div>
+                    <div><strong>Materiale folosite:</strong> Conform documentatiei tehnice si devizului aferent.</div>
+                    <div><strong>Observatii tehnice:</strong></div>
+                    <div style="white-space: pre-line;">{{ !empty($document->notes) ? $document->notes : 'Nu au fost consemnate observatii tehnice suplimentare.' }}</div>
+                @endif
             </div>
         </div>
 
-        <div class="section">
-            <div class="section-title">D. Constatari la receptie</div>
-            <div class="box">
-                <div>Stare lucrare: {!! $isConform ? '<span class="status-ok">Conforma</span>' : '<span class="status-no">Neconforma</span>' !!}</div>
-                <div><strong>Defecte constatate:</strong> {{ $isConform ? 'Nu s-au identificat defecte majore la momentul receptiei.' : 'Sunt necesare remedieri inainte de inchiderea receptiei.' }}</div>
-                <div><strong>Recomandari:</strong> Monitorizare post-receptie si validarea documentata a eventualelor observatii.</div>
-                <div><strong>Termen de remediere:</strong> {{ $isConform ? 'Nu este necesar' : 'Se stabileste de comun acord intre beneficiar si executant' }}</div>
+        @if($document->type === 'proc_verbal_receptie')
+            <div class="section">
+                <div class="section-title">D. Constatari la receptie</div>
+                <div class="box">
+                    <div>Concluzie: {!! ($typeData['concluzie'] ?? null) === 'admis' ? '<span class="status-ok">Admis</span>' : '<span class="status-no">Respins</span>' !!}</div>
+                    <div style="margin-top:6px;"><strong>Defecte constatate:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['defecte'] ?? 'Nu au fost consemnate defecte.' }}</div>
+                </div>
             </div>
-        </div>
+        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse'], true))
+            <div class="section">
+                <div class="section-title">D. Constatari la receptie</div>
+                <div class="box">
+                    <div>Stare lucrare: {!! $isConform ? '<span class="status-ok">Conforma</span>' : '<span class="status-no">Neconforma</span>' !!}</div>
+                    <div><strong>Defecte constatate:</strong> {{ $isConform ? 'Nu s-au identificat defecte majore la momentul receptiei.' : 'Sunt necesare remedieri inainte de inchiderea receptiei.' }}</div>
+                    <div><strong>Recomandari:</strong> Monitorizare post-receptie si validarea documentata a eventualelor observatii.</div>
+                    <div><strong>Termen de remediere:</strong> {{ $isConform ? 'Nu este necesar' : 'Se stabileste de comun acord intre beneficiar si executant' }}</div>
+                </div>
+            </div>
+        @endif
 
         <div class="section">
             <div class="section-title">F. Declaratii finale</div>
