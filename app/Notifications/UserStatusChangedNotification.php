@@ -14,6 +14,7 @@ class UserStatusChangedNotification extends Notification
         private readonly string $tenantName,
         private readonly string $status,
         private readonly string $actorName,
+        public readonly bool $whiteLabel = false,
     ) {
     }
 
@@ -43,15 +44,19 @@ class UserStatusChangedNotification extends Notification
 
         $mail = (new MailMessage)
             ->subject($isActive
-                ? 'Contul tau din Modulia a fost reactivat'
-                : 'Contul tau din Modulia a fost suspendat')
+                ? 'Contul tau' . ($this->whiteLabel ? '' : ' din Modulia') . ' a fost reactivat'
+                : 'Contul tau' . ($this->whiteLabel ? '' : ' din Modulia') . ' a fost suspendat')
             ->line(($isActive ? 'Contul tau in firma "' : 'Contul tau in firma "') . $this->tenantName . '" a fost '
                 . ($isActive ? 'reactivat' : 'suspendat') . ' de ' . $this->actorName . '.');
 
         if ($isActive) {
-            $mail->action('Deschide Modulia', url(route('dashboard', [], false)));
+            $mail->action($this->whiteLabel ? 'Deschide aplicatia' : 'Deschide Modulia', url(route('dashboard', [], false)));
         } else {
             $mail->line('Nu mai poti accesa aplicatia pana cand contul tau este reactivat de un administrator al firmei.');
+        }
+
+        if (!$this->whiteLabel) {
+            $mail->line('Modulia - Șantierul devine clar.');
         }
 
         return $mail;

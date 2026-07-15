@@ -603,8 +603,7 @@ class ExportController extends Controller
     {
         $filters = ExportFilter::fromRequest($request);
         $types = ExportFilter::csvToArray($request->string('types')->toString());
-        $branding = AppSetting::allForTenant(config('platform.defaults', []), TenantContext::id($request->user()));
-        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding = DocumentBranding::resolve(TenantContext::id($request->user()));
 
         if (empty($types)) {
             $types = ['wbs', 'equipment', 'documents', 'stage-reports', 'stage-tasks', 'stage-progress', 'costs', 'tasks', 'defects', 'resource-comparison', 'material-timeline', 'equipment-consumption'];
@@ -639,6 +638,7 @@ class ExportController extends Controller
                 'company_address' => $branding['company_address'] ?? '',
                 'document_logo_url' => $branding['document_logo_url'] ?? '',
                 'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
+                'white_label' => $branding['white_label'],
             ],
             'generatedAt' => now()->toDateTimeString(),
             'filters' => $filters,

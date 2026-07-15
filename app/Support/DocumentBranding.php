@@ -2,8 +2,37 @@
 
 namespace App\Support;
 
+use App\Models\AppSetting;
+
 class DocumentBranding
 {
+    /**
+     * Assembles the full branding array for a tenant's PDFs/emails: platform
+     * defaults layered with tenant overrides (AppSetting::allForTenant), the
+     * logo resolved to a renderer-loadable path, and white-label applied - on
+     * an enterprise-plan tenant that hasn't customized its own branding yet,
+     * the Modulia name/logo defaults are blanked instead of leaking through.
+     */
+    public static function resolve(int $tenantId): array
+    {
+        $defaults = config('platform.defaults', []);
+        $branding = AppSetting::allForTenant($defaults, $tenantId);
+        $whiteLabel = PricingPlan::tenantHasFeature($tenantId, 'white_label');
+
+        if ($whiteLabel) {
+            foreach (['company_name', 'app_name', 'document_logo_url'] as $key) {
+                if (($branding[$key] ?? null) === ($defaults[$key] ?? null)) {
+                    $branding[$key] = '';
+                }
+            }
+        }
+
+        $branding['document_logo_url'] = self::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding['white_label'] = $whiteLabel;
+
+        return $branding;
+    }
+
     /**
      * Resolves a stored document_logo_url (which may be a site-relative path like
      * /storage/branding/xxx.png, meant for browser rendering) into something PDF/XLSX

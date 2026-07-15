@@ -36,7 +36,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 | # | Faza | Domeniu | Status |
 |---|------|---------|--------|
 | 1 | Limite reale de utilizatori | `PricingPlan::canInviteUser()` (acelasi tipar ca `canCreateProject()`) + verificare in `TenantUserController::invite()` | **Facut** |
-| 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri (`documents/pdf.blade.php`, `exports/managerial-pdf.blade.php`) si emailuri (`quote-sent.blade.php`, `UserInvitedNotification`) cand `PricingPlan::hasFeature($user,'white_label')` | Neinceput |
+| 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri, exporturi, oferte, export programat si notificari interne de echipa cand tenantul are `white_label` in plan | **Facut** |
 | 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | Neinceput |
 | 4 | Aprobari documente (facturare) | Necesita clarificare cu utilizatorul ce inseamna exact ("aprobari" - flux de sign-off inainte de trimiterea unui document catre client?) inainte de plan | Neinceput |
 | 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan. **Blocaje externe**: necesita cont Stripe + chei de test de la utilizator; `laravel/cashier` trebuie verificat pentru compatibilitate cu Laravel `^13.8` (posibil prea nou fata de ce documenteaza Cashier azi) inainte de a incepe | Neinceput |
@@ -80,3 +80,37 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
   nu e blocata de limita.
 - Ramas explicit in afara scopului: indicator vizual "X din Y locuri" in pagina de
   utilizatori (doar mesaj de eroare la limita in aceasta faza).
+
+### Faza 2 - White-label (Facut, 2026-07-14)
+- **Descoperire cheie**: `document_logo_url`/`company_name`/`app_name` au deja
+  "Modulia" ca valoare implicita in `config/platform.php` - deci brand-ul Modulia nu
+  venea doar din fallback-uri moarte din Blade (`?? 'Modulia'`), ci direct din
+  `AppSetting::allForTenant()`. Rezolvarea corecta s-a mutat la sursa: `App\Support\
+  DocumentBranding::resolve(int $tenantId): array` (metoda noua) asambleaza branding-ul
+  o singura data si goleste `company_name`/`app_name`/`document_logo_url` DOAR cand
+  tenantul e pe plan cu `white_label` SI inca are valoarea implicita (nu suprascrie
+  branding-ul propriu al tenantului). `App\Support\PricingPlan` a primit
+  `planForTenant()`/`tenantHasFeature()` - varianta pe `tenant_id` direct, fara
+  `User`, necesara pentru job-uri in coada si alte contexte fara `Auth`.
+- Aplicat in: `DocumentController::pdf()`, `QuoteController::pdf()`/`send()`,
+  `ExportController::managerialPdf()`, `SiteOrganizationController::exportPdf()`,
+  `RunExportSubscriptionJob` (export programat, tenant rezolvat direct din
+  `ExportSubscription::tenant_id`, fara `Auth`), `QuoteSentMail`,
+  `ScheduledExportMail`, si toate cele 4 notificari interne de echipa
+  (`UserInvitedNotification`, `UserStatusChangedNotification`,
+  `UserRoleChangedNotification`, `ProjectRoleChangedNotification`).
+- Semnatura globala "Modulia - Șantierul devine clar." din view-ul vendor Laravel
+  (`vendor/notifications/email.blade.php`, folosit de TOATE notificarile bazate pe
+  `MailMessage`, inclusiv reset parola) a fost scoasa din view-ul global (nu avea
+  acces la context de tenant) si re-adaugata condiționat, ca linie normala, in
+  fiecare din cele 4 notificari cu context de tenant - comportament vizual identic
+  pentru toti tenantii non-enterprise.
+- **Bug pre-existent gasit si corectat, neinlegatura cu white-label**:
+  `emails/quote-sent.blade.php` continea 2 linii de continut de INVITATIE
+  ("Ai fost invitat in Modulia...", "Activeaza contul...") intr-un email de OFERTA -
+  clar copy-paste gresit, sters indiferent de plan.
+- Test `tests/Feature/WhiteLabelBrandingTest.php`: `DocumentBranding::resolve()`
+  direct (enterprise fara branding propriu -> gol; free -> Modulia; enterprise CU
+  branding propriu -> valorile proprii), `QuoteSentMail.whiteLabel` corect dupa plan
+  (`Mail::fake()`), `UserInvitedNotification.whiteLabel` corect dupa plan
+  (`Notification::fake()`).

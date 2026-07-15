@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AppSetting;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Contractor;
 use App\Models\Document;
@@ -254,8 +253,7 @@ class DocumentController extends Controller
             'stage:id,name,start_date,end_date',
             'contractor:id,name',
         ]);
-        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $document->tenant_id);
-        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding = DocumentBranding::resolve((int) $document->tenant_id);
 
         $fileName = sprintf('%s-%d.pdf', str($document->title)->slug('-'), $document->id);
 

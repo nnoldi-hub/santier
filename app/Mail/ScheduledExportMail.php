@@ -18,13 +18,14 @@ class ScheduledExportMail extends Mailable
         public string $exportType,
         public string $format,
         public string $filePath,
+        public bool $whiteLabel = false,
     ) {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Modulia - Șantierul devine clar - Export automat: ' . $this->subscriptionName,
+            subject: ($this->whiteLabel ? '' : 'Modulia - Șantierul devine clar - ') . 'Export automat: ' . $this->subscriptionName,
         );
     }
 
@@ -37,6 +38,7 @@ class ScheduledExportMail extends Mailable
                 'exportType' => $this->exportType,
                 'format' => strtoupper($this->format),
                 'generatedAt' => now()->format('Y-m-d H:i:s'),
+                'whiteLabel' => $this->whiteLabel,
             ],
         );
     }

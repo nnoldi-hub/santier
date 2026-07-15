@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Project;
+use App\Support\PricingPlan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -51,14 +52,25 @@ class ProjectRoleChangedNotification extends Notification
         };
 
         $roleLabel = $this->roleKey !== null ? strtoupper($this->roleKey) : 'N/A';
+        $whiteLabel = PricingPlan::tenantHasFeature((int) $this->project->tenant_id, 'white_label');
 
-        return (new MailMessage)
-            ->subject('Invitatie Modulia - Șantierul devine clar')
-            ->line('Ai fost invitat in Modulia, platforma moderna pentru management de santier.')
-            ->line('Rolul tau pe proiect a fost ' . $eventLabel . '.')
+        $mail = (new MailMessage)
+            ->subject($whiteLabel ? 'Invitatie proiect' : 'Invitatie Modulia - Șantierul devine clar');
+
+        if (!$whiteLabel) {
+            $mail->line('Ai fost invitat in Modulia, platforma moderna pentru management de santier.');
+        }
+
+        $mail->line('Rolul tau pe proiect a fost ' . $eventLabel . '.')
             ->line('Proiect: ' . $this->project->name)
             ->line('Rol: ' . $roleLabel)
             ->line('Operat de: ' . $this->actorName)
             ->action('Deschide proiectul', route('projects.show', $this->project->id));
+
+        if (!$whiteLabel) {
+            $mail->line('Modulia - Șantierul devine clar.');
+        }
+
+        return $mail;
     }
 }

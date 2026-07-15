@@ -182,7 +182,8 @@ class TenantUserController extends Controller
         });
 
         $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
-        $member->notify(new UserInvitedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name));
+        $whiteLabel = PricingPlan::tenantHasFeature($tenantId, 'white_label');
+        $member->notify(new UserInvitedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name, $whiteLabel));
 
         return back()->with('success', 'Utilizatorul a fost adaugat in firma si i s-a atribuit rolul selectat.');
     }
@@ -200,7 +201,8 @@ class TenantUserController extends Controller
 
         $roleLabel = IamLabels::roleLabel((string) ($membership->user->roles->first()->name ?? ''));
         $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
-        $membership->user->notify(new UserInvitedNotification($tenantName, $roleLabel, (string) $actor->name));
+        $whiteLabel = PricingPlan::tenantHasFeature($tenantId, 'white_label');
+        $membership->user->notify(new UserInvitedNotification($tenantName, $roleLabel, (string) $actor->name, $whiteLabel));
 
         AccessAudit::log(
             action: 'iam.user.reinvited',
@@ -281,7 +283,8 @@ class TenantUserController extends Controller
 
         if ($membership->user) {
             $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
-            $membership->user->notify(new UserStatusChangedNotification($tenantName, $data['status'], (string) $actor->name));
+            $whiteLabel = PricingPlan::tenantHasFeature($tenantId, 'white_label');
+            $membership->user->notify(new UserStatusChangedNotification($tenantName, $data['status'], (string) $actor->name, $whiteLabel));
         }
 
         return back()->with('success', $data['status'] === 'active' ? 'Utilizator reactivat.' : 'Utilizator suspendat.');
@@ -321,7 +324,8 @@ class TenantUserController extends Controller
 
         if ($membership->user) {
             $tenantName = (string) (Tenant::find($tenantId)?->name ?? 'firma ta');
-            $membership->user->notify(new UserRoleChangedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name));
+            $whiteLabel = PricingPlan::tenantHasFeature($tenantId, 'white_label');
+            $membership->user->notify(new UserRoleChangedNotification($tenantName, IamLabels::roleLabel((string) $role->name), (string) $actor->name, $whiteLabel));
         }
 
         return back()->with('success', 'Rolul utilizatorului a fost actualizat.');

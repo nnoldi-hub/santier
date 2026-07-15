@@ -50,10 +50,11 @@
         $uniqueCode = 'UID-' . strtoupper(substr(sha1((string) $document->id . '|' . (string) $document->created_at . '|' . $document->title), 0, 12));
         $isConform = $document->payment_status !== 'cancelled';
         $documentIssuer = trim((string) ($branding['document_issuer_name'] ?? ''));
+        $whiteLabel = $branding['white_label'] ?? false;
         $fallbackLogo = public_path('brand/logo_modulia.png');
         $logoSource = !empty($branding['document_logo_url'])
             ? $branding['document_logo_url']
-            : (file_exists($fallbackLogo) ? $fallbackLogo : null);
+            : (!$whiteLabel && file_exists($fallbackLogo) ? $fallbackLogo : null);
         $acceptanceText = $isConform
             ? 'Lucrarea a fost receptionata si acceptata conform verificarilor efectuate.'
             : 'Lucrarea necesita remedieri inainte de receptia finala.';
@@ -65,15 +66,17 @@
                 <tr>
                     <td>
                         @if(!empty($logoSource))
-                            <img class="logo" src="{{ $logoSource }}" alt="{{ $branding['company_name'] ?? 'Modulia' }} logo">
+                            <img class="logo" src="{{ $logoSource }}" alt="{{ $branding['company_name'] }} logo">
                         @endif
-                        <div class="doc-subtitle" style="margin-top: 0; margin-bottom: 4px;">Șantierul devine clar.</div>
+                        @unless($whiteLabel)
+                            <div class="doc-subtitle" style="margin-top: 0; margin-bottom: 4px;">Șantierul devine clar.</div>
+                        @endunless
                         <p class="doc-title">Proces verbal de receptie</p>
                         <div class="doc-subtitle">{{ $document->title }}</div>
                         <div class="doc-meta">Nr. document: {{ $document->id }} · Data emitere: {{ $issuedAt }} · <span class="code-pill">Cod intern: {{ $internalCode }}</span></div>
                     </td>
                     <td class="company-box">
-                        <div><strong>{{ $branding['company_name'] ?? 'Modulia' }}</strong></div>
+                        <div><strong>{{ $branding['company_name'] }}</strong></div>
                         @if($documentIssuer !== '')<div>Emitent: {{ $documentIssuer }}</div>@endif
                         @if(!empty($branding['company_address']))<div>{{ $branding['company_address'] }}</div>@endif
                         @if(!empty($branding['company_phone']))<div>Tel: {{ $branding['company_phone'] }}</div>@endif
@@ -193,7 +196,16 @@
         </div>
 
         <div class="footer">
-            H. Footer: Document generat automat de {{ $branding['app_name'] ?? 'Modulia' }} la {{ now()->format('d.m.Y H:i') }} · Cod unic document: {{ $uniqueCode }} · modulia.ro · © 2026 Modulia
+            H. Footer:
+            @if(!empty($branding['app_name']))
+                Document generat automat de {{ $branding['app_name'] }} la {{ now()->format('d.m.Y H:i') }} ·
+            @else
+                Document generat la {{ now()->format('d.m.Y H:i') }} ·
+            @endif
+            Cod unic document: {{ $uniqueCode }}
+            @unless($whiteLabel)
+                · modulia.ro · © 2026 Modulia
+            @endunless
         </div>
     </div>
 </body>

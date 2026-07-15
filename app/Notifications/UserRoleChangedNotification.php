@@ -14,6 +14,7 @@ class UserRoleChangedNotification extends Notification
         private readonly string $tenantName,
         private readonly string $roleLabel,
         private readonly string $actorName,
+        public readonly bool $whiteLabel = false,
     ) {
     }
 
@@ -39,10 +40,16 @@ class UserRoleChangedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject('Rolul tau in Modulia a fost actualizat')
+        $mail = (new MailMessage)
+            ->subject($this->whiteLabel ? 'Rolul tau a fost actualizat' : 'Rolul tau in Modulia a fost actualizat')
             ->line('Rolul tau in firma "' . $this->tenantName . '" a fost actualizat de ' . $this->actorName . '.')
             ->line('Noul tau rol: ' . $this->roleLabel . '.')
-            ->action('Deschide Modulia', url(route('dashboard', [], false)));
+            ->action($this->whiteLabel ? 'Deschide aplicatia' : 'Deschide Modulia', url(route('dashboard', [], false)));
+
+        if (!$this->whiteLabel) {
+            $mail->line('Modulia - Șantierul devine clar.');
+        }
+
+        return $mail;
     }
 }

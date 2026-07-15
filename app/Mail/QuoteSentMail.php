@@ -19,13 +19,14 @@ class QuoteSentMail extends Mailable
         public string $pdfBinary,
         public string $fileName,
         public string $recipientName = '',
+        public bool $whiteLabel = false,
     ) {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Modulia - Șantierul devine clar - Oferta ' . $this->quote->title,
+            subject: ($this->whiteLabel ? '' : 'Modulia - Șantierul devine clar - ') . 'Oferta ' . $this->quote->title,
         );
     }
 
@@ -36,6 +37,7 @@ class QuoteSentMail extends Mailable
             with: [
                 'quote' => $this->quote,
                 'recipientName' => $this->recipientName,
+                'whiteLabel' => $this->whiteLabel,
             ],
         );
     }

@@ -9,6 +9,7 @@ use App\Support\ExportAudit;
 use App\Support\ExportChartBuilder;
 use App\Support\ExportDatasetBuilder;
 use App\Support\ExportScheduleCalculator;
+use App\Support\PricingPlan;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -35,6 +36,7 @@ class RunExportSubscriptionJob implements ShouldQueue
         $filters = $subscription->filters ?? [];
         $format = strtolower($subscription->format);
         $exportType = $subscription->export_type;
+        $whiteLabel = PricingPlan::tenantHasFeature((int) $subscription->tenant_id, 'white_label');
 
         $fileName = sprintf('%s_%s.%s', $exportType, now()->format('Ymd_His'), $format);
         $relativePath = 'exports/scheduled/' . $fileName;
@@ -53,10 +55,11 @@ class RunExportSubscriptionJob implements ShouldQueue
             $pdf = Pdf::loadView('exports.managerial-pdf', [
                 'title' => 'Raport programat: ' . $subscription->name,
                 'branding' => [
-                    'company_name' => config('exports.company_name'),
+                    'company_name' => $whiteLabel ? '' : config('exports.company_name'),
                     'company_email' => config('exports.company_email'),
                     'company_phone' => config('exports.company_phone'),
                     'brand_color' => config('exports.brand_color'),
+                    'white_label' => $whiteLabel,
                 ],
                 'generatedAt' => now()->toDateTimeString(),
                 'filters' => $filters,
@@ -113,6 +116,7 @@ class RunExportSubscriptionJob implements ShouldQueue
                 exportType: $exportType,
                 format: $format,
                 filePath: $fullPath,
+                whiteLabel: $whiteLabel,
             ));
         }
 

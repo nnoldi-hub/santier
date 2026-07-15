@@ -15,6 +15,7 @@ class UserInvitedNotification extends Notification
         private readonly string $tenantName,
         private readonly string $roleLabel,
         private readonly string $actorName,
+        public readonly bool $whiteLabel = false,
     ) {
     }
 
@@ -43,12 +44,20 @@ class UserInvitedNotification extends Notification
         $token = Password::createToken($notifiable);
         $url = url(route('password.reset', ['token' => $token, 'email' => $notifiable->email], false));
 
-        return (new MailMessage)
-            ->subject('Ai fost invitat in Modulia - Șantierul devine clar')
-            ->line($this->actorName . ' te-a adaugat in firma "' . $this->tenantName . '" pe Modulia.')
+        $mail = (new MailMessage)
+            ->subject($this->whiteLabel
+                ? 'Ai fost invitat in firma "' . $this->tenantName . '"'
+                : 'Ai fost invitat in Modulia - Șantierul devine clar')
+            ->line($this->actorName . ' te-a adaugat in firma "' . $this->tenantName . '"' . ($this->whiteLabel ? '.' : ' pe Modulia.'))
             ->line('Rolul tau: ' . $this->roleLabel . '.')
             ->line('Apasa butonul de mai jos ca sa-ti setezi parola si sa-ti activezi contul.')
             ->action('Seteaza-ti parola', $url)
             ->line('Linkul expira in ' . config('auth.passwords.users.expire', 60) . ' de minute.');
+
+        if (!$this->whiteLabel) {
+            $mail->line('Modulia - Șantierul devine clar.');
+        }
+
+        return $mail;
     }
 }

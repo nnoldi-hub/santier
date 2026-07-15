@@ -127,4 +127,18 @@ class PricingPlan
     {
         return $user->currentTenant ?: $user->tenant;
     }
+
+    public static function planForTenant(int $tenantId): string
+    {
+        $plan = Tenant::find($tenantId)?->billing_plan ?: 'free';
+
+        return array_key_exists($plan, config('pricing.plans', [])) ? $plan : 'free';
+    }
+
+    public static function tenantHasFeature(int $tenantId, string $feature): bool
+    {
+        $plan = self::planForTenant($tenantId);
+
+        return (bool) config("pricing.plans.{$plan}.features.{$feature}", false);
+    }
 }

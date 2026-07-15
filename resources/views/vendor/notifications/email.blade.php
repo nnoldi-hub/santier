@@ -43,9 +43,6 @@
 {{ config('app.name') }}
 @endif
 
-<br>
-Modulia - Șantierul devine clar.
-
 {{-- Subcopy --}}
 @isset($actionText)
 <x-slot:subcopy>

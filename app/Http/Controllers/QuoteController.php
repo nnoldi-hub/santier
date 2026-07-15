@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreQuoteRequest;
 use App\Mail\QuoteSentMail;
-use App\Models\AppSetting;
 use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
@@ -256,8 +255,7 @@ class QuoteController extends Controller
     {
         $this->ensureTenantAccess($quote);
         $quote->loadMissing(['project:id,name', 'creator:id,name', 'items']);
-        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
-        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding = DocumentBranding::resolve((int) $quote->tenant_id);
 
         [$displayNotes, $breakdown] = $this->extractBreakdownFromNotes((string) ($quote->notes ?? ''));
 
@@ -306,8 +304,7 @@ class QuoteController extends Controller
             $breakdown = $this->buildBreakdownFromItems($quote->items);
         }
 
-        $branding = AppSetting::allForTenant(config('platform.defaults', []), (int) $quote->tenant_id);
-        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding = DocumentBranding::resolve((int) $quote->tenant_id);
         $meta = is_array($quote->meta) ? $quote->meta : [];
 
         $pdfBinary = Pdf::loadView('quotes.pdf', [
@@ -328,6 +325,7 @@ class QuoteController extends Controller
                 pdfBinary: $pdfBinary,
                 fileName: $pdfFileName,
                 recipientName: (string) ($quote->project?->client?->name ?? ''),
+                whiteLabel: (bool) $branding['white_label'],
             ));
         } catch (Throwable $e) {
             return back()->with('error', 'Trimiterea emailului a esuat: ' . $e->getMessage());

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SitePlanningWorkbookExport;
-use App\Models\AppSetting;
 use App\Models\Contractor;
 use App\Models\Equipment;
 use App\Models\Material;
@@ -83,8 +82,7 @@ class SiteOrganizationController extends Controller
         $sections = SitePlanningExporter::buildSections($data);
         $fileName = 'plan-organizare-' . Str::slug($project->name) . '-' . now()->format('Ymd_His') . '.pdf';
 
-        $branding = AppSetting::allForTenant(config('platform.defaults', []), $tenantId);
-        $branding['document_logo_url'] = DocumentBranding::resolveLogoPath($branding['document_logo_url'] ?? null) ?? '';
+        $branding = DocumentBranding::resolve($tenantId);
 
         ExportAudit::log('site-planning-pdf', 'pdf', ['project_id' => $project->id], [
             'file_name' => $fileName,
@@ -99,6 +97,7 @@ class SiteOrganizationController extends Controller
                 'company_address' => $branding['company_address'] ?? '',
                 'document_logo_url' => $branding['document_logo_url'] ?? '',
                 'brand_color' => $branding['document_brand_color'] ?? config('exports.brand_color'),
+                'white_label' => $branding['white_label'],
             ],
             'generatedAt' => now()->toDateTimeString(),
             'filters' => ['project' => $project->name],

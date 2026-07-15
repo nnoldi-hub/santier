@@ -28,30 +28,35 @@
 </head>
 <body>
     @php
+        $whiteLabel = $branding['white_label'] ?? false;
         $fallbackLogo = public_path('brand/logo_modulia.png');
         $logoSource = !empty($branding['document_logo_url'])
             ? $branding['document_logo_url']
-            : (file_exists($fallbackLogo) ? $fallbackLogo : null);
+            : (!$whiteLabel && file_exists($fallbackLogo) ? $fallbackLogo : null);
     @endphp
     <div class="header">
         <div class="brand-row">
             <div>
                 @if(!empty($logoSource))
-                    <img class="brand-logo" src="{{ $logoSource }}" alt="{{ $branding['company_name'] ?? 'Modulia' }} logo">
+                    <img class="brand-logo" src="{{ $logoSource }}" alt="{{ $branding['company_name'] ?? '' }} logo">
                 @endif
-                <div class="small" style="margin-bottom: 4px;">Șantierul devine clar.</div>
+                @unless($whiteLabel)
+                    <div class="small" style="margin-bottom: 4px;">Șantierul devine clar.</div>
+                @endunless
                 <h1 class="title">{{ $title }}</h1>
                 <div class="meta">Generat la: {{ $generatedAt }}</div>
             </div>
             <div class="meta" style="text-align:right;">
-                <div><strong>{{ $branding['company_name'] ?? 'Modulia' }}</strong></div>
+                <div><strong>{{ $branding['company_name'] ?? '' }}</strong></div>
                 @if(!empty($branding['company_address']))<div>{{ $branding['company_address'] }}</div>@endif
                 @if(!empty($branding['company_email']))<div>Email: {{ $branding['company_email'] }}</div>@endif
                 @if(!empty($branding['company_phone']))<div>Telefon: {{ $branding['company_phone'] }}</div>@endif
             </div>
         </div>
         <div class="small">Filtre: {{ json_encode($filters, JSON_UNESCAPED_UNICODE) }}</div>
-        <div class="small" style="margin-top: 6px;">modulia.ro · © 2026 Modulia</div>
+        @unless($whiteLabel)
+            <div class="small" style="margin-top: 6px;">modulia.ro · © 2026 Modulia</div>
+        @endunless
     </div>
 
     @foreach($sections as $section)
