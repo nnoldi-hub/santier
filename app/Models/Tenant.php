@@ -14,6 +14,7 @@ class Tenant extends Model
     protected $fillable = [
         'name',
         'slug',
+        'custom_domain',
         'billing_plan',
         'billing_trial_ends_at',
         'status',

@@ -13,13 +13,13 @@ use App\Models\QuoteItem;
 use App\Models\QuoteTemplate;
 use App\Support\DocumentBranding;
 use App\Support\PricingPlan;
+use App\Support\QuoteBreakdownResolver;
 use App\Support\QuotePdfPresenter;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -29,8 +29,6 @@ use Throwable;
 
 class QuoteController extends Controller
 {
-    private const AI_BREAKDOWN_MARKER = '[AI_BREAKDOWN_JSON]';
-
     public function index(Request $request): Response
     {
         $tenantId = TenantContext::id($request->user());
@@ -263,10 +261,10 @@ class QuoteController extends Controller
         $quote->loadMissing(['project:id,name', 'creator:id,name', 'items']);
         $branding = DocumentBranding::resolve((int) $quote->tenant_id);
 
-        [$displayNotes, $breakdown] = $this->extractBreakdownFromNotes((string) ($quote->notes ?? ''));
+        [$displayNotes, $breakdown] = QuoteBreakdownResolver::extractBreakdownFromNotes((string) ($quote->notes ?? ''));
 
         if (!is_array($breakdown) && $quote->items->isNotEmpty()) {
-            $breakdown = $this->buildBreakdownFromItems($quote->items);
+            $breakdown = QuoteBreakdownResolver::buildBreakdownFromItems($quote->items);
         }
 
         $meta = is_array($quote->meta) ? $quote->meta : [];
@@ -350,10 +348,10 @@ class QuoteController extends Controller
             return back()->with('error', 'Oferta nu poate fi trimisa: clientul proiectului nu are email definit.');
         }
 
-        [$displayNotes, $breakdown] = $this->extractBreakdownFromNotes((string) ($quote->notes ?? ''));
+        [$displayNotes, $breakdown] = QuoteBreakdownResolver::extractBreakdownFromNotes((string) ($quote->notes ?? ''));
 
         if (!is_array($breakdown) && $quote->items->isNotEmpty()) {
-            $breakdown = $this->buildBreakdownFromItems($quote->items);
+            $breakdown = QuoteBreakdownResolver::buildBreakdownFromItems($quote->items);
         }
 
         $branding = DocumentBranding::resolve((int) $quote->tenant_id);
@@ -369,6 +367,7 @@ class QuoteController extends Controller
         ])->output();
 
         $pdfFileName = sprintf('oferta-%d-v%d.pdf', $quote->id, $quote->version);
+        $publicUrl = $this->publicQuoteUrl($quote);
 
         try {
             Mail::to($clientEmail)->send(new QuoteSentMail(
@@ -377,6 +376,7 @@ class QuoteController extends Controller
                 fileName: $pdfFileName,
                 recipientName: (string) ($quote->project?->client?->name ?? ''),
                 whiteLabel: (bool) $branding['white_label'],
+                publicUrl: $publicUrl,
             ));
         } catch (Throwable $e) {
             return back()->with('error', 'Trimiterea emailului a esuat: ' . $e->getMessage());
@@ -467,6 +467,32 @@ class QuoteController extends Controller
         }
 
         abort_unless((int) $quote->tenant_id === TenantContext::id($user), 404);
+    }
+
+    /**
+     * Builds the signed public link for a quote, generated against the
+     * tenant's own custom_domain when it has one (Enterprise feature) so the
+     * signature validates when the client opens it on that domain instead of
+     * the main app domain.
+     */
+    private function publicQuoteUrl(Quote $quote): string
+    {
+        $tenant = \App\Models\Tenant::find($quote->tenant_id);
+        $customDomain = ($tenant?->custom_domain && PricingPlan::tenantHasFeature((int) $quote->tenant_id, 'custom_domain'))
+            ? $tenant->custom_domain
+            : null;
+
+        if ($customDomain) {
+            \Illuminate\Support\Facades\URL::forceRootUrl('https://' . $customDomain);
+        }
+
+        $url = \Illuminate\Support\Facades\URL::signedRoute('public.quotes.show', ['quote' => $quote->id]);
+
+        if ($customDomain) {
+            \Illuminate\Support\Facades\URL::forceRootUrl((string) config('app.url'));
+        }
+
+        return $url;
     }
 
     private function normalizeQuoteItems(array $rawItems, int $tenantId): array
@@ -664,78 +690,4 @@ class QuoteController extends Controller
         QuoteItem::query()->insert($payload);
     }
 
-    private function buildBreakdownFromItems(Collection $items): array
-    {
-        $materials = [];
-        $labor = [];
-        $equipment = [];
-        $materialsTotal = 0.0;
-        $laborTotal = 0.0;
-        $equipmentTotal = 0.0;
-
-        foreach ($items as $item) {
-            $lineTotal = (float) $item->line_sell_total;
-
-            if ($item->item_type === 'material') {
-                $materials[] = [
-                    'name' => $item->name,
-                    'quantity' => (float) $item->quantity,
-                    'unit' => $item->unit,
-                    'unit_price' => (float) $item->sell_unit_price,
-                    'estimated_cost' => $lineTotal,
-                ];
-                $materialsTotal += $lineTotal;
-                continue;
-            }
-
-            if ($item->item_type === 'equipment') {
-                $equipment[] = [
-                    'name' => $item->name,
-                    'estimated_hours' => (float) $item->quantity,
-                    'hour_rate' => (float) $item->sell_unit_price,
-                    'estimated_cost' => $lineTotal,
-                ];
-                $equipmentTotal += $lineTotal;
-                continue;
-            }
-
-            $labor[] = [
-                'name' => $item->name,
-                'estimated_hours' => (float) $item->quantity,
-                'hour_rate' => (float) $item->sell_unit_price,
-                'estimated_cost' => $lineTotal,
-            ];
-            $laborTotal += $lineTotal;
-        }
-
-        return [
-            'materials' => $materials,
-            'labor' => $labor,
-            'equipment' => $equipment,
-            'totals' => [
-                'materials_cost' => round($materialsTotal, 2),
-                'labor_cost' => round($laborTotal, 2),
-                'equipment_cost' => round($equipmentTotal, 2),
-                'total_net' => round($materialsTotal + $laborTotal + $equipmentTotal, 2),
-            ],
-        ];
-    }
-
-    private function extractBreakdownFromNotes(string $notes): array
-    {
-        if ($notes === '' || !str_contains($notes, self::AI_BREAKDOWN_MARKER)) {
-            return [trim($notes), null];
-        }
-
-        $parts = explode(self::AI_BREAKDOWN_MARKER, $notes, 2);
-        $plainNotes = trim($parts[0]);
-        $jsonRaw = trim($parts[1] ?? '');
-        $decoded = json_decode($jsonRaw, true);
-
-        if (!is_array($decoded)) {
-            return [$plainNotes, null];
-        }
-
-        return [$plainNotes, $decoded];
-    }
 }

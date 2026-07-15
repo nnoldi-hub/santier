@@ -40,7 +40,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 | 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | **Facut** |
 | 4 | Aprobari documente (facturare) | Sign-off intern (manager/owner) inainte de trimiterea unei Oferte catre client | **Facut** |
 | 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan | **Facut** |
-| 6 | Domeniu propriu per tenant | Cea mai grea din punct de vedere infrastructura (DNS, SSL, verificare domeniu) - hosting-ul actual e shared hosting Hostico/cPanel, trebuie verificat ce suporta inainte de a promite ceva | Neinceput |
+| 6 | Pagina publica de oferta + domeniu propriu per tenant | Pagina publica noua "Vezi oferta online" (nu exista deloc inainte) + domeniu propriu (Enterprise) doar pentru link-ul trimis clientului | **Facut** |
 
 **Ordinea propusa**: fazele 1-2 sunt rapide si fara dependinte externe (bun punct de
 plecare). Faza 3 e un proiect de sine statator (UI + layout-uri noi). Faza 4 are
@@ -251,3 +251,51 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
   `php artisan vendor:publish --tag=cashier-migrations --tag=cashier-config`,
   `php artisan migrate --force`, apoi cele 6 variabile `.env` de mai sus,
   `optimize:clear`.
+
+### Faza 6 - Pagina publica de oferta + domeniu propriu (Facut, 2026-07-15)
+- **Descoperire care a schimbat scopul initial**: "domeniu propriu" presupunea o
+  pagina publica existenta - nu exista deloc (`QuoteSentMail` trimitea doar PDF
+  atasat, fara link; nicio ruta semnata; `Tenant.slug` complet decorativ). Faza a
+  devenit doua lucruri: (A) pagina publica noua, (B) domeniu propriu deasupra ei -
+  ambele confirmate cu utilizatorul.
+- **Descoperire care a simplificat domeniul propriu**: pagina publica rezolva
+  tenantul din `Quote.tenant_id` (route-model-binding), nu din domeniu - deci NU a
+  fost nevoie de middleware nou de rezolutie tenant-din-domeniu. Domeniul propriu
+  ramane strict cosmetic: ce hostname apare in link-ul din email.
+- `App\Support\QuoteBreakdownResolver` (nou) - `extractBreakdownFromNotes()` si
+  `buildBreakdownFromItems()` extrase din `QuoteController` (erau private, acum
+  refolosite de 3 locuri: `pdf()`, `send()`, noul `PublicQuoteController`).
+- `PublicQuoteController::show()` (nou) + ruta `GET oferte/{quote}/vizualizare`
+  (in afara grupului `auth`, middleware `signed`) - randeaza `Public/QuoteShow.vue`
+  (folder nou `Public/`, fara `AppLayout`) cu exact aceleasi date pe care clientul
+  le primeste deja in PDF-ul atasat (via `QuotePdfPresenter::present()`) - nicio
+  informatie noua expusa.
+- `QuoteController::send()`: metoda noua `publicQuoteUrl()` genereaza link-ul
+  semnat (`URL::signedRoute()`), permanent (nu expira - pagina arata doar un
+  banner "oferta a expirat" cand e cazul, nu blocheaza accesul). Pentru tenant
+  Enterprise cu `custom_domain` setat, link-ul se genereaza cu `URL::forceRootUrl()`
+  temporar pe domeniul propriu (semnatura Laravel include host-ul, trebuie generata
+  cu hostname-ul corect de la inceput ca sa valideze cand clientul acceseaza pe acel
+  domeniu). `QuoteSentMail` + `emails/quote-sent.blade.php` primesc `publicUrl` si
+  afiseaza un buton "Vezi oferta online" langa mentiunea PDF-ului atasat (PDF-ul
+  ramane atasat, neschimbat).
+- Migratie noua: `tenants.custom_domain` (nullable, unique). Setat DOAR de
+  superadmin, nu self-service de catre tenant - activarea reala necesita oricum un
+  pas manual in cPanel (addon domain), un formular self-service ar crea stari
+  rupte. `AdminController::updateTenantCommercial()` (ecranul existent de
+  management tenanti) primeste campul, golit automat daca planul selectat nu are
+  feature-ul `custom_domain` (aparare in adancime, acelasi tipar ca la fazele
+  anterioare). `Admin/TenantsIndex.vue` primeste coloana noua in tabelul de editare
+  inline existent.
+- **Hosting confirmat** (cautare web): Hostico ofera SSL automat gratuit
+  (Let's Encrypt/AutoSSL) si domenii addon in cPanel pe planurile Business+.
+  Adaugarea efectiva a domeniului addon (acelasi document root) ramane un pas
+  MANUAL in cPanel, facut de utilizator per tenant enterprise - nicio integrare
+  API cu cPanel in acest plan.
+- Test `tests/Feature/PublicQuoteTest.php`: ruta publica fara semnatura -> 403; cu
+  semnatura valida -> 200; semnatura unei oferte nu valideaza pentru alta ofertă
+  (ID-ul e legat in semnatura); `send()` include `publicUrl` in `QuoteSentMail`
+  (`Mail::fake()`).
+- **In afara scopului**: verificare automata DNS, pagina publica pentru Documente
+  (nu se trimit catre client azi), acces la intregul panou de administrare pe
+  domeniul propriu (doar pagina publica de oferta).

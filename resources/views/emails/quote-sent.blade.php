@@ -20,6 +20,12 @@
         <li>Valabila pana la: {{ optional($quote->valid_until)->format('d.m.Y') ?? 'Nespecificat' }}</li>
     </ul>
 
+    @if(!empty($publicUrl))
+        <p style="margin: 0 0 16px;">
+            <a href="{{ $publicUrl }}" style="display: inline-block; background: #f97316; color: #ffffff; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;">Vezi oferta online</a>
+        </p>
+    @endif
+
     @unless($whiteLabel ?? false)
         <p style="margin: 0; color: #6b7280;">Modulia - Șantierul devine clar. · modulia.ro</p>
     @endunless

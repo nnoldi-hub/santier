@@ -136,6 +136,7 @@ class AdminController extends Controller
                     'id' => $tenant->id,
                     'name' => $tenant->name,
                     'slug' => $tenant->slug,
+                    'custom_domain' => $tenant->custom_domain,
                     'billing_plan' => $tenant->billing_plan,
                     'billing_plan_label' => $plans[$tenant->billing_plan]['label'] ?? $tenant->billing_plan,
                     'status' => $tenant->status,
@@ -632,6 +633,7 @@ class AdminController extends Controller
             'billing_plan' => $tenant->billing_plan,
             'status' => $tenant->status,
             'billing_trial_ends_at' => optional($tenant->billing_trial_ends_at)->toDateString(),
+            'custom_domain' => $tenant->custom_domain,
         ];
 
         $planKeys = array_keys(config('pricing.plans', []));
@@ -640,7 +642,11 @@ class AdminController extends Controller
             'billing_plan' => ['required', 'string', Rule::in($planKeys)],
             'status' => ['required', 'string', Rule::in(['active', 'suspended'])],
             'billing_trial_ends_at' => ['nullable', 'date'],
+            'custom_domain' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i'],
         ]);
+
+        $hasCustomDomainFeature = (bool) config("pricing.plans.{$validated['billing_plan']}.features.custom_domain", false);
+        $customDomain = $hasCustomDomainFeature ? ($validated['custom_domain'] ?? null) : null;
 
         $requiresTrialDate = $validated['status'] === 'active' && ! in_array($validated['billing_plan'], self::PAID_PLANS, true);
         $trialEndsAt = $validated['billing_trial_ends_at'] ?? null;
@@ -665,6 +671,7 @@ class AdminController extends Controller
             'billing_plan' => $validated['billing_plan'],
             'status' => $validated['status'],
             'billing_trial_ends_at' => $trialEndsAt,
+            'custom_domain' => $customDomain,
         ]);
 
         // Compat mode: keep user-level billing fields aligned while legacy screens still read them.
@@ -692,6 +699,7 @@ class AdminController extends Controller
                     'billing_plan' => $validated['billing_plan'],
                     'status' => $validated['status'],
                     'billing_trial_ends_at' => $trialEndsAt,
+                    'custom_domain' => $customDomain,
                 ],
             ],
             'ip_address' => $request->ip(),

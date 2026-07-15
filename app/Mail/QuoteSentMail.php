@@ -20,6 +20,7 @@ class QuoteSentMail extends Mailable
         public string $fileName,
         public string $recipientName = '',
         public bool $whiteLabel = false,
+        public string $publicUrl = '',
     ) {
     }
 
@@ -38,6 +39,7 @@ class QuoteSentMail extends Mailable
                 'quote' => $this->quote,
                 'recipientName' => $this->recipientName,
                 'whiteLabel' => $this->whiteLabel,
+                'publicUrl' => $this->publicUrl,
             ],
         );
     }

@@ -20,6 +20,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GanttController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\PublicQuoteController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
@@ -138,6 +139,10 @@ Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
     ->name('demo-request.store');
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
+
+Route::get('oferte/{quote}/vizualizare', [PublicQuoteController::class, 'show'])
+    ->middleware('signed')
+    ->name('public.quotes.show');
 
 Route::get('/dashboard', function () {
     $dashboardRequest = request();

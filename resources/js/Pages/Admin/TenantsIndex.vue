@@ -166,6 +166,7 @@
                                 <th class="px-5 py-3 text-left">Status comercial</th>
                                 <th class="px-5 py-3 text-left">Utilizatori</th>
                                 <th class="px-5 py-3 text-left">Final trial</th>
+                                <th class="px-5 py-3 text-left">Domeniu propriu</th>
                                 <th class="px-5 py-3 text-left">MRR estimat</th>
                                 <th class="px-5 py-3 text-left">Actiuni</th>
                             </tr>
@@ -220,6 +221,22 @@
                                     <span v-else>{{ formatDate(tenant.trial_ends_at) }}</span>
                                     <p v-if="isEditing(tenant.id) && (localValidationMessage || editForm.errors.billing_trial_ends_at)" class="mt-1 text-[11px] font-medium text-rose-600">
                                         {{ localValidationMessage || editForm.errors.billing_trial_ends_at }}
+                                    </p>
+                                </td>
+                                <td class="px-5 py-4 text-slate-700">
+                                    <input
+                                        v-if="isEditing(tenant.id)"
+                                        v-model="editForm.custom_domain"
+                                        type="text"
+                                        placeholder="firma.ro"
+                                        class="w-32 rounded-lg border-slate-300 px-2 py-1 text-xs"
+                                    />
+                                    <span v-else>{{ tenant.custom_domain || '-' }}</span>
+                                    <p v-if="isEditing(tenant.id) && editForm.errors.custom_domain" class="mt-1 text-[11px] font-medium text-rose-600">
+                                        {{ editForm.errors.custom_domain }}
+                                    </p>
+                                    <p v-if="isEditing(tenant.id) && editForm.billing_plan !== 'enterprise'" class="mt-1 text-[11px] text-slate-400">
+                                        Disponibil doar pe planul Enterprise.
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 font-semibold text-slate-900">{{ formatMoney(tenant.estimated_mrr) }}</td>
@@ -307,12 +324,14 @@ const originalEditState = ref({
     billing_plan: '',
     status: '',
     billing_trial_ends_at: '',
+    custom_domain: '',
 });
 
 const editForm = useForm({
     billing_plan: '',
     status: 'active',
     billing_trial_ends_at: '',
+    custom_domain: '',
 });
 
 const metricCards = computed(() => [
@@ -325,7 +344,8 @@ const metricCards = computed(() => [
 const editHasChanges = computed(() => {
     return editForm.billing_plan !== originalEditState.value.billing_plan
         || editForm.status !== originalEditState.value.status
-        || (editForm.billing_trial_ends_at || '') !== originalEditState.value.billing_trial_ends_at;
+        || (editForm.billing_trial_ends_at || '') !== originalEditState.value.billing_trial_ends_at
+        || (editForm.custom_domain || '') !== originalEditState.value.custom_domain;
 });
 
 const requiresTrialDate = computed(() => {
@@ -382,10 +402,12 @@ function startEdit(tenant) {
     editForm.billing_plan = tenant.billing_plan || 'free';
     editForm.status = tenant.status || 'active';
     editForm.billing_trial_ends_at = tenant.trial_ends_at || '';
+    editForm.custom_domain = tenant.custom_domain || '';
     originalEditState.value = {
         billing_plan: editForm.billing_plan,
         status: editForm.status,
         billing_trial_ends_at: editForm.billing_trial_ends_at,
+        custom_domain: editForm.custom_domain,
     };
     editForm.clearErrors();
 }
