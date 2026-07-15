@@ -67,6 +67,12 @@ class StoreDocumentRequest extends FormRequest
                 'type_data.martori' => ['required', 'string', 'max:2000'],
                 'type_data.masuri_recomandate' => ['nullable', 'string', 'max:4000'],
             ],
+            'contract' => [
+                'type_data.parti_contractante' => ['required', 'string', 'max:2000'],
+                'type_data.obiect_contract' => ['required', 'string', 'max:4000'],
+                'type_data.termene' => ['required', 'string', 'max:4000'],
+                'type_data.penalitati' => ['required', 'string', 'max:4000'],
+            ],
             default => [],
         };
     }

@@ -126,6 +126,11 @@
                 @elseif($document->type === 'proc_verbal_constatare')
                     <div><strong>Situatie constatata:</strong></div>
                     <div style="white-space: pre-line;">{{ $typeData['situatie_constatata'] ?? '-' }}</div>
+                @elseif($document->type === 'contract')
+                    <div><strong>Parti contractante:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['parti_contractante'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Obiect contract:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['obiect_contract'] ?? '-' }}</div>
                 @else
                     <div><strong>Ce s-a executat:</strong> {{ $document->title }}</div>
                     <div><strong>Conformitate cu proiectul:</strong> {{ $isConform ? 'Conforma cu cerintele stabilite' : 'Necesita verificari suplimentare' }}</div>
@@ -162,7 +167,17 @@
                     <div style="white-space: pre-line;">{{ $typeData['masuri_recomandate'] ?? 'Nu au fost recomandate masuri suplimentare.' }}</div>
                 </div>
             </div>
-        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse', 'proc_verbal_predare_primire'], true))
+        @elseif($document->type === 'contract')
+            <div class="section">
+                <h3 class="section-title">D. Clauze contractuale</h3>
+                <div class="box">
+                    <div><strong>Termene:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['termene'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Penalitati:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['penalitati'] ?? '-' }}</div>
+                </div>
+            </div>
+        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse', 'proc_verbal_predare_primire', 'contract'], true))
             <div class="section">
                 <h3 class="section-title">D. Constatari la receptie</h3>
                 <div class="box">

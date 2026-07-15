@@ -27,6 +27,7 @@ class DocumentPdfPresenter
             'proc_verbal_lucrari_ascunse' => 'PVA',
             'proc_verbal_predare_primire' => 'PVP',
             'proc_verbal_remediere_defecte' => 'PVD',
+            'contract' => 'CTR',
             default => 'DOC',
         };
         $internalCode = $internalCodePrefix . '-' . ($document->issued_at ? $document->issued_at->format('Ym') : now()->format('Ym')) . '-' . str_pad((string) $document->id, 5, '0', STR_PAD_LEFT);

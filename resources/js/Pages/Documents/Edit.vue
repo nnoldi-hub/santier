@@ -184,6 +184,30 @@
                     </div>
                 </div>
 
+                <div v-else-if="form.type === 'contract'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii contract prestari servicii</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Parti contractante *</label>
+                        <textarea v-model="form.type_data.parti_contractante" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Prestator: ... / Beneficiar: ..." />
+                        <p v-if="form.errors['type_data.parti_contractante']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.parti_contractante'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Obiect contract *</label>
+                        <textarea v-model="form.type_data.obiect_contract" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.obiect_contract']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.obiect_contract'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Termene *</label>
+                        <textarea v-model="form.type_data.termene" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.termene']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.termene'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Penalitati *</label>
+                        <textarea v-model="form.type_data.penalitati" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.penalitati']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.penalitati'] }}</p>
+                    </div>
+                </div>
+
                 <div class="flex gap-2 pt-2">
                     <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
                         {{ form.processing ? 'Se salveaza...' : 'Salveaza modificari' }}
@@ -238,6 +262,10 @@ const form = useForm({
         situatie_constatata: props.document.type_data?.situatie_constatata || '',
         martori: props.document.type_data?.martori || '',
         masuri_recomandate: props.document.type_data?.masuri_recomandate || '',
+        parti_contractante: props.document.type_data?.parti_contractante || '',
+        obiect_contract: props.document.type_data?.obiect_contract || '',
+        termene: props.document.type_data?.termene || '',
+        penalitati: props.document.type_data?.penalitati || '',
     },
 });
 

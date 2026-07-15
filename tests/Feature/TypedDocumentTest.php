@@ -109,6 +109,21 @@ class TypedDocumentTest extends TestCase
         ]);
     }
 
+    public function test_contract_requires_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'contract'));
+
+        $response->assertSessionHasErrors([
+            'type_data.parti_contractante',
+            'type_data.obiect_contract',
+            'type_data.termene',
+            'type_data.penalitati',
+        ]);
+    }
+
     public function test_pdf_renders_for_new_types_classic_and_modern(): void
     {
         $user = $this->createOnboardedUser('pro');
@@ -134,12 +149,17 @@ class TypedDocumentTest extends TestCase
             'tenant_id' => 1,
             'type_data' => ['situatie_constatata' => 'Infiltratii', 'martori' => 'D'],
         ]);
+        $contract = Document::create($this->basePayload($project, 'contract') + [
+            'tenant_id' => 1,
+            'type_data' => ['parti_contractante' => 'A / B', 'obiect_contract' => 'Lucrari finisaje', 'termene' => '30 zile', 'penalitati' => '0.1%/zi'],
+        ]);
 
         $this->actingAs($user)->get("/documents/{$pvReceptie->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvAscunse->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvPredarePrimire->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvRemediere->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvConstatare->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$contract->id}/pdf")->assertStatus(200);
     }
 
     public function test_existing_document_type_is_unaffected(): void

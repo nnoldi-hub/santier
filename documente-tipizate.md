@@ -28,7 +28,7 @@ tipul real (bug pre-existent, corectat la Faza 1).
 |---|------|--------|--------|
 | 1 | Fundatie + PV obligatorii legal | PV receptie lucrari, PV lucrari ascunse | **Facut** |
 | 2 | Restul proceselor verbale | PV predare-primire, PV remediere defecte, PV constatare | **Facut** |
-| 3 | Contract | Contract prestari servicii | Neinceput |
+| 3 | Contract | Contract prestari servicii | **Facut** |
 | 4 | Documente financiare/logistice | Factura, Aviz de insotire marfa | Neinceput |
 
 ## 3. Cum lucram pe fiecare faza
@@ -93,3 +93,20 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`billing-
 - `tests/Feature/TypedDocumentTest.php` extins (nu fisier nou): validare pentru
   cele 3 tipuri, plus PDF 200 pentru toate cele 5 tipuri tratate pana acum
   (clasic implicit).
+
+### Faza 3 - Contract (Facut, 2026-07-15)
+- Tip existent `contract` (deja in `$typeLabels`) primeste pentru prima data
+  campuri si sectiuni PDF proprii, dupa acelasi tipar tehnic ca Fazele 1-2.
+  "Valoare" nu a avut nevoie de camp nou - se acopera prin `amount` (deja
+  afisat in sectiunea E "Situatie financiara"); "Semnaturi" ramane vizual, ca la
+  toate tipurile anterioare.
+- `type_data` nou pentru `contract`: `parti_contractante`, `obiect_contract`,
+  `termene`, `penalitati` (toate `required`, conform `documente.md`).
+- `DocumentPdfPresenter`: prefix cod intern nou `CTR`.
+- `documents/pdf-classic.blade.php` + `pdf-modern.blade.php`: sectiunea C
+  primeste branch nou (parti + obiect contract); sectiunea D devine "D. Clauze
+  contractuale" (termene + penalitati) pentru acest tip.
+- `Documents/Create.vue` + `Edit.vue`: bloc nou de campuri in lantul
+  `v-if`/`v-else-if`, acelasi stil vizual ca fazele anterioare.
+- `tests/Feature/TypedDocumentTest.php` extins: validare pentru `contract`, PDF
+  200 inclus in testul comun cu celelalte 5 tipuri tratate pana acum.
