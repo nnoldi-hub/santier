@@ -39,7 +39,7 @@ doar partial reale. Verificat in cod (agent de explorare, 2026-07-14):
 | 2 | White-label | Elimin conditionat textul/logo-ul "Modulia" hardcodat din PDF-uri, exporturi, oferte, export programat si notificari interne de echipa cand tenantul are `white_label` in plan | **Facut** |
 | 3 | Sabloane multiple de documente | Concept nou (`document_templates`/picker UI/alte layout-uri Blade) - azi exista un singur layout per tip de document, nimic stubbed | **Facut** |
 | 4 | Aprobari documente (facturare) | Sign-off intern (manager/owner) inainte de trimiterea unei Oferte catre client | **Facut** |
-| 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan. **Blocaje externe**: necesita cont Stripe + chei de test de la utilizator; `laravel/cashier` trebuie verificat pentru compatibilitate cu Laravel `^13.8` (posibil prea nou fata de ce documenteaza Cashier azi) inainte de a incepe | Neinceput |
+| 5 | Integrare plati (Stripe/Cashier) | Checkout real, webhook, ciclu de viata abonament (upgrade/downgrade/anulare), inlocuieste comutatorul intern de plan | **Facut** |
 | 6 | Domeniu propriu per tenant | Cea mai grea din punct de vedere infrastructura (DNS, SSL, verificare domeniu) - hosting-ul actual e shared hosting Hostico/cPanel, trebuie verificat ce suporta inainte de a promite ceva | Neinceput |
 
 **Ordinea propusa**: fazele 1-2 sunt rapide si fara dependinte externe (bun punct de
@@ -191,3 +191,63 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
   reblocheaza trimiterea, user fara permisiune -> 403, tenant `starter` (fara
   feature) trimite fara nicio aprobare si rutele de aprobare sunt blocate de
   `plan:document_approvals`.
+
+### Faza 5 - Integrare plati Stripe (Facut, 2026-07-15)
+- Verificat prin cautare web: `laravel/cashier` v16.6+ suporta Laravel 13 (riscul de
+  compatibilitate anticipat in sectiunea 3 era real pana la o versiune recenta a
+  pachetului, acum rezolvat). Proiectul ruleaza Laravel `v13.17.0` exact.
+- **`Tenant` (nu `User`) e billable-ul Cashier** - `PricingPlan::current()` citeste
+  planul de pe tenant intai, user doar ca fallback legacy; `Tenant` primeste
+  `use Laravel\Cashier\Billable`, `Cashier::useCustomerModel(Tenant::class)` in
+  `AppServiceProvider::boot()`. Migratie noua adauga `stripe_id`/`pm_type`/
+  `pm_last_four`/`trial_ends_at` direct pe `tenants` (Cashier le pune implicit pe
+  `users`, aici billable-ul e altul). `trial_ends_at` (Cashier) coexista intentionat
+  cu `billing_trial_ends_at` (conceptul de trial existent, neschimbat, separat).
+- `config/pricing.php`: fiecare plan platit primeste `stripe_price_id` (din env,
+  `STRIPE_PRICE_STARTER/PRO/ENTERPRISE`); `free` ramane `null` (fara abonament
+  Stripe). `PricingPlan::priceIdForPlan()`/`planForStripePrice()` (noi) fac
+  conversia in ambele sensuri.
+- **Decizii de business confirmate cu utilizatorul**: la coborare pe Demo,
+  abonamentul se anuleaza dar tenantul pastreaza accesul pana la finalul perioadei
+  deja platite (grace period Cashier standard, NU anulare instant); abonamentele
+  noi nu au trial Stripe - taxare imediata la Checkout (trial-ul de 14 zile din
+  aplicatie ramane un concept separat).
+- `BillingController` rescris complet - vechiul `update()` (comutator instant,
+  fara plata) e inlocuit de: `checkout($plan)` (Demo -> platit, redirect Stripe
+  Checkout, fara abonament activ), `swap()` (schimbare intre planuri platite,
+  sincron, fara redirect), `cancel()` (grace period - NU schimba planul imediat),
+  `resume()` (revoca o anulare programata cat timp e in grace period), `portal()`
+  (Stripe Customer Portal gazduit - card, facturi, anulare self-serve, un singur
+  apel Cashier).
+- `App\Http\Controllers\StripeWebhookController` (nou, extinde
+  `Laravel\Cashier\Http\Controllers\WebhookController`) + logica de sincronizare
+  extrasa in `App\Support\StripeSubscriptionSync` (clasa separata, testabila direct
+  fara sa fie nevoie sa trimiti un webhook semnat catre HTTP): `applyUpdated()`
+  traduce Price ID-ul curent -> cheie plan si scrie `Tenant.billing_plan` DOAR daca
+  statusul e `active`/`trialing`; `applyDeleted()` seteaza `Tenant.billing_plan =
+  'free'`. Ruta `POST /stripe/webhook` in `routes/web.php` (grup public, fara
+  autentificare), exceptata de CSRF direct din `bootstrap/app.php`
+  (`validateCsrfTokens(except: ['stripe/webhook'])`) - nu exista inca un grup `api`
+  in aplicatie, nu s-a adaugat unul nou doar pentru asta.
+- `resources/js/Pages/Billing/Index.vue` rescris: banner de grace period cu buton
+  "Revoca anularea"; per card - "Plan activ" (disabled), "Renunta la abonament"
+  (doar cardul Demo, doar daca exista abonament activ), "Abonare" (navigare
+  completa catre Stripe Checkout, doar daca NU exista abonament activ) sau
+  "Schimba planul" (schimbare in-app, doar daca EXISTA deja un abonament activ pe
+  alt plan platit); link generic "Gestioneaza plata" catre Customer Portal.
+- Test `tests/Feature/BillingStripeTest.php`: `PricingPlan::planForStripePrice()`
+  direct; `StripeSubscriptionSync::applyUpdated()/applyDeleted()` testate direct cu
+  payload-uri construite manual (fara nevoie de semnatura Stripe reala) - sincronizare
+  corecta, statusuri neactive ignorate, client necunoscut = no-op; rutele
+  `checkout`/`swap`/`cancel`/`resume`/`portal` testate pentru cazurile care NU ating
+  Stripe (validari 422/404 inainte de orice apel extern) - fluxurile reale de plata
+  (checkout/swap reusite) nu pot fi testate automat fara chei Stripe live.
+- **Pasi manuali ramasi, doar utilizatorul poate sa-i faca** (vezi planul complet):
+  creare 3 produse+preturi in Stripe Dashboard (mod test), configurare webhook
+  endpoint catre `https://modulia.ro/stripe/webhook`, setare `STRIPE_KEY`/
+  `STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_*` in `.env` pe server.
+- **Deploy - pasi suplimentari fata de fazele anterioare**: `composer require
+  laravel/cashier` (retea reala, ruleaza doar pe server, nu local),
+  `php artisan vendor:publish --tag=cashier-migrations --tag=cashier-config`,
+  `php artisan migrate --force`, apoi cele 6 variabile `.env` de mai sus,
+  `optimize:clear`.

@@ -9,6 +9,7 @@ return [
             'description' => 'Demo standard pentru testare si evaluare rapida.',
             'project_limit' => 1,
             'users_limit' => 1,
+            'stripe_price_id' => null,
             'features' => [
                 'gantt' => false,
                 'exports_csv' => false,
@@ -23,6 +24,7 @@ return [
             'description' => 'Logo si date de firma in documente, fara customizare avansata.',
             'project_limit' => 5,
             'users_limit' => 3,
+            'stripe_price_id' => env('STRIPE_PRICE_STARTER'),
             'features' => [
                 'gantt' => true,
                 'exports_csv' => true,
@@ -38,6 +40,7 @@ return [
             'description' => 'Brand complet: logo, culori, antet, footer si template-uri de documente.',
             'project_limit' => null,
             'users_limit' => 10,
+            'stripe_price_id' => env('STRIPE_PRICE_PRO'),
             'features' => [
                 'gantt' => true,
                 'exports_csv' => true,
@@ -54,6 +57,7 @@ return [
             'description' => 'Mai multe sabloane, aprobari, white-label si domeniu propriu.',
             'project_limit' => null,
             'users_limit' => null,
+            'stripe_price_id' => env('STRIPE_PRICE_ENTERPRISE'),
             'features' => [
                 'gantt' => true,
                 'exports_csv' => true,

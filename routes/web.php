@@ -20,6 +20,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GanttController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\PilotInviteController;
@@ -135,6 +136,8 @@ Route::get('/confidentialitate', fn () => Inertia::render('Legal/Privacy'))->nam
 Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
     ->middleware('throttle:6,1')
     ->name('demo-request.store');
+
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
 Route::get('/dashboard', function () {
     $dashboardRequest = request();
@@ -1288,7 +1291,11 @@ Route::middleware('auth')->group(function () {
         Route::post('pilot-invites/{pilotInvite}/send-invitation', [PilotInviteController::class, 'sendInvitation'])->name('pilot-invites.send-invitation');
 
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
-        Route::patch('billing', [BillingController::class, 'update'])->name('billing.update');
+        Route::get('billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('billing.checkout');
+        Route::patch('billing/swap', [BillingController::class, 'swap'])->name('billing.swap');
+        Route::patch('billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
+        Route::patch('billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
+        Route::get('billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
 
         Route::get('account/users', [TenantUserController::class, 'index'])->name('account.users.index');
         Route::post('account/users/invite', [TenantUserController::class, 'invite'])->name('account.users.invite');

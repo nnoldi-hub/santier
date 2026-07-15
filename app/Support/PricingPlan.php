@@ -141,4 +141,20 @@ class PricingPlan
 
         return (bool) config("pricing.plans.{$plan}.features.{$feature}", false);
     }
+
+    public static function priceIdForPlan(string $plan): ?string
+    {
+        return config("pricing.plans.{$plan}.stripe_price_id");
+    }
+
+    public static function planForStripePrice(string $priceId): ?string
+    {
+        foreach (config('pricing.plans', []) as $plan => $definition) {
+            if (($definition['stripe_price_id'] ?? null) === $priceId) {
+                return $plan;
+            }
+        }
+
+        return null;
+    }
 }
