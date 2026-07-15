@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\DocumentPdfPresenter;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -222,6 +223,83 @@ class TypedDocumentTest extends TestCase
         $this->actingAs($user)->get("/documents/{$contract->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$invoice->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$deliveryNote->id}/pdf")->assertStatus(200);
+    }
+
+    public function test_proces_verbal_can_be_saved_without_amount_or_payment_status(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $payload = [
+            'title' => 'PV Test',
+            'type' => 'proc_verbal_constatare',
+            'project_id' => $project->id,
+            'issued_at' => now()->toDateString(),
+            'type_data' => [
+                'situatie_constatata' => 'Fisuri in tencuiala',
+                'martori' => 'Ion Popescu',
+            ],
+        ];
+
+        $response = $this->actingAs($user)->post('/documents', $payload);
+
+        $response->assertRedirect(route('documents.index'));
+        $document = Document::firstOrFail();
+        $this->assertSame(0.0, (float) $document->amount);
+        $this->assertSame('unpaid', $document->payment_status);
+    }
+
+    public function test_financial_types_still_require_amount_and_payment_status(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $payload = [
+            'title' => 'Factura Test',
+            'type' => 'invoice',
+            'project_id' => $project->id,
+            'issued_at' => now()->toDateString(),
+            'invoice_number' => 'FAC-1',
+            'type_data' => [
+                'produse_servicii' => 'Test',
+                'tva_pct' => 19,
+                'scadenta' => now()->addDays(10)->toDateString(),
+            ],
+        ];
+
+        $response = $this->actingAs($user)->post('/documents', $payload);
+
+        $response->assertSessionHasErrors(['amount', 'payment_status']);
+    }
+
+    public function test_acceptance_text_reflects_real_conclusion_for_pv_receptie(): void
+    {
+        $document = new Document([
+            'type' => 'proc_verbal_receptie',
+            'payment_status' => 'paid',
+            'issued_at' => now(),
+            'title' => 'PV Test',
+            'type_data' => ['concluzie' => 'respins'],
+        ]);
+
+        $presented = DocumentPdfPresenter::present($document, []);
+
+        $this->assertSame('Lucrarea necesita remedieri inainte de receptia finala.', $presented['acceptanceText']);
+    }
+
+    public function test_acceptance_text_is_omitted_for_other_proces_verbal_types(): void
+    {
+        $document = new Document([
+            'type' => 'proc_verbal_constatare',
+            'payment_status' => 'unpaid',
+            'issued_at' => now(),
+            'title' => 'PV Test',
+            'type_data' => ['situatie_constatata' => 'Test', 'martori' => 'Test'],
+        ]);
+
+        $presented = DocumentPdfPresenter::present($document, []);
+
+        $this->assertNull($presented['acceptanceText']);
     }
 
     public function test_existing_document_type_is_unaffected(): void

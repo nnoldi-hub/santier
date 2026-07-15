@@ -143,3 +143,31 @@ factura, aviz); restul tipurilor (deviz, oferta, aviz transportator, aviz
 pompa/utilaj, factura resursa, poza santier, confirmare receptie/cantitate/
 calitate) raman pe formularul/PDF-ul generic - nicio schimbare de scop
 planificata pentru ele in acest modul.
+
+### Fix post-Faza-4 - campuri financiare irelevante pe procesele verbale (2026-07-15)
+- Utilizatorul a observat ca formularul si PDF-ul unui Proces verbal de constatare
+  cereau/afisau Suma (RON) si Status plata - date fara sens pentru un document
+  non-financiar. Verificat cu cautare web: **HG 273/1994** (regulamentul de
+  receptie a lucrarilor) si **Legea 10/1995** (calitatea in constructii) nu
+  mentioneaza nicaieri pret/plata pentru procesele verbale - continutul legal
+  cere doar comisie/constatari/defecte/concluzie/semnaturi. Fix aplicat la toate
+  cele 5 tipuri `proc_verbal_*` (nu doar "constatare" - problema era structurala).
+- `StoreDocumentRequest`: `amount`/`payment_status` devin `nullable` (in loc de
+  `required`) cand tipul e un proces verbal - raman `required` neschimbat pentru
+  restul tipurilor (factura, contract etc., unde au sens real).
+- `Documents/Create.vue` + `Edit.vue`: campurile "Suma (RON)" si "Status plata"
+  se ascund din formular cand tipul selectat e un proces verbal.
+- `documents/pdf-classic.blade.php` + `pdf-modern.blade.php`: sectiunea "Situatie
+  financiara" (tabelul din clasic, hero-ul din modern) nu mai apare deloc pentru
+  procesele verbale.
+- **Bug conex corectat**: `DocumentPdfPresenter::present()` calcula textul din
+  sectiunea "Declaratii finale" pe baza `payment_status` (!), nu pe baza
+  concluziei reale a documentului - de-aia aparea mereu "Lucrarea a fost
+  receptionata..." indiferent de ce completa userul. Acum: PV receptie foloseste
+  concluzia reala (`type_data.concluzie`, admis/respins); celelalte 4 procese
+  verbale nu mai afiseaza nicio linie de acceptare (deja au propriile concluzii
+  corecte in sectiunea D); restul tipurilor raman neschimbate.
+- Test extins in `tests/Feature/TypedDocumentTest.php`: PV salvat cu succes fara
+  suma/status plata (verificate default-urile DB 0/`unpaid`), tipurile
+  financiare raman cu validare `required` neschimbata, `DocumentPdfPresenter`
+  testat direct pentru ambele cazuri de `acceptanceText`.

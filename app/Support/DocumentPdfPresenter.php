@@ -41,9 +41,17 @@ class DocumentPdfPresenter
         $logoSource = !empty($branding['document_logo_url'])
             ? $branding['document_logo_url']
             : (!$whiteLabel && file_exists($fallbackLogo) ? $fallbackLogo : null);
-        $acceptanceText = $isConform
-            ? 'Lucrarea a fost receptionata si acceptata conform verificarilor efectuate.'
-            : 'Lucrarea necesita remedieri inainte de receptia finala.';
+        $typeData = is_array($document->type_data ?? null) ? $document->type_data : [];
+
+        $acceptanceText = match (true) {
+            $document->type === 'proc_verbal_receptie' => ($typeData['concluzie'] ?? null) === 'admis'
+                ? 'Lucrarea a fost receptionata si acceptata conform verificarilor efectuate.'
+                : 'Lucrarea necesita remedieri inainte de receptia finala.',
+            str_starts_with((string) $document->type, 'proc_verbal_') => null,
+            default => $isConform
+                ? 'Lucrarea a fost receptionata si acceptata conform verificarilor efectuate.'
+                : 'Lucrarea necesita remedieri inainte de receptia finala.',
+        };
 
         return [
             'issuedAt' => $issuedAt,
@@ -55,7 +63,7 @@ class DocumentPdfPresenter
             'whiteLabel' => $whiteLabel,
             'logoSource' => $logoSource,
             'acceptanceText' => $acceptanceText,
-            'typeData' => is_array($document->type_data ?? null) ? $document->type_data : [],
+            'typeData' => $typeData,
         ];
     }
 }

@@ -16,15 +16,17 @@ class StoreDocumentRequest extends FormRequest
 
     public function rules(): array
     {
+        $isProcesVerbal = str_starts_with((string) $this->input('type'), 'proc_verbal_');
+
         $rules = [
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(array_keys(Document::$typeLabels))],
             'project_id' => ['required', 'exists:projects,id'],
             'stage_id' => ['nullable', 'exists:project_phases,id'],
             'contractor_id' => ['nullable', 'exists:contractors,id'],
-            'amount' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'amount' => [$isProcesVerbal ? 'nullable' : 'required', 'numeric', 'min:0', 'max:9999999999.99'],
             'issued_at' => ['required', 'date'],
-            'payment_status' => ['required', Rule::in(array_keys(Document::$paymentStatusLabels))],
+            'payment_status' => [$isProcesVerbal ? 'nullable' : 'required', Rule::in(array_keys(Document::$paymentStatusLabels))],
             'notes' => ['nullable', 'string', 'max:4000'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,xlsx,xls,csv,doc,docx,png,jpg,jpeg', 'max:10240'],
             'type_data' => ['nullable', 'array'],

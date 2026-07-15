@@ -62,16 +62,18 @@
             </table>
         </div>
 
-        <div class="section">
-            <div class="hero">
-                <div class="hero-label">Situatie financiara</div>
-                <div class="hero-value">{{ number_format((float) $document->amount, 2, ',', '.') }} RON</div>
-                <div class="hero-meta">
-                    {{ $document->type_label ?? $document->type }} · Status plata: {{ $document->payment_status_label ?? $document->payment_status }}
-                    @if($document->invoice_number) · Referinta contract: {{ $document->invoice_number }} @endif
+        @unless(str_starts_with($document->type, 'proc_verbal_'))
+            <div class="section">
+                <div class="hero">
+                    <div class="hero-label">Situatie financiara</div>
+                    <div class="hero-value">{{ number_format((float) $document->amount, 2, ',', '.') }} RON</div>
+                    <div class="hero-meta">
+                        {{ $document->type_label ?? $document->type }} · Status plata: {{ $document->payment_status_label ?? $document->payment_status }}
+                        @if($document->invoice_number) · Referinta contract: {{ $document->invoice_number }} @endif
+                    </div>
                 </div>
             </div>
-        </div>
+        @endunless
 
         <div class="section">
             <div class="section-title">B. Date proiect</div>
@@ -220,7 +222,9 @@
         <div class="section">
             <div class="section-title">F. Declaratii finale</div>
             <div class="decision-box">
-                <div>{{ $acceptanceText }}</div>
+                @if($acceptanceText)
+                    <div>{{ $acceptanceText }}</div>
+                @endif
                 <div class="hint" style="margin-top:4px;">Documentul poate fi utilizat pentru arhivare, audit intern si verificari ulterioare.</div>
             </div>
         </div>

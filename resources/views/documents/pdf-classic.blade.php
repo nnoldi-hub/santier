@@ -205,32 +205,36 @@
             </div>
         @endif
 
-        <div class="section">
-            <h3 class="section-title">E. Situatie financiara</h3>
-            <table class="financial">
-                <thead>
-                    <tr>
-                        <th>Tip document</th>
-                        <th>Valoare</th>
-                        <th>Status plata</th>
-                        <th>Referinta contract</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ $document->type_label ?? $document->type }}</td>
-                        <td>{{ number_format((float) $document->amount, 2, ',', '.') }} RON</td>
-                        <td>{{ $document->payment_status_label ?? $document->payment_status }}</td>
-                        <td>{{ $document->invoice_number ?: 'N/A' }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        @unless(str_starts_with($document->type, 'proc_verbal_'))
+            <div class="section">
+                <h3 class="section-title">E. Situatie financiara</h3>
+                <table class="financial">
+                    <thead>
+                        <tr>
+                            <th>Tip document</th>
+                            <th>Valoare</th>
+                            <th>Status plata</th>
+                            <th>Referinta contract</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ $document->type_label ?? $document->type }}</td>
+                            <td>{{ number_format((float) $document->amount, 2, ',', '.') }} RON</td>
+                            <td>{{ $document->payment_status_label ?? $document->payment_status }}</td>
+                            <td>{{ $document->invoice_number ?: 'N/A' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        @endunless
 
         <div class="section">
             <h3 class="section-title">F. Declaratii finale</h3>
             <div class="decision-box">
-                <div>{{ $acceptanceText }}</div>
+                @if($acceptanceText)
+                    <div>{{ $acceptanceText }}</div>
+                @endif
                 <div class="hint" style="margin-top:4px;">Documentul poate fi utilizat pentru arhivare, audit intern si verificari ulterioare.</div>
             </div>
         </div>

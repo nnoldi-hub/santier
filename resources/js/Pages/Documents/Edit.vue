@@ -21,7 +21,7 @@
                             <option v-for="(label, key) in types" :key="key" :value="key">{{ label }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div v-if="!isProcesVerbal">
                         <label class="block text-xs text-gray-600 mb-1">Status plata *</label>
                         <select v-model="form.payment_status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                             <option v-for="(label, key) in paymentStatuses" :key="key" :value="key">{{ label }}</option>
@@ -48,7 +48,7 @@
                             <option v-for="contractor in contractors" :key="contractor.id" :value="contractor.id">{{ contractor.name }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div v-if="!isProcesVerbal">
                         <label class="block text-xs text-gray-600 mb-1">Suma (RON) *</label>
                         <input v-model.number="form.amount" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
@@ -263,6 +263,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -318,6 +319,8 @@ const form = useForm({
         transportator: props.document.type_data?.transportator || '',
     },
 });
+
+const isProcesVerbal = computed(() => form.type.startsWith('proc_verbal_'));
 
 function onFileChange(event) {
     const [file] = event.target.files || [];
