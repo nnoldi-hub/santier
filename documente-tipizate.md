@@ -29,7 +29,7 @@ tipul real (bug pre-existent, corectat la Faza 1).
 | 1 | Fundatie + PV obligatorii legal | PV receptie lucrari, PV lucrari ascunse | **Facut** |
 | 2 | Restul proceselor verbale | PV predare-primire, PV remediere defecte, PV constatare | **Facut** |
 | 3 | Contract | Contract prestari servicii | **Facut** |
-| 4 | Documente financiare/logistice | Factura, Aviz de insotire marfa | Neinceput |
+| 4 | Documente financiare/logistice | Factura, Aviz de insotire marfa | **Facut** |
 
 ## 3. Cum lucram pe fiecare faza
 Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`billing-plans.md`):
@@ -110,3 +110,36 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`billing-
   `v-if`/`v-else-if`, acelasi stil vizual ca fazele anterioare.
 - `tests/Feature/TypedDocumentTest.php` extins: validare pentru `contract`, PDF
   200 inclus in testul comun cu celelalte 5 tipuri tratate pana acum.
+
+### Faza 4 - Documente financiare/logistice (Facut, 2026-07-15) - toate cele 4 faze complete
+- **Factura** (`invoice`): "Emitent"/"Beneficiar"/"Total" raman acoperite de
+  branding/`project.client`/`amount` (fara campuri noi). **Descoperire
+  reutilizata din cercetarea Fazei 1**: coloana `invoice_number` exista in DB
+  de la inceput dar nu era validata/folosita nicaieri - aceasta faza o
+  activeaza (`Rule::requiredIf` - obligatorie doar cand `type === 'invoice'`,
+  restul tipurilor raman neafectate). `type_data` nou: `produse_servicii`
+  (text liber), `tva_pct` (numeric 0-100), `scadenta` (data).
+- **Aviz de insotire marfa** (`delivery_note`, deja etichetat "Aviz de
+  livrare"): "Beneficiar" ramane acoperit de `project.client`, "Data"
+  reutilizeaza `issued_at`. `type_data` nou: `furnizor`, `materiale` (text
+  liber), `transportator`.
+- `DocumentPdfPresenter`: prefixe cod intern noi `FAC`/`AVZ`.
+- `documents/pdf-classic.blade.php` + `pdf-modern.blade.php`: sectiunea C
+  primeste branch-uri noi pentru ambele tipuri; sectiunea D devine "D. Detalii
+  facturare" (TVA + scadenta) doar pentru factura - pentru aviz se omite (nu se
+  aplica conceptual, la fel ca PV lucrari ascunse/predare-primire).
+- `Documents/Create.vue` + `Edit.vue`: doua blocuri noi de campuri; factura
+  include si campul `invoice_number` (acum vizibil in formular pentru prima
+  data).
+- `tests/Feature/TypedDocumentTest.php` extins: validare pentru ambele tipuri
+  (inclusiv `invoice_number` obligatoriu la factura), PDF 200 pentru toate
+  cele 8 tipuri tratate. Testul de regresie ("tip vechi neschimbat") a fost
+  mutat de pe `invoice` (care nu mai e generic din aceasta faza) pe
+  `site_photo` (ramane generic).
+
+**Toate cele 4 faze din `documente-tipizate.md` sunt complete.** 8 tipuri de
+document au acum formular si PDF dedicate (5 procese verbale, contract,
+factura, aviz); restul tipurilor (deviz, oferta, aviz transportator, aviz
+pompa/utilaj, factura resursa, poza santier, confirmare receptie/cantitate/
+calitate) raman pe formularul/PDF-ul generic - nicio schimbare de scop
+planificata pentru ele in acest modul.

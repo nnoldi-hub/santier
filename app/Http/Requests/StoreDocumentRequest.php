@@ -28,6 +28,7 @@ class StoreDocumentRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:4000'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,xlsx,xls,csv,doc,docx,png,jpg,jpeg', 'max:10240'],
             'type_data' => ['nullable', 'array'],
+            'invoice_number' => [Rule::requiredIf(fn () => $this->input('type') === 'invoice'), 'nullable', 'string', 'max:255'],
         ];
 
         return array_merge($rules, $this->typeDataRules((string) $this->input('type')));
@@ -72,6 +73,16 @@ class StoreDocumentRequest extends FormRequest
                 'type_data.obiect_contract' => ['required', 'string', 'max:4000'],
                 'type_data.termene' => ['required', 'string', 'max:4000'],
                 'type_data.penalitati' => ['required', 'string', 'max:4000'],
+            ],
+            'invoice' => [
+                'type_data.produse_servicii' => ['required', 'string', 'max:4000'],
+                'type_data.tva_pct' => ['required', 'numeric', 'min:0', 'max:100'],
+                'type_data.scadenta' => ['required', 'date'],
+            ],
+            'delivery_note' => [
+                'type_data.furnizor' => ['required', 'string', 'max:255'],
+                'type_data.materiale' => ['required', 'string', 'max:4000'],
+                'type_data.transportator' => ['required', 'string', 'max:255'],
             ],
             default => [],
         };

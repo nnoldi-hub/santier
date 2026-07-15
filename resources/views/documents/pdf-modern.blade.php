@@ -143,6 +143,14 @@
                     <div style="white-space: pre-line;">{{ $typeData['parti_contractante'] ?? '-' }}</div>
                     <div style="margin-top:6px;"><strong>Obiect contract:</strong></div>
                     <div style="white-space: pre-line;">{{ $typeData['obiect_contract'] ?? '-' }}</div>
+                @elseif($document->type === 'invoice')
+                    <div><strong>Produse / servicii:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['produse_servicii'] ?? '-' }}</div>
+                @elseif($document->type === 'delivery_note')
+                    <div><strong>Furnizor:</strong> {{ $typeData['furnizor'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Materiale:</strong></div>
+                    <div style="white-space: pre-line;">{{ $typeData['materiale'] ?? '-' }}</div>
+                    <div style="margin-top:6px;"><strong>Transportator:</strong> {{ $typeData['transportator'] ?? '-' }}</div>
                 @else
                     <div><strong>Ce s-a executat:</strong> {{ $document->title }}</div>
                     <div><strong>Conformitate cu proiectul:</strong> {{ $isConform ? 'Conforma cu cerintele stabilite' : 'Necesita verificari suplimentare' }}</div>
@@ -189,7 +197,15 @@
                     <div style="white-space: pre-line;">{{ $typeData['penalitati'] ?? '-' }}</div>
                 </div>
             </div>
-        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse', 'proc_verbal_predare_primire', 'contract'], true))
+        @elseif($document->type === 'invoice')
+            <div class="section">
+                <div class="section-title">D. Detalii facturare</div>
+                <div class="box">
+                    <div><strong>TVA:</strong> {{ number_format((float) ($typeData['tva_pct'] ?? 0), 2, ',', '.') }}%</div>
+                    <div><strong>Scadenta:</strong> {{ !empty($typeData['scadenta']) ? \Illuminate\Support\Carbon::parse($typeData['scadenta'])->format('d.m.Y') : '-' }}</div>
+                </div>
+            </div>
+        @elseif(!in_array($document->type, ['proc_verbal_lucrari_ascunse', 'proc_verbal_predare_primire', 'contract', 'delivery_note'], true))
             <div class="section">
                 <div class="section-title">D. Constatari la receptie</div>
                 <div class="box">

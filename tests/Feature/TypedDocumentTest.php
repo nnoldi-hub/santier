@@ -124,6 +124,57 @@ class TypedDocumentTest extends TestCase
         ]);
     }
 
+    public function test_invoice_requires_number_and_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'invoice'));
+
+        $response->assertSessionHasErrors([
+            'invoice_number',
+            'type_data.produse_servicii',
+            'type_data.tva_pct',
+            'type_data.scadenta',
+        ]);
+    }
+
+    public function test_delivery_note_requires_type_data_fields(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'delivery_note'));
+
+        $response->assertSessionHasErrors([
+            'type_data.furnizor',
+            'type_data.materiale',
+            'type_data.transportator',
+        ]);
+    }
+
+    public function test_invoice_stores_invoice_number_when_complete(): void
+    {
+        $user = $this->createOnboardedUser('pro');
+        $project = $this->createProject($user);
+
+        $payload = $this->basePayload($project, 'invoice') + [
+            'invoice_number' => 'FAC-2026-0001',
+            'type_data' => [
+                'produse_servicii' => 'Montaj gips-carton - 40mp - 45 RON/mp',
+                'tva_pct' => 19,
+                'scadenta' => now()->addDays(30)->toDateString(),
+            ],
+        ];
+
+        $response = $this->actingAs($user)->post('/documents', $payload);
+
+        $response->assertRedirect(route('documents.index'));
+        $document = Document::firstOrFail();
+        $this->assertSame('FAC-2026-0001', $document->invoice_number);
+        $this->assertSame(19.0, (float) $document->type_data['tva_pct']);
+    }
+
     public function test_pdf_renders_for_new_types_classic_and_modern(): void
     {
         $user = $this->createOnboardedUser('pro');
@@ -153,6 +204,15 @@ class TypedDocumentTest extends TestCase
             'tenant_id' => 1,
             'type_data' => ['parti_contractante' => 'A / B', 'obiect_contract' => 'Lucrari finisaje', 'termene' => '30 zile', 'penalitati' => '0.1%/zi'],
         ]);
+        $invoice = Document::create($this->basePayload($project, 'invoice') + [
+            'tenant_id' => 1,
+            'invoice_number' => 'FAC-2026-0002',
+            'type_data' => ['produse_servicii' => 'Montaj gips-carton', 'tva_pct' => 19, 'scadenta' => now()->addDays(30)->toDateString()],
+        ]);
+        $deliveryNote = Document::create($this->basePayload($project, 'delivery_note') + [
+            'tenant_id' => 1,
+            'type_data' => ['furnizor' => 'Depozit Central SRL', 'materiale' => 'Ciment - 20 saci', 'transportator' => 'Auto Transport SRL'],
+        ]);
 
         $this->actingAs($user)->get("/documents/{$pvReceptie->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvAscunse->id}/pdf")->assertStatus(200);
@@ -160,6 +220,8 @@ class TypedDocumentTest extends TestCase
         $this->actingAs($user)->get("/documents/{$pvRemediere->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$pvConstatare->id}/pdf")->assertStatus(200);
         $this->actingAs($user)->get("/documents/{$contract->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$invoice->id}/pdf")->assertStatus(200);
+        $this->actingAs($user)->get("/documents/{$deliveryNote->id}/pdf")->assertStatus(200);
     }
 
     public function test_existing_document_type_is_unaffected(): void
@@ -167,11 +229,11 @@ class TypedDocumentTest extends TestCase
         $user = $this->createOnboardedUser('pro');
         $project = $this->createProject($user);
 
-        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'invoice'));
+        $response = $this->actingAs($user)->post('/documents', $this->basePayload($project, 'site_photo'));
 
         $response->assertRedirect(route('documents.index'));
         $document = Document::firstOrFail();
-        $this->assertSame('invoice', $document->type);
+        $this->assertSame('site_photo', $document->type);
 
         $this->actingAs($user)->get("/documents/{$document->id}/pdf")->assertStatus(200);
     }

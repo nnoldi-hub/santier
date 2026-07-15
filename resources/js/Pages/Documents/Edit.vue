@@ -208,6 +208,49 @@
                     </div>
                 </div>
 
+                <div v-else-if="form.type === 'invoice'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii factura</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Serie + numar factura *</label>
+                        <input v-model="form.invoice_number" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: FAC-2026-0001" />
+                        <p v-if="form.errors.invoice_number" class="text-xs text-red-600 mt-1">{{ form.errors.invoice_number }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Produse / servicii *</label>
+                        <textarea v-model="form.type_data.produse_servicii" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Produs/serviciu, cantitate, pret unitar - cate o linie" />
+                        <p v-if="form.errors['type_data.produse_servicii']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.produse_servicii'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">TVA (%) *</label>
+                        <input v-model.number="form.type_data.tva_pct" type="number" step="0.01" min="0" max="100" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.tva_pct']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.tva_pct'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Scadenta *</label>
+                        <input v-model="form.type_data.scadenta" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.scadenta']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.scadenta'] }}</p>
+                    </div>
+                </div>
+
+                <div v-else-if="form.type === 'delivery_note'" class="border-t border-gray-200 pt-4 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Detalii aviz de insotire marfa</h3>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Furnizor *</label>
+                        <input v-model="form.type_data.furnizor" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.furnizor']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.furnizor'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Materiale *</label>
+                        <textarea v-model="form.type_data.materiale" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Material, cantitate - cate o linie" />
+                        <p v-if="form.errors['type_data.materiale']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.materiale'] }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Transportator *</label>
+                        <input v-model="form.type_data.transportator" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <p v-if="form.errors['type_data.transportator']" class="text-xs text-red-600 mt-1">{{ form.errors['type_data.transportator'] }}</p>
+                    </div>
+                </div>
+
                 <div class="flex gap-2 pt-2">
                     <button type="submit" :disabled="form.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
                         {{ form.processing ? 'Se salveaza...' : 'Salveaza modificari' }}
@@ -243,6 +286,7 @@ const form = useForm({
     payment_status: props.document.payment_status,
     notes: props.document.notes || '',
     attachment: null,
+    invoice_number: props.document.invoice_number || '',
     type_data: {
         comisie: props.document.type_data?.comisie || '',
         descriere_lucrari: props.document.type_data?.descriere_lucrari || '',
@@ -266,6 +310,12 @@ const form = useForm({
         obiect_contract: props.document.type_data?.obiect_contract || '',
         termene: props.document.type_data?.termene || '',
         penalitati: props.document.type_data?.penalitati || '',
+        produse_servicii: props.document.type_data?.produse_servicii || '',
+        tva_pct: props.document.type_data?.tva_pct ?? 19,
+        scadenta: props.document.type_data?.scadenta || '',
+        furnizor: props.document.type_data?.furnizor || '',
+        materiale: props.document.type_data?.materiale || '',
+        transportator: props.document.type_data?.transportator || '',
     },
 });
 
