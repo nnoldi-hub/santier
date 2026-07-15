@@ -41,8 +41,18 @@ class BillingController extends Controller
         $priceId = PricingPlan::priceIdForPlan($plan);
         abort_if(!$priceId, 500, 'Planul nu are un Price Stripe configurat.');
 
+        // Stripe rejects a checkout session that specifies both `customer` and
+        // `customer_email` - Cashier always sends `customer` (it resolves/creates
+        // the Stripe customer for the tenant), so the email must be set on the
+        // customer itself beforehand instead of passed to checkout().
+        if (!$tenant->hasStripeId()) {
+            $tenant->createOrGetStripeCustomer([
+                'email' => $request->user()->email,
+                'name' => $tenant->name,
+            ]);
+        }
+
         return $tenant->newSubscription('default', $priceId)->checkout([
-            'customer_email' => $request->user()->email,
             'success_url' => route('billing.index') . '?checkout=success',
             'cancel_url' => route('billing.index') . '?checkout=cancelled',
         ]);
