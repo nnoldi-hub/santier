@@ -25,6 +25,33 @@ class BillingStripeTest extends TestCase
         $this->assertNull(PricingPlan::planForStripePrice('price_unknown'));
     }
 
+    public function test_price_id_for_plan_resolves_monthly_and_yearly(): void
+    {
+        Config::set('pricing.plans.starter.stripe_price_id', 'price_test_starter');
+        Config::set('pricing.plans.starter.stripe_price_id_yearly', 'price_test_starter_yearly');
+
+        $this->assertSame('price_test_starter', PricingPlan::priceIdForPlan('starter'));
+        $this->assertSame('price_test_starter', PricingPlan::priceIdForPlan('starter', 'monthly'));
+        $this->assertSame('price_test_starter_yearly', PricingPlan::priceIdForPlan('starter', 'yearly'));
+    }
+
+    public function test_plan_for_stripe_price_resolves_yearly_price(): void
+    {
+        Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
+        Config::set('pricing.plans.pro.stripe_price_id_yearly', 'price_test_pro_yearly');
+
+        $this->assertSame('pro', PricingPlan::planForStripePrice('price_test_pro_yearly'));
+    }
+
+    public function test_interval_for_stripe_price_detects_yearly(): void
+    {
+        Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
+        Config::set('pricing.plans.pro.stripe_price_id_yearly', 'price_test_pro_yearly');
+
+        $this->assertSame('yearly', PricingPlan::intervalForStripePrice('price_test_pro_yearly'));
+        $this->assertSame('monthly', PricingPlan::intervalForStripePrice('price_test_pro'));
+    }
+
     public function test_subscription_updated_webhook_syncs_tenant_plan(): void
     {
         Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
@@ -80,11 +107,25 @@ class BillingStripeTest extends TestCase
         $this->actingAs($user)->get('/billing/checkout/free')->assertStatus(404);
     }
 
+    public function test_checkout_rejects_invalid_interval(): void
+    {
+        $user = $this->createOnboardedUser('free');
+
+        $this->actingAs($user)->get('/billing/checkout/starter?interval=biweekly')->assertStatus(422);
+    }
+
     public function test_swap_requires_existing_subscription(): void
     {
         $user = $this->createOnboardedUser('free');
 
         $this->actingAs($user)->patch('/billing/swap', ['plan' => 'pro'])->assertStatus(422);
+    }
+
+    public function test_swap_rejects_invalid_interval(): void
+    {
+        $user = $this->createOnboardedUser('free');
+
+        $this->actingAs($user)->patch('/billing/swap', ['plan' => 'pro', 'interval' => 'biweekly'])->assertStatus(422);
     }
 
     public function test_cancel_requires_existing_subscription(): void

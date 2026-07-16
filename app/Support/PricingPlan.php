@@ -142,19 +142,32 @@ class PricingPlan
         return (bool) config("pricing.plans.{$plan}.features.{$feature}", false);
     }
 
-    public static function priceIdForPlan(string $plan): ?string
+    public static function priceIdForPlan(string $plan, string $interval = 'monthly'): ?string
     {
-        return config("pricing.plans.{$plan}.stripe_price_id");
+        $key = $interval === 'yearly' ? 'stripe_price_id_yearly' : 'stripe_price_id';
+
+        return config("pricing.plans.{$plan}.{$key}");
     }
 
     public static function planForStripePrice(string $priceId): ?string
     {
         foreach (config('pricing.plans', []) as $plan => $definition) {
-            if (($definition['stripe_price_id'] ?? null) === $priceId) {
+            if (($definition['stripe_price_id'] ?? null) === $priceId || ($definition['stripe_price_id_yearly'] ?? null) === $priceId) {
                 return $plan;
             }
         }
 
         return null;
+    }
+
+    public static function intervalForStripePrice(string $priceId): string
+    {
+        foreach (config('pricing.plans', []) as $definition) {
+            if (($definition['stripe_price_id_yearly'] ?? null) === $priceId) {
+                return 'yearly';
+            }
+        }
+
+        return 'monthly';
     }
 }

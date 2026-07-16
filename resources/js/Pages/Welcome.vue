@@ -343,14 +343,37 @@
 
             <section id="preturi" class="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Preturi clare pentru fiecare etapa</h2>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                        <button
+                            type="button"
+                            @click="pricingInterval = 'monthly'"
+                            class="px-3 py-1.5 rounded-md text-sm font-medium"
+                            :class="pricingInterval === 'monthly' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'"
+                        >
+                            Lunar
+                        </button>
+                        <button
+                            type="button"
+                            @click="pricingInterval = 'yearly'"
+                            class="px-3 py-1.5 rounded-md text-sm font-medium"
+                            :class="pricingInterval === 'yearly' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'"
+                        >
+                            Anual
+                        </button>
+                    </div>
+                    <span v-if="pricingInterval === 'yearly'" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">
+                        2 luni gratis
+                    </span>
+                </div>
                 <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
                         <div class="flex items-center justify-between">
                             <h3 class="font-bold text-lg">{{ plan.name }}</h3>
                             <span class="text-xs px-2 py-1 rounded" :class="plan.highlight ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'">{{ plan.badge }}</span>
                         </div>
-                        <div class="mt-2 text-3xl font-black text-slate-900">{{ formatPrice(plan.price) }}</div>
-                        <div class="text-xs text-slate-500">{{ plan.period }}</div>
+                        <div class="mt-2 text-3xl font-black text-slate-900">{{ formatPrice(planPrice(plan)) }}</div>
+                        <div class="text-xs text-slate-500">{{ pricingInterval === 'yearly' && plan.price_yearly ? 'an' : plan.period }}</div>
                         <ul class="mt-4 space-y-2 text-sm text-slate-600">
                             <li v-for="item in plan.items" :key="item">• {{ item }}</li>
                         </ul>
@@ -532,7 +555,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import Icon from '@/Components/Icon.vue';
@@ -634,6 +657,12 @@ function initials(name) {
         .slice(0, 2)
         .map((part) => part.charAt(0).toUpperCase())
         .join('');
+}
+
+const pricingInterval = ref('monthly');
+
+function planPrice(plan) {
+    return pricingInterval.value === 'yearly' && plan.price_yearly ? plan.price_yearly : plan.price;
 }
 
 function formatPrice(price) {

@@ -2,7 +2,9 @@
     <AppLayout title="Billing si planuri">
         <div class="max-w-6xl mx-auto space-y-6">
             <div>
-                <h2 class="text-xl font-semibold text-gray-800">Plan activ: {{ currentPlanLabel }}</h2>
+                <h2 class="text-xl font-semibold text-gray-800">
+                    Plan activ: {{ currentPlanLabel }}<span v-if="subscription?.interval === 'yearly'"> (anual)</span>
+                </h2>
                 <p class="text-sm text-gray-500 mt-1">Alege un plan sau gestioneaza abonamentul curent.</p>
             </div>
 
@@ -15,6 +17,30 @@
                 <button type="button" @click="resumeSubscription" class="rounded-lg bg-amber-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-amber-700 whitespace-nowrap">
                     Revoca anularea
                 </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                    <button
+                        type="button"
+                        @click="selectedInterval = 'monthly'"
+                        class="px-3 py-1.5 rounded-md text-sm font-medium"
+                        :class="selectedInterval === 'monthly' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'"
+                    >
+                        Lunar
+                    </button>
+                    <button
+                        type="button"
+                        @click="selectedInterval = 'yearly'"
+                        class="px-3 py-1.5 rounded-md text-sm font-medium"
+                        :class="selectedInterval === 'yearly' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'"
+                    >
+                        Anual
+                    </button>
+                </div>
+                <span v-if="selectedInterval === 'yearly'" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">
+                    2 luni gratis
+                </span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -30,8 +56,8 @@
                     </div>
 
                     <div class="mt-3">
-                        <div class="text-3xl font-black text-gray-900">{{ formatPrice(plan.price) }}</div>
-                        <div class="text-xs text-gray-500">{{ plan.billing_period || 'luna' }}</div>
+                        <div class="text-3xl font-black text-gray-900">{{ formatPrice(planPrice(plan)) }}</div>
+                        <div class="text-xs text-gray-500">{{ selectedInterval === 'yearly' && plan.price_yearly ? 'an' : (plan.billing_period || 'luna') }}</div>
                     </div>
 
                     <p v-if="plan.description" class="mt-3 text-sm text-gray-600">
@@ -73,7 +99,7 @@
                     </button>
                     <a
                         v-else-if="!hasActiveSubscription"
-                        :href="route('billing.checkout', key)"
+                        :href="route('billing.checkout', key) + '?interval=' + selectedInterval"
                         class="mt-4 w-full text-center px-3 py-2 rounded-lg text-sm font-medium border border-orange-300 text-orange-700 hover:bg-orange-50"
                     >
                         Abonare
@@ -110,12 +136,18 @@ const props = defineProps({
     subscription: { type: Object, default: null },
 });
 
-const swapForm = useForm({ plan: '' });
+const swapForm = useForm({ plan: '', interval: '' });
 const cancelForm = useForm({});
 const resumeForm = useForm({});
 
+const selectedInterval = ref(props.subscription?.interval || 'monthly');
+
 const currentPlanLabel = computed(() => props.plans?.[props.currentPlan]?.label || props.currentPlan);
 const hasActiveSubscription = computed(() => !!props.subscription?.active);
+
+function planPrice(plan) {
+    return selectedInterval.value === 'yearly' && plan.price_yearly ? plan.price_yearly : plan.price;
+}
 
 const checkoutStatus = ref(new URLSearchParams(window.location.search).get('checkout'));
 const checkoutMessage = computed(() => {
@@ -144,6 +176,7 @@ function formatPrice(price) {
 
 function swapPlan(plan) {
     swapForm.plan = plan;
+    swapForm.interval = selectedInterval.value;
     swapForm.patch(route('billing.swap'), { preserveScroll: true });
 }
 

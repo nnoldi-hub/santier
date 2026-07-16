@@ -299,3 +299,36 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
 - **In afara scopului**: verificare automata DNS, pagina publica pentru Documente
   (nu se trimit catre client azi), acces la intregul panou de administrare pe
   domeniul propriu (doar pagina publica de oferta).
+
+### Faza 7 - Facturare anuala cu 2 luni gratis (Facut, 2026-07-16)
+- Cerere: reducere pentru plata anuala (10x pretul lunar = pretul anual, adica
+  2 luni gratis), disponibila atat pe pagina publica de preturi cat si pe pagina
+  de Billing.
+- Fara migratie noua - intervalul (lunar/anual) al unui abonament activ se
+  deduce direct din Price ID-ul Stripe activ (`subscriptions.stripe_price`), nu
+  se salveaza separat in baza de date.
+- `config/pricing.php`: fiecare plan platit primeste `price_yearly` (1490/3490/
+  9990 RON) si `stripe_price_id_yearly` (`env('STRIPE_PRICE_{PLAN}_YEARLY')`).
+- `PricingPlan::priceIdForPlan()` primeste parametrul `$interval`;
+  `planForStripePrice()` verifica acum ambele Price ID-uri (lunar + anual);
+  metoda noua `intervalForStripePrice()` deduce intervalul curent al unui
+  abonament din Price ID-ul lui.
+- `BillingController`: `checkout()` citeste `interval` din query string (link
+  GET), `swap()` din payload-ul PATCH, ambele validate `in:monthly,yearly`;
+  `index()` expune `subscription.interval`.
+- Toggle "Lunar / Anual" adaugat in doua locuri, cu acelasi tipar vizual: pe
+  pagina publica de preturi (`Welcome.vue`, doar afisaj - CTA-urile raman
+  neschimbate, alegerea reala se face dupa inregistrare) si pe pagina de
+  Billing (`Billing/Index.vue`, functional - selecteaza Price-ul folosit la
+  Abonare/Schimbare plan).
+- Test `tests/Feature/BillingStripeTest.php` extins: rezolutia Price ID/plan/
+  interval pentru varianta anuala, `checkout`/`swap` resping un `interval`
+  invalid (422) fara sa atinga Stripe.
+- **Pas manual ramas la utilizator**: creare in Stripe Dashboard a 3 Price-uri
+  noi (Recurring, Yearly) pentru Brand de baza/Brand complet/Enterprise, apoi
+  adaugarea celor 3 variabile noi in `.env` pe server
+  (`STRIPE_PRICE_STARTER_YEARLY`, `STRIPE_PRICE_PRO_YEARLY`,
+  `STRIPE_PRICE_ENTERPRISE_YEARLY`).
+- **In afara scopului**: migrarea automata a unui abonament existent intre
+  lunar/anual la reinnoire (ramane actiune manuala prin "Schimba planul"), alte
+  monede sau perioade de facturare.

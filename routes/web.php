@@ -99,6 +99,7 @@ Route::get('/', function (Request $request) {
                 'key' => $key,
                 'name' => $plan['label'] ?? $key,
                 'price' => (int) ($plan['price'] ?? 0),
+                'price_yearly' => (int) ($plan['price_yearly'] ?? 0),
                 'period' => $plan['billing_period'] ?? 'luna',
                 'highlight' => $key === 'pro',
                 'badge' => match ($key) {
