@@ -1,7 +1,7 @@
 ﻿<template>
     <Head title="MODULIA - Management de santier" />
 
-    <div class="landing min-h-screen text-slate-800">
+    <div class="landing min-h-screen overflow-x-hidden text-slate-800">
         <div class="noise-layer"></div>
 
         <header class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 relative z-10">
@@ -11,18 +11,18 @@
                         <img src="/brand/logo_modulia.png" alt="Modulia" class="logo-crop__img" />
                     </div>
                 </div>
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                     <Link
                         v-if="canLogin"
                         :href="route('login')"
-                        class="px-4 py-2 rounded-lg border border-slate-500 text-sm font-medium text-slate-100 hover:bg-slate-800 transition"
+                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-500 text-xs sm:text-sm font-medium text-slate-100 hover:bg-slate-800 transition whitespace-nowrap"
                     >
                         Login
                     </Link>
                     <Link
                         v-if="canRegister"
                         :href="route('register')"
-                        class="px-4 py-2 rounded-lg bg-[var(--brand-orange)] text-white text-sm font-semibold hover:brightness-95 transition"
+                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-[var(--brand-orange)] text-white text-xs sm:text-sm font-semibold hover:brightness-95 transition whitespace-nowrap"
                     >
                         Trial {{ trialDays }} zile
                     </Link>
@@ -871,13 +871,13 @@ h3 {
 
 @media (max-width: 640px) {
     .logo-crop--header {
-        height: 64px;
-        width: 300px;
+        height: clamp(36px, 10vw, 64px);
+        width: clamp(120px, 34vw, 300px);
     }
 
     .logo-crop--hero {
-        height: 130px;
-        width: 420px;
+        height: clamp(64px, 18vw, 130px);
+        width: clamp(210px, 62vw, 420px);
     }
 }
 </style>
