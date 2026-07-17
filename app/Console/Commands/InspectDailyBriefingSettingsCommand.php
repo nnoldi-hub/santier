@@ -25,9 +25,10 @@ class InspectDailyBriefingSettingsCommand extends Command
         }
 
         $this->table(
-            ['ID', 'Proiect', 'Activat', 'Ora trimiterii', 'Ultima trimitere', 'Destinatari'],
+            ['ID setare', 'ID proiect', 'Proiect', 'Activat', 'Ora trimiterii', 'Ultima trimitere', 'Destinatari'],
             $settings->map(fn (ProjectDailyBriefingSetting $s) => [
                 $s->id,
+                $s->project_id,
                 $s->project?->name ?? "proiect #{$s->project_id}",
                 $s->enabled ? 'da' : 'nu',
                 $s->send_time?->format('H:i') ?? '-',
