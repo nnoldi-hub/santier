@@ -19,7 +19,9 @@ class DailyBriefingBuilder
 {
     public static function build(Project $project, ?Carbon $date = null): array
     {
-        $date = ($date ?? now())->toDateString();
+        // The app runs on UTC (config('app.timezone')) but "today" for a
+        // construction site in Romania should follow local wall-clock time.
+        $date = ($date ?? now('Europe/Bucharest'))->toDateString();
         $phaseIds = $project->phases()->pluck('id');
 
         $teams = self::teamsToday($project, $date);

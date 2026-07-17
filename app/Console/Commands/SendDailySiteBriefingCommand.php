@@ -20,8 +20,12 @@ class SendDailySiteBriefingCommand extends Command
 
     public function handle(): int
     {
-        $today = now()->toDateString();
-        $nowTime = now()->format('H:i');
+        // The app runs on UTC internally (config('app.timezone')) but "send_time"
+        // is set and understood by users as Romania local time - compare against
+        // that, not the server's UTC clock, or the briefing fires hours late/early.
+        $localNow = now('Europe/Bucharest');
+        $today = $localNow->toDateString();
+        $nowTime = $localNow->format('H:i');
         $sent = 0;
 
         ProjectDailyBriefingSetting::query()
