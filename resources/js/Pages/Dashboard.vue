@@ -96,6 +96,26 @@
             </div>
         </div>
 
+        <div v-if="dailyBriefingSummary.length" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-base font-semibold text-gray-800">Memento zilnic</h2>
+                    <p class="text-sm text-gray-500 mt-1">Proiecte cu blocaje astazi.</p>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                <Link
+                    v-for="item in dailyBriefingSummary"
+                    :key="`db-${item.project_id}`"
+                    :href="route('daily-briefing.show', item.project_id)"
+                    class="flex items-center justify-between text-xs rounded border border-red-100 bg-red-50 px-2.5 py-2 text-red-900 hover:bg-red-100"
+                >
+                    <span>{{ item.project_name }}</span>
+                    <span class="font-semibold">{{ pluralize(item.blockers_count, 'blocaj', 'blocaje') }}</span>
+                </Link>
+            </div>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <h2 class="text-base font-semibold text-gray-800 mb-4">Costuri resurse in timp real</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -573,6 +593,7 @@ const props = defineProps({
     resourceDashboard: { type: Object, default: () => ({ overloadedTeams: [], parallelSubcontractors: [], unavailableEquipment: [], lowStockMaterials: [] }) },
     realtimeCosts: { type: Object, default: () => ({ equipment_daily_cost: 0, team_daily_cost: 0, subcontractor_cost_by_phase: [] }) },
     resourceAlerts: { type: Array, default: () => [] },
+    dailyBriefingSummary: { type: Array, default: () => [] },
     recentProjects: { type: Array,  default: () => [] },
     todayTasks:     { type: Array,  default: () => [] },
     todayCalendar:  { type: Object, default: () => ({ date: '', window: 'today', categories: ['stages', 'tasks', 'subcontractors', 'equipment', 'documents', 'quality_checks'], total_events: 0, risk_events: 0, stages: [], tasks: [], equipment: [], subcontractors: [], documents: [], quality_checks: [], load: { level: 'light', label: 'Zi lejera', max: 12, value: 0 }, risk: { score: 0, level: 'low', blocked_tasks: 0, risky_stages: 0, unpaid_documents: 0, predictive: { stage_delay: [], budget_overrun: [], subcontractor: [] } } }) },

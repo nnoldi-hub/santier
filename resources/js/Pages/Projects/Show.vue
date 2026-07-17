@@ -10,6 +10,9 @@
                 <Link :href="route('site-organization.index', project.id)" class="border border-orange-300 text-orange-700 bg-orange-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-100 transition">
                     Organizare Șantier
                 </Link>
+                <Link :href="route('daily-briefing.show', project.id)" class="border border-blue-300 text-blue-700 bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition">
+                    Memento Zilnic
+                </Link>
                 <Link :href="route('projects.edit', project.id)" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
                     Editeaza
                 </Link>

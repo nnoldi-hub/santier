@@ -74,6 +74,7 @@ class NotificationCenterController extends Controller
                 'subcontractor_parallel',
                 'resource_discrepancy',
                 'commercial_follow_up',
+                'daily_briefing',
             ],
         ]);
     }

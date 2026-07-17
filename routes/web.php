@@ -29,6 +29,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\WbsController;
 use App\Http\Controllers\StageEquipmentController;
 use App\Http\Controllers\SiteOrganizationController;
+use App\Http\Controllers\DailyBriefingController;
 use App\Http\Controllers\QualityCheckController;
 use App\Http\Controllers\MaterialInvoiceController;
 use App\Http\Controllers\StageReportController;
@@ -48,6 +49,7 @@ use App\Notifications\OperationalReminderNotification;
 use App\Models\AppSetting;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
+use App\Support\DailyBriefingBuilder;
 use App\Support\DemoScope;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
@@ -449,6 +451,19 @@ Route::get('/dashboard', function () {
         }
     }
 
+    $dailyBriefingSummary = DemoScope::applyProjectScope(Project::query(), $user)
+        ->where('status', 'active')
+        ->take(15)
+        ->get(['id', 'name'])
+        ->map(fn (Project $briefingProject) => [
+            'project_id' => $briefingProject->id,
+            'project_name' => $briefingProject->name,
+            'blockers_count' => count(DailyBriefingBuilder::build($briefingProject)['blockers']),
+        ])
+        ->filter(fn (array $row) => $row['blockers_count'] > 0)
+        ->sortByDesc('blockers_count')
+        ->values();
+
     return Inertia::render('Dashboard', [
         'stats' => [
             'activeProjects' => DemoScope::applyProjectScope(Project::query(), $user)
@@ -534,6 +549,7 @@ Route::get('/dashboard', function () {
             'subcontractor_cost_by_phase' => $subcontractorCostByPhase->take(6)->values(),
         ],
         'resourceAlerts' => $resourceAlerts->values(),
+        'dailyBriefingSummary' => $dailyBriefingSummary,
         'recentProjects' => DemoScope::applyProjectScope(Project::query()->with('client'), $user)
             ->latest()
             ->take(5)
@@ -1462,6 +1478,8 @@ Route::middleware('auth')->group(function () {
         Route::get('projects/{project}/organizare/export/xlsx', [SiteOrganizationController::class, 'exportXlsx'])->name('site-organization.export.xlsx');
         Route::post('projects/{project}/organizare/approve', [SiteOrganizationController::class, 'approvePlan'])->name('site-organization.approve');
         Route::post('projects/{project}/organizare/unapprove', [SiteOrganizationController::class, 'unapprovePlan'])->name('site-organization.unapprove');
+        Route::get('projects/{project}/memento', [DailyBriefingController::class, 'show'])->name('daily-briefing.show');
+        Route::patch('projects/{project}/memento/setari', [DailyBriefingController::class, 'updateSettings'])->name('daily-briefing.settings.update');
         Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
         Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
         Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');
