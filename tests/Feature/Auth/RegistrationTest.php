@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
+use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,5 +29,22 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_new_users_are_assigned_tenant_admin_role(): void
+    {
+        $this->seed(IamSeeder::class);
+
+        $this->post('/register', [
+            'name' => 'Test Owner',
+            'email' => 'owner@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $user = User::where('email', 'owner@example.com')->firstOrFail();
+
+        $this->assertTrue($user->hasRole('tenant_admin'));
+        $this->assertTrue($user->can('documents.view'));
     }
 }

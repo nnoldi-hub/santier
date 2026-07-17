@@ -19,6 +19,7 @@ use App\Support\AnalyticsTracker;
 use App\Support\PricingPlan;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -79,6 +80,11 @@ class RegisteredUserController extends Controller
             'status' => 'active',
             'joined_at' => now(),
         ]);
+
+        $tenantAdminRole = Role::query()->whereNull('tenant_id')->where('guard_name', 'web')->firstWhere('name', 'tenant_admin');
+        if ($tenantAdminRole) {
+            $user->assignRole($tenantAdminRole);
+        }
 
         event(new Registered($user));
 
