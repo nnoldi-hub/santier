@@ -125,6 +125,16 @@ class DailyBriefingBuilderTest extends TestCase
 
         $this->assertCount(5, $briefing['blockers']);
         $this->assertNotEmpty($briefing['recommendations']);
+
+        $this->assertSame('red', $briefing['risk_level']);
+        $this->assertSame('Risc ridicat', $briefing['risk_label']);
+        $this->assertStringContainsString('5 blocaj', $briefing['summary']);
+
+        $this->assertCount(7, $briefing['timeline']);
+        $allDayCount = collect($briefing['timeline'])->where('all_day', true)->count();
+        $timedCount = collect($briefing['timeline'])->where('all_day', false)->count();
+        $this->assertSame(5, $allDayCount);
+        $this->assertSame(2, $timedCount);
     }
 
     public function test_build_returns_empty_sections_when_nothing_is_scheduled_today(): void
@@ -141,6 +151,9 @@ class DailyBriefingBuilderTest extends TestCase
         $this->assertSame([], $briefing['documents']);
         $this->assertSame([], $briefing['tasks']);
         $this->assertSame([], $briefing['blockers']);
+        $this->assertSame([], $briefing['timeline']);
+        $this->assertSame('green', $briefing['risk_level']);
+        $this->assertSame('Azi nu exista blocaje pe acest proiect.', $briefing['summary']);
     }
 
     private function createProject(User $user): Project

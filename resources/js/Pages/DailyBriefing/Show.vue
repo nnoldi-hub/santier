@@ -1,10 +1,15 @@
 <template>
     <AppLayout :title="'Memento zilnic - ' + project.name">
         <div class="max-w-5xl mx-auto space-y-6">
-            <div>
-                <Link :href="route('projects.show', project.id)" class="text-gray-400 hover:text-gray-600 text-sm">← {{ project.name }}</Link>
-                <h2 class="mt-1 text-2xl font-black text-slate-900">Memento Zilnic</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ formatDate(briefing.date) }}</p>
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <Link :href="route('projects.show', project.id)" class="text-gray-400 hover:text-gray-600 text-sm">← {{ project.name }}</Link>
+                    <h2 class="mt-1 text-2xl font-black text-slate-900">Memento Zilnic</h2>
+                    <p class="mt-1 text-sm text-gray-500">{{ formatDate(briefing.date) }}</p>
+                </div>
+                <a :href="route('daily-briefing.pdf', project.id)" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Export PDF
+                </a>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -21,103 +26,35 @@
             </div>
 
             <div v-if="activeTab === 'astazi'" class="space-y-5">
-                <div v-if="briefing.blockers.length" class="rounded-xl border border-red-200 bg-red-50 p-4">
-                    <h3 class="font-semibold text-red-800 mb-2">Blocaje ({{ briefing.blockers.length }})</h3>
-                    <ul class="space-y-1 text-sm text-red-800">
-                        <li v-for="(blocker, index) in briefing.blockers" :key="index">• {{ blocker }}</li>
-                    </ul>
+                <div class="rounded-xl border p-4 flex items-center gap-3" :class="riskBannerClass(briefing.risk_level)">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0" :class="riskBadgeClass(briefing.risk_level)">
+                        {{ riskEmoji(briefing.risk_level) }} {{ briefing.risk_label }}
+                    </span>
+                    <p class="text-sm font-medium">{{ briefing.summary }}</p>
                 </div>
 
-                <div v-if="briefing.recommendations.length" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <h3 class="font-semibold text-amber-800 mb-2">Recomandari</h3>
-                    <ul class="space-y-1 text-sm text-amber-800">
-                        <li v-for="(rec, index) in briefing.recommendations" :key="index">• {{ rec.message }}</li>
-                    </ul>
-                </div>
+                <DailyBriefingSections :briefing="briefing" />
+            </div>
 
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Echipe programate azi ({{ briefing.teams.length }})</h3>
-                    <p v-if="!briefing.teams.length" class="text-sm text-gray-400">Nicio echipa programata azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="team in briefing.teams" :key="'team-' + team.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ team.team_name }}</span>
-                                <span class="text-gray-500"> - {{ team.phase_name || 'fara etapa' }}</span>
-                                <div class="text-xs text-gray-500">{{ team.workers_assigned }}/{{ team.workers_needed }} muncitori</div>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(team.confirmation_status)">{{ badgeLabel(team.confirmation_status) }}</span>
+            <div v-else-if="activeTab === 'istoric'" class="space-y-3">
+                <p v-if="!history.length" class="text-sm text-gray-400">Niciun memento trimis pana acum pentru acest proiect.</p>
+                <div v-for="entry in history" :key="entry.id" class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                        type="button"
+                        class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                        @click="toggleHistoryEntry(entry.id)"
+                    >
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" :class="riskBadgeClass(entry.risk_level)">
+                                {{ riskEmoji(entry.risk_level) }}
+                            </span>
+                            <span class="text-sm font-medium text-gray-800">{{ formatDate(entry.briefing_date) }}</span>
+                            <span class="text-xs text-gray-500">{{ entry.blockers_count }} blocaj(e) · {{ entry.recipients_count }} destinatari</span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Subcontractori programati azi ({{ briefing.subcontractors.length }})</h3>
-                    <p v-if="!briefing.subcontractors.length" class="text-sm text-gray-400">Niciun subcontractor programat azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="sub in briefing.subcontractors" :key="'sub-' + sub.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ sub.contractor_name }}</span>
-                                <span class="text-gray-500"> - {{ sub.phase_name }}</span>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(sub.confirmation_status)">{{ badgeLabel(sub.confirmation_status) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Materiale cu livrare azi ({{ briefing.materials.length }})</h3>
-                    <p v-if="!briefing.materials.length" class="text-sm text-gray-400">Nicio livrare de material programata azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="material in briefing.materials" :key="'mat-' + material.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ material.material_name }}</span>
-                                <span class="text-gray-500" v-if="material.ordered_quantity"> - {{ material.ordered_quantity }} {{ material.ordered_unit }}</span>
-                                <div class="text-xs text-gray-500" v-if="material.supplier_name">{{ material.supplier_name }}</div>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(material.confirmation_status)">{{ badgeLabel(material.confirmation_status) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Utilaje rezervate azi ({{ briefing.equipment.length }})</h3>
-                    <p v-if="!briefing.equipment.length" class="text-sm text-gray-400">Niciun utilaj rezervat azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="item in briefing.equipment" :key="'eq-' + item.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ item.equipment_name }}</span>
-                                <span class="text-gray-500"> - {{ item.phase_name || 'fara etapa' }}</span>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(item.confirmation_status)">{{ badgeLabel(item.confirmation_status) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Documente cu scadenta azi ({{ briefing.documents.length }})</h3>
-                    <p v-if="!briefing.documents.length" class="text-sm text-gray-400">Niciun document cu scadenta azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="doc in briefing.documents" :key="'doc-' + doc.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ doc.title }}</span>
-                                <span class="text-gray-500"> - {{ doc.item_type_label }}</span>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(doc.status)">{{ badgeLabel(doc.status) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white border border-gray-200 rounded-xl p-5">
-                    <h3 class="font-semibold text-gray-800 mb-3">Task-uri critice azi ({{ briefing.tasks.length }})</h3>
-                    <p v-if="!briefing.tasks.length" class="text-sm text-gray-400">Niciun task critic azi.</p>
-                    <div v-else class="space-y-2">
-                        <div v-for="task in briefing.tasks" :key="task.source + '-' + task.id" class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-800">{{ task.title }}</span>
-                                <span class="text-gray-500" v-if="task.phase_name"> - {{ task.phase_name }}</span>
-                            </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeClass(task.status)">{{ badgeLabel(task.status) }}</span>
-                        </div>
+                        <span class="text-xs text-gray-400">{{ openHistoryId === entry.id ? 'Ascunde' : 'Deschide' }}</span>
+                    </button>
+                    <div v-if="openHistoryId === entry.id" class="border-t border-gray-100 p-4">
+                        <DailyBriefingSections :briefing="entry.snapshot" />
                     </div>
                 </div>
             </div>
@@ -205,6 +142,7 @@
 import { ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DailyBriefingSections from '@/Components/DailyBriefingSections.vue';
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -212,14 +150,21 @@ const props = defineProps({
     settings: { type: Object, required: true },
     detailLevels: { type: Object, default: () => ({}) },
     tenantUsers: { type: Array, default: () => [] },
+    history: { type: Array, default: () => [] },
 });
 
 const tabs = [
     { key: 'astazi', label: 'Astazi' },
+    { key: 'istoric', label: 'Istoric' },
     { key: 'setari', label: 'Setari' },
 ];
 
 const activeTab = ref('astazi');
+const openHistoryId = ref(null);
+
+function toggleHistoryEntry(id) {
+    openHistoryId.value = openHistoryId.value === id ? null : id;
+}
 
 const form = useForm({
     enabled: props.settings.enabled,
@@ -233,42 +178,22 @@ function saveSettings() {
     form.patch(route('daily-briefing.settings.update', props.project.id), { preserveScroll: true });
 }
 
-const badgeLabels = {
-    confirmat: 'Confirmat',
-    planificat: 'Planificat',
-    risc: 'Risc',
-    neconfirmat: 'Neconfirmat',
-    blocked: 'Blocat',
-    valid: 'Valid',
-    expiring_soon: 'Expira curand',
-    expired: 'Expirat',
-    missing: 'Lipsa',
-    todo: 'De facut',
-    in_progress: 'In progres',
-    done: 'Finalizat',
+const riskBadges = {
+    green: { emoji: '🟢', badge: 'bg-green-100 text-green-700', banner: 'border-green-200 bg-green-50 text-green-900' },
+    orange: { emoji: '🟠', badge: 'bg-amber-100 text-amber-700', banner: 'border-amber-200 bg-amber-50 text-amber-900' },
+    red: { emoji: '🔴', badge: 'bg-red-100 text-red-700', banner: 'border-red-200 bg-red-50 text-red-900' },
 };
 
-const badgeColors = {
-    confirmat: 'bg-green-100 text-green-700',
-    planificat: 'bg-gray-100 text-gray-600',
-    risc: 'bg-red-100 text-red-600',
-    neconfirmat: 'bg-amber-100 text-amber-700',
-    blocked: 'bg-red-100 text-red-600',
-    valid: 'bg-green-100 text-green-700',
-    expiring_soon: 'bg-amber-100 text-amber-700',
-    expired: 'bg-red-100 text-red-600',
-    missing: 'bg-red-100 text-red-600',
-    todo: 'bg-gray-100 text-gray-600',
-    in_progress: 'bg-amber-100 text-amber-700',
-    done: 'bg-green-100 text-green-700',
-};
-
-function badgeLabel(status) {
-    return badgeLabels[status] ?? status;
+function riskEmoji(level) {
+    return riskBadges[level]?.emoji ?? '⚪';
 }
 
-function badgeClass(status) {
-    return badgeColors[status] ?? 'bg-gray-100 text-gray-600';
+function riskBadgeClass(level) {
+    return riskBadges[level]?.badge ?? 'bg-gray-100 text-gray-600';
+}
+
+function riskBannerClass(level) {
+    return riskBadges[level]?.banner ?? 'border-gray-200 bg-gray-50 text-gray-800';
 }
 
 function formatDate(value) {

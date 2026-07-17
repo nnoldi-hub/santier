@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Mail\DailySiteBriefingMail;
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\ProjectDailyBriefingLog;
 use App\Models\ProjectDailyBriefingSetting;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
@@ -54,11 +55,21 @@ class SendDailySiteBriefingCommandTest extends TestCase
         Mail::assertSent(DailySiteBriefingMail::class, fn (DailySiteBriefingMail $mail) => $mail->project->id === $dueProject->id);
         Notification::assertSentTimes(OperationalReminderNotification::class, 1);
 
+        $this->assertDatabaseCount('project_daily_briefing_logs', 1);
+        $log = ProjectDailyBriefingLog::first();
+        $this->assertSame($dueProject->id, $log->project_id);
+        $this->assertSame('green', $log->risk_level);
+        $this->assertSame(0, $log->blockers_count);
+        $this->assertSame(1, $log->recipients_count);
+        $this->assertIsArray($log->snapshot);
+        $this->assertSame('green', $log->snapshot['risk_level']);
+
         // Running again the same day must not double-send (idempotency guard).
         Artisan::call('briefing:send-daily');
 
         Mail::assertSent(DailySiteBriefingMail::class, 1);
         Notification::assertSentTimes(OperationalReminderNotification::class, 1);
+        $this->assertDatabaseCount('project_daily_briefing_logs', 1);
     }
 
     public function test_command_skips_disabled_settings(): void

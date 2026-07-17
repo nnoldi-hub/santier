@@ -31,15 +31,20 @@ class DailyBriefingBuilder
         $documents = self::documentsToday($project, $date);
         $tasks = self::tasksToday($project, $phaseIds, $date);
         $blockers = self::computeBlockers($teams, $subcontractors, $materials, $documents, $tasks);
+        $riskAndSummary = self::computeRiskAndSummary($blockers);
 
         return [
             'date' => $date,
+            'risk_level' => $riskAndSummary['risk_level'],
+            'risk_label' => $riskAndSummary['risk_label'],
+            'summary' => $riskAndSummary['summary'],
             'teams' => $teams->values()->all(),
             'subcontractors' => $subcontractors->values()->all(),
             'materials' => $materials->values()->all(),
             'equipment' => $equipment->values()->all(),
             'documents' => $documents->values()->all(),
             'tasks' => $tasks->values()->all(),
+            'timeline' => self::buildTimeline($teams, $subcontractors, $materials, $equipment, $documents, $tasks),
             'blockers' => $blockers,
             'recommendations' => DailyBriefingAdvisor::suggest([
                 'teams' => $teams,
@@ -49,6 +54,91 @@ class DailyBriefingBuilder
                 'tasks' => $tasks,
             ]),
         ];
+    }
+
+    private static function computeRiskAndSummary(array $blockers): array
+    {
+        $count = count($blockers);
+
+        [$level, $label] = match (true) {
+            $count === 0 => ['green', 'Risc scazut'],
+            $count <= 2 => ['orange', 'Risc mediu'],
+            default => ['red', 'Risc ridicat'],
+        };
+
+        $summary = $count === 0
+            ? 'Azi nu exista blocaje pe acest proiect.'
+            : "Azi ai {$count} blocaj(e). Prioritate: {$blockers[0]}";
+
+        return ['risk_level' => $level, 'risk_label' => $label, 'summary' => $summary];
+    }
+
+    private static function buildTimeline(
+        Collection $teams,
+        Collection $subcontractors,
+        Collection $materials,
+        Collection $equipment,
+        Collection $documents,
+        Collection $tasks
+    ): array {
+        $allDay = [];
+
+        foreach ($teams as $team) {
+            $allDay[] = [
+                'label' => "Echipa {$team['team_name']}" . ($team['phase_name'] ? " - {$team['phase_name']}" : ''),
+                'blocked' => $team['confirmation_status'] === 'risc',
+            ];
+        }
+
+        foreach ($subcontractors as $sub) {
+            $allDay[] = [
+                'label' => "Subcontractor {$sub['contractor_name']} - {$sub['phase_name']}",
+                'blocked' => $sub['confirmation_status'] === 'risc',
+            ];
+        }
+
+        foreach ($materials as $material) {
+            $allDay[] = [
+                'label' => "Livrare {$material['material_name']}",
+                'blocked' => $material['confirmation_status'] === 'risc',
+            ];
+        }
+
+        foreach ($equipment as $item) {
+            $allDay[] = [
+                'label' => "Utilaj {$item['equipment_name']}" . ($item['phase_name'] ? " - {$item['phase_name']}" : ''),
+                'blocked' => false,
+            ];
+        }
+
+        foreach ($documents as $doc) {
+            $allDay[] = [
+                'label' => "Document {$doc['title']}",
+                'blocked' => in_array($doc['status'], ['expired', 'missing'], true),
+            ];
+        }
+
+        $timed = $tasks
+            ->filter(fn (array $task) => !empty($task['deadline']))
+            ->map(fn (array $task) => [
+                'time' => Carbon::parse($task['deadline'])->format('H:i'),
+                'label' => ($task['status'] === 'blocked' ? 'Task blocat: ' : 'Task: ') . $task['title'],
+                'blocked' => $task['status'] === 'blocked',
+            ])
+            ->sortBy('time')
+            ->values();
+
+        $entries = [];
+
+        foreach ($allDay as $item) {
+            $entries[] = array_merge(['time' => null, 'all_day' => true], $item);
+        }
+
+        foreach ($timed as $item) {
+            $entries[] = array_merge(['all_day' => false], $item);
+        }
+
+        return $entries;
     }
 
     private static function dateWindowQuery(Builder $query, string $date, string $startColumn = 'start_date', string $endColumn = 'end_date'): Builder

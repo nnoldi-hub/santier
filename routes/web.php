@@ -1480,6 +1480,7 @@ Route::middleware('auth')->group(function () {
         Route::post('projects/{project}/organizare/unapprove', [SiteOrganizationController::class, 'unapprovePlan'])->name('site-organization.unapprove');
         Route::get('projects/{project}/memento', [DailyBriefingController::class, 'show'])->name('daily-briefing.show');
         Route::patch('projects/{project}/memento/setari', [DailyBriefingController::class, 'updateSettings'])->name('daily-briefing.settings.update');
+        Route::get('projects/{project}/memento/pdf', [DailyBriefingController::class, 'pdf'])->name('daily-briefing.pdf');
         Route::post('projects/{project}/roles', [ProjectController::class, 'storeRole'])->name('projects.roles.store');
         Route::post('projects/{project}/roles/bulk', [ProjectController::class, 'storeRolesBulk'])->name('projects.roles.bulk.store');
         Route::patch('projects/{project}/roles/{assignment}', [ProjectController::class, 'updateRole'])->name('projects.roles.update');

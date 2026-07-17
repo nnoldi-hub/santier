@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Project;
+use App\Models\ProjectDailyBriefingLog;
 use App\Models\ProjectDailyBriefingSetting;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
@@ -53,7 +54,7 @@ class SendDailySiteBriefingCommand extends Command
                         $recipient->notify(new OperationalReminderNotification(
                             event: 'daily_briefing',
                             title: 'Memento zilnic',
-                            message: sprintf('Memento pentru %s: %d blocaj(e) azi.', $project->name, count($briefing['blockers'])),
+                            message: "{$project->name}: {$briefing['risk_label']} - {$briefing['summary']}",
                             entityType: 'project',
                             entityId: (int) $project->id,
                             projectId: $project->id,
@@ -71,6 +72,18 @@ class SendDailySiteBriefingCommand extends Command
                         }
                     }
                 }
+
+                ProjectDailyBriefingLog::create([
+                    'tenant_id' => $setting->tenant_id,
+                    'project_id' => $project->id,
+                    'briefing_date' => $today,
+                    'sent_at' => now(),
+                    'risk_level' => $briefing['risk_level'],
+                    'blockers_count' => count($briefing['blockers']),
+                    'recipients_count' => $recipients->count(),
+                    'channels' => $channels,
+                    'snapshot' => $briefing,
+                ]);
 
                 $setting->update(['last_sent_date' => $today]);
                 $sent++;

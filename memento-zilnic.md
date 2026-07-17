@@ -11,6 +11,7 @@ ca la Stripe).
 | # | Faza | Status |
 |---|------|--------|
 | 1 | Fundatie + automatizare completa (agregare, pagina, setari, cron, email, notificare in-app) | **Facut** |
+| 1b | v2.0 - rezumat, risc, cronologie, export PDF, istoric | **Facut** |
 | 2 | Canal WhatsApp (Twilio sau Meta Cloud API - alegere ramasa la utilizator) | Neinceput |
 
 ## Faza 1 - Fundatie + automatizare completa (Facut, 2026-07-17)
@@ -73,8 +74,78 @@ ca la Stripe).
   Cashier a fost instalat inainte de a exista migratia de redenumire).
 - **In afara scopului**: canal WhatsApp (Faza 2), actiuni reale de confirmare
   (statusul ramane un proxy calculat), recomandari bazate pe LLM extern.
+- **Fix post-Faza-1 (2026-07-17)**: verificat live ca emailul/notificarea nu
+  soseau desi setarile erau salvate corect - cauza reala: `config('app.timezone')`
+  e `UTC` global in toata aplicatia (fara niciun concept de fus orar per-tenant),
+  dar `send_time` e setat si inteles de utilizatori ca ora Romaniei. Comparatia
+  din `SendDailySiteBriefingCommand` folosea `now()` (UTC), decalaj de 3 ore fata
+  de asteptare. Reparat: comparatia (si "azi" din `DailyBriefingBuilder`) folosesc
+  explicit `now('Europe/Bucharest')`.
+- **Comenzi de suport pentru testare/diagnosticare** (nu fac parte din feature-ul
+  in sine, adaugate dupa verificarea live): `briefing:seed-demo {email?}` (creeaza
+  un proiect de test cu date programate azi pe toate cele 6 domenii + activeaza
+  mementoul), `briefing:cleanup-demo {project}` (sterge complet - `forceDelete()`,
+  proiectul foloseste `SoftDeletes` - un proiect de test si tot ce a creat,
+  verifica numele inainte sa continue), `briefing:inspect` (afiseaza ora/fusul
+  serverului + toate setarile salvate - inlocuieste `tinker --execute`, care nu
+  functioneaza pe acest hosting fiindca `shell_exec()` e dezactivat).
+
+## Faza 1b - v2.0: rezumat, risc, cronologie, export PDF, istoric (Facut, 2026-07-18)
+
+Cerute de utilizator dupa verificarea live a Fazei 1 (7 imbunatatiri, confirmate
+prin `AskUserQuestion`: cronologie in varianta usoara fara schema noua, istoric
+cu jurnal complet/instantaneu, WhatsApp doar specificatie).
+
+- `DailyBriefingBuilder::build()` primeste 3 chei noi: `risk_level`/`risk_label`
+  (semafor verde/portocaliu/rosu, praguri simple pe numarul de blocaje: 0/1-2/3+),
+  `summary` (propozitie scurta cu numarul de blocaje + primul blocaj ca prioritate),
+  `timeline` (cronologie: task-urile au ora reala din `deadline`, restul
+  domeniilor - care au doar DATA, fara ora - apar grupate "Toata ziua"; **decizie
+  confirmata cu utilizatorul**: fara camp de ora editabil pe planificari, ca sa
+  nu extindem schema modulelor existente).
+- Tabel nou `project_daily_briefing_logs` (`App\Models\ProjectDailyBriefingLog`) -
+  jurnal complet: la fiecare trimitere reala (`SendDailySiteBriefingCommand`),
+  se salveaza un instantaneu (`snapshot` JSON = output-ul complet al `build()`)
+  + risc/nr. blocaje/destinatari/canale - istoricul ramane corect chiar daca
+  datele live se schimba ulterior. Fara retentie/curatare automata (tabel de
+  audit, acelasi principiu ca `AccessAuditLog`/`ExportAudit`).
+- `App\Support\DailyBriefingPdfExporter::buildSections()` (nou) - **refoloseste
+  sablonul PDF generic deja existent** `exports/managerial-pdf.blade.php`
+  (acelasi folosit de "Organizare Șantier"), fara view nou - doar transforma
+  rezumat/cronologie/cele 6 sectiuni/blocaje/recomandari in formatul
+  `{name, headings, rows}` deja asteptat de sablon.
+- `DailyBriefing/Show.vue` - tab nou "Istoric" (lista intrarilor din jurnal,
+  expandabil per intrare), banner nou de risc+rezumat pe tab-ul "Astazi", buton
+  nou "Export PDF" in header. Sectiunile (echipe/subcontractori/materiale/
+  utilaje/documente/task-uri/blocaje/recomandari/cronologie) extrase in
+  componenta noua `resources/js/Components/DailyBriefingSections.vue`,
+  refolosita atat pentru vizualizarea live cat si pentru fiecare intrare din
+  istoric (acelasi shape de date).
+- Email (`emails/daily-briefing.blade.php`) - banner de risc+rezumat, sectiune
+  de cronologie, buton CTA reformulat ("Deschide agenda zilei in Modulia").
+  Notificarea in-app (tot `OperationalReminderNotification`) foloseste acum
+  risc+rezumat in loc de doar numarul de blocaje.
+- Teste extinse: `DailyBriefingBuilderTest` (risc/rezumat/cronologie),
+  `SendDailySiteBriefingCommandTest` (jurnalul se creeaza corect), plus
+  `DailyBriefingHistoryTest` si `DailyBriefingPdfExportTest` noi.
+- **In afara scopului**: implementarea reala a canalului WhatsApp, retentie
+  automata a jurnalului, camp de ora editabil pe planificari.
 
 ## Faza 2 - Canal WhatsApp (Neinceput)
 
 Necesita alegerea providerului (Twilio sau Meta Cloud API) si crearea unui cont
 de catre utilizator, la fel ca la integrarea Stripe.
+
+**Specificatie continut** (confirmata cu utilizatorul, de implementat cand se
+alege providerul) - mesaj scurt, 3-4 linii, doar blocajele critice + link:
+```
+{emoji risc} Blocaje azi ({Nume proiect}):
+– {blocaj 1}
+– {blocaj 2}
+– {blocaj 3}
+Vezi detalii: {link catre daily-briefing.show}
+```
+Sursa datelor: aceleasi `briefing['risk_level']`/`briefing['blockers']` deja
+calculate de `DailyBriefingBuilder` - la implementare, doar un nou "channel"
+in `SendDailySiteBriefingCommand` (`channels.whatsapp`, deja prezent in schema
+`project_daily_briefing_settings.channels` din Faza 1, neutilizat pana acum).
