@@ -27,7 +27,9 @@ class CleanupDailyBriefingDemoProjectCommand extends Command
     public function handle(): int
     {
         $projectId = (int) $this->argument('project');
-        $project = Project::find($projectId);
+        // withTrashed(): the project may already have been soft-deleted through
+        // the app's normal "Sterge proiect" action before this command runs.
+        $project = Project::withTrashed()->find($projectId);
 
         if (!$project) {
             $this->error("Proiectul #{$projectId} nu exista.");
@@ -48,21 +50,25 @@ class CleanupDailyBriefingDemoProjectCommand extends Command
         $equipmentIds = StageEquipment::whereIn('stage_id', $phaseIds)->pluck('equipment_id')->unique();
         $clientId = $project->client_id;
 
-        StageTask::whereIn('stage_id', $phaseIds)->delete();
+        // forceDelete() where the model uses SoftDeletes (Task, StageTask,
+        // ResourceOrder, Team, Equipment, Client, Contractor, Project) - a plain
+        // delete() on those would only set deleted_at and leave the rows behind,
+        // which defeats the point of a test-data cleanup command.
+        StageTask::whereIn('stage_id', $phaseIds)->forceDelete();
         StageEquipment::whereIn('stage_id', $phaseIds)->delete();
-        ResourceOrder::where('project_id', $project->id)->delete();
+        ResourceOrder::where('project_id', $project->id)->forceDelete();
         SiteCompliancePlan::where('project_id', $project->id)->delete();
-        Task::where('project_id', $project->id)->delete();
+        Task::where('project_id', $project->id)->forceDelete();
         PhaseTeamAssignment::whereIn('phase_id', $phaseIds)->delete();
         ProjectDailyBriefingSetting::where('project_id', $project->id)->delete();
         ProjectPhase::where('project_id', $project->id)->delete();
-        $project->delete();
+        $project->forceDelete();
 
-        Client::whereKey($clientId)->delete();
-        Team::whereIn('id', $teamIds)->delete();
-        Contractor::whereIn('id', $contractorIds)->delete();
-        Material::whereIn('id', $materialIds)->delete();
-        Equipment::whereIn('id', $equipmentIds)->delete();
+        Client::withTrashed()->whereKey($clientId)->forceDelete();
+        Team::withTrashed()->whereIn('id', $teamIds)->forceDelete();
+        Contractor::withTrashed()->whereIn('id', $contractorIds)->forceDelete();
+        Material::withTrashed()->whereIn('id', $materialIds)->forceDelete();
+        Equipment::withTrashed()->whereIn('id', $equipmentIds)->forceDelete();
 
         $this->info("Proiectul de test #{$projectId} si datele asociate (client, echipa, subcontractor, material, utilaj) au fost sterse.");
 
