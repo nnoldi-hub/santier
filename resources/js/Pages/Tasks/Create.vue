@@ -8,7 +8,20 @@
 
             <form @submit.prevent="submit" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Titlu *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sabloane</label>
+                    <select v-model="selectedTemplateId" @change="applyTemplate" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">— Alege un sablon (optional) —</option>
+                        <option v-for="template in templatesList" :key="template.id" :value="template.id">{{ template.title }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">Titlu *</label>
+                        <button type="button" @click="saveAsTemplate" :disabled="!canSaveAsTemplate || savingTemplate" class="text-xs text-orange-500 hover:underline disabled:opacity-50 disabled:no-underline">
+                            {{ savingTemplate ? 'Se salveaza...' : '+ Salveaza ca sablon' }}
+                        </button>
+                    </div>
                     <input v-model="form.title" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: Comanda materiale pentru faza de tencuieli" />
                     <p v-if="form.errors.title" class="text-red-500 text-xs mt-1">{{ form.errors.title }}</p>
                 </div>
@@ -71,7 +84,10 @@
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label class="block text-sm font-medium text-gray-700">Consum materiale</label>
-                        <button type="button" @click="addMaterialRow" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Material</button>
+                        <div class="flex gap-2">
+                            <button type="button" @click="showNewMaterialModal = true" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Material nou (catalog)</button>
+                            <button type="button" @click="addMaterialRow" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Material</button>
+                        </div>
                     </div>
                     <div v-if="form.task_materials.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
                         Leaga materialele consumate de task (ex: 3 saci glet, 20m cablu).
@@ -80,7 +96,7 @@
                         <div v-for="(item, index) in form.task_materials" :key="`mat-${index}`" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                             <select v-model="item.material_id" class="md:col-span-5 border border-gray-300 rounded-lg px-3 py-2 text-sm">
                                 <option value="">— Material —</option>
-                                <option v-for="material in materials" :key="material.id" :value="String(material.id)">{{ material.name }} ({{ material.unit }})</option>
+                                <option v-for="material in materialsList" :key="material.id" :value="String(material.id)">{{ material.name }} ({{ material.unit }})</option>
                             </select>
                             <input v-model="item.quantity" type="number" min="0.01" step="0.01" class="md:col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Cant." />
                             <input v-model="item.unit_override" type="text" class="md:col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="UM" />
@@ -119,13 +135,37 @@
                 </div>
             </form>
         </div>
+
+        <QuickCreateModal
+            :show="showNewMaterialModal"
+            title="Material nou"
+            :processing="newMaterialProcessing"
+            :error="newMaterialError"
+            @close="showNewMaterialModal = false"
+            @submit="submitNewMaterial"
+        >
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nume *</label>
+                <input v-model="newMaterial.name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unitate de masura *</label>
+                <input v-model="newMaterial.unit" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: buc, mp, kg" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pret unitar (RON) *</label>
+                <input v-model="newMaterial.unit_price" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+        </QuickCreateModal>
     </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
 
 const props = defineProps({
     projects: Array,
@@ -133,6 +173,7 @@ const props = defineProps({
     materials: Array,
     selectedProjectId: Number,
     phasesByProject: Object,
+    taskTemplates: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -182,5 +223,66 @@ function addMaterialRow() {
 
 function removeMaterialRow(index) {
     form.task_materials.splice(index, 1);
+}
+
+const materialsList = ref([...props.materials]);
+const showNewMaterialModal = ref(false);
+const newMaterialProcessing = ref(false);
+const newMaterialError = ref('');
+const newMaterial = ref({ name: '', unit: '', unit_price: '' });
+
+function submitNewMaterial() {
+    newMaterialProcessing.value = true;
+    newMaterialError.value = '';
+
+    axios.post(route('materials.quick-create'), newMaterial.value)
+        .then((response) => {
+            materialsList.value.push(response.data);
+            form.task_materials.push({
+                material_id: String(response.data.id),
+                quantity: '',
+                unit_override: '',
+                unit_price: '',
+            });
+            showNewMaterialModal.value = false;
+            newMaterial.value = { name: '', unit: '', unit_price: '' };
+        })
+        .catch((error) => {
+            newMaterialError.value = error.response?.data?.message || 'Nu am putut salva materialul.';
+        })
+        .finally(() => {
+            newMaterialProcessing.value = false;
+        });
+}
+
+const templatesList = ref([...props.taskTemplates]);
+const selectedTemplateId = ref('');
+const savingTemplate = ref(false);
+
+const canSaveAsTemplate = computed(() => {
+    const title = form.title.trim();
+    if (!title) return false;
+    return !templatesList.value.some((template) => template.title === title);
+});
+
+function applyTemplate() {
+    const template = templatesList.value.find((t) => t.id === Number(selectedTemplateId.value));
+    if (template) {
+        form.title = template.title;
+    }
+}
+
+function saveAsTemplate() {
+    if (!canSaveAsTemplate.value) return;
+
+    savingTemplate.value = true;
+
+    axios.post(route('task-templates.quick-create'), { title: form.title.trim() })
+        .then((response) => {
+            templatesList.value.push(response.data);
+        })
+        .finally(() => {
+            savingTemplate.value = false;
+        });
 }
 </script>

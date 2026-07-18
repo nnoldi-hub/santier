@@ -7,6 +7,7 @@ use App\Http\Requests\StoreClientRequest;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,6 +47,32 @@ class ClientController extends Controller
         ]);
 
         return redirect()->route('clients.index')->with('success', 'Client adaugat cu succes!');
+    }
+
+    public function quickCreate(Request $request)
+    {
+        $this->authorize('create', Client::class);
+
+        // This route is not under /api/*, and bootstrap/app.php only renders JSON
+        // error responses for that prefix - validate manually so a failure still
+        // returns JSON instead of a redirect (which is what $request->validate()
+        // would trigger here).
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'in:person,company'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Date invalide.', 'errors' => $validator->errors()], 422);
+        }
+
+        $client = Client::create([
+            ...$validator->validated(),
+            'tenant_id' => TenantContext::id($request->user()),
+            'active' => true,
+        ]);
+
+        return response()->json(['id' => $client->id, 'name' => $client->name]);
     }
 
     public function show(Client $client): Response

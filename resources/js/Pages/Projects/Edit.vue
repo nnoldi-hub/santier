@@ -17,10 +17,13 @@
 
                 <!-- Client -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">Client</label>
+                        <button type="button" @click="showNewClientModal = true" class="text-xs text-orange-500 hover:underline">+ Client nou</button>
+                    </div>
                     <select v-model="form.client_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                         <option value="">— Fara client —</option>
-                        <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.name }}</option>
+                        <option v-for="c in clientsList" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </select>
                 </div>
 
@@ -101,13 +104,36 @@
                 </div>
             </div>
         </div>
+
+        <QuickCreateModal
+            :show="showNewClientModal"
+            title="Client nou"
+            :processing="newClientProcessing"
+            :error="newClientError"
+            @close="showNewClientModal = false"
+            @submit="submitNewClient"
+        >
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nume *</label>
+                <input v-model="newClient.name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tip *</label>
+                <select v-model="newClient.type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="company">Firma</option>
+                    <option value="person">Persoana fizica</option>
+                </select>
+            </div>
+        </QuickCreateModal>
     </AppLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
 
 const props = defineProps({
     project: Object,
@@ -115,6 +141,30 @@ const props = defineProps({
 });
 
 const confirmDelete = ref(false);
+const clientsList = ref([...props.clients]);
+const showNewClientModal = ref(false);
+const newClientProcessing = ref(false);
+const newClientError = ref('');
+const newClient = ref({ name: '', type: 'company' });
+
+function submitNewClient() {
+    newClientProcessing.value = true;
+    newClientError.value = '';
+
+    axios.post(route('clients.quick-create'), newClient.value)
+        .then((response) => {
+            clientsList.value.push(response.data);
+            form.client_id = response.data.id;
+            showNewClientModal.value = false;
+            newClient.value = { name: '', type: 'company' };
+        })
+        .catch((error) => {
+            newClientError.value = error.response?.data?.message || 'Nu am putut salva clientul.';
+        })
+        .finally(() => {
+            newClientProcessing.value = false;
+        });
+}
 
 const form = useForm({
     name:         props.project.name,

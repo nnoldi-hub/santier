@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTaskRequest;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskTemplate;
 use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -95,6 +96,7 @@ class TaskController extends Controller
                 ])->values(),
             ]),
             'materials' => Material::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'unit', 'unit_price']),
+            'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
         ]);
     }
 
@@ -148,6 +150,7 @@ class TaskController extends Controller
                 'unit_override' => $material->pivot->unit_override,
                 'unit_price' => $material->pivot->unit_price,
             ])->values(),
+            'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
         ]);
     }
 

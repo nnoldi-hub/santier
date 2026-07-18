@@ -8,6 +8,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamCalendarController;
 use App\Http\Controllers\PhaseTeamAssignmentController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskTemplateController;
 use App\Http\Controllers\DefectController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\QuoteController;
@@ -1352,8 +1353,10 @@ Route::middleware('auth')->group(function () {
         Route::get('wbs', [WbsController::class, 'index'])->name('wbs.index');
         Route::patch('wbs/phases/{phase}', [WbsController::class, 'updatePhase'])->name('wbs.phases.update');
         Route::resource('clients', ClientController::class);
+        Route::post('clients/quick-create', [ClientController::class, 'quickCreate'])->name('clients.quick-create');
         Route::get('gantt', [GanttController::class, 'index'])->middleware('plan:gantt')->name('gantt.index');
         Route::resource('tasks', TaskController::class)->except('show');
+        Route::post('task-templates/quick-create', [TaskTemplateController::class, 'quickCreate'])->name('task-templates.quick-create');
         Route::resource('teams', TeamController::class);
         Route::get('team-calendar', [TeamCalendarController::class, 'index'])->name('team-calendar.index');
         Route::get('equipment-calendar', [EquipmentCalendarController::class, 'index'])->name('equipment-calendar.index');
@@ -1385,6 +1388,7 @@ Route::middleware('auth')->group(function () {
         Route::get('quality-checks/{quality_check}/pdf', [QualityCheckController::class, 'pdf'])->name('quality-checks.pdf');
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
+        Route::post('materials/quick-create', [MaterialController::class, 'quickCreate'])->name('materials.quick-create');
         Route::resource('quotes', QuoteController::class)->except('show')
             ->middlewareFor(['index'], 'permission:quotes.view')
             ->middlewareFor(['create', 'store'], 'permission:quotes.create')

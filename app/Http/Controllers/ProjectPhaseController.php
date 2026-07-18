@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Http\Requests\StorePhaseRequest;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,8 @@ class ProjectPhaseController extends Controller
 {
     public function store(StorePhaseRequest $request, Project $project): RedirectResponse
     {
+        abort_unless((int) $project->tenant_id === TenantContext::id($request->user()), 404);
+
         $maxOrder = $project->phases()->max('order') ?? 0;
 
         $project->phases()->create([
@@ -24,12 +27,18 @@ class ProjectPhaseController extends Controller
 
     public function update(StorePhaseRequest $request, Project $project, ProjectPhase $phase): RedirectResponse
     {
+        abort_unless((int) $project->tenant_id === TenantContext::id($request->user()), 404);
+        abort_unless((int) $phase->project_id === (int) $project->id, 404);
+
         $phase->update($request->validated());
         return back()->with('success', 'Etapa actualizata!');
     }
 
-    public function destroy(Project $project, ProjectPhase $phase): RedirectResponse
+    public function destroy(Request $request, Project $project, ProjectPhase $phase): RedirectResponse
     {
+        abort_unless((int) $project->tenant_id === TenantContext::id($request->user()), 404);
+        abort_unless((int) $phase->project_id === (int) $project->id, 404);
+
         $phase->delete();
         return back()->with('success', 'Etapa stearsa!');
     }

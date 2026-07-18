@@ -252,14 +252,14 @@
                 <div class="bg-white rounded-xl border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-semibold text-gray-800 inline-flex items-center gap-1.5"><Icon :icon="CalendarDaysIcon" size="h-4 w-4 text-orange-500" /> Etape proiect</h3>
-                        <button @click="showAddPhase = !showAddPhase" class="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition">
+                        <button @click="toggleAddPhase" class="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition">
                             + Adauga etapa
                         </button>
                     </div>
 
-                    <!-- Formular adaugare etapa -->
+                    <!-- Formular adaugare/editare etapa -->
                     <div v-if="showAddPhase" class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                        <h4 class="text-sm font-medium text-orange-700 mb-3">Etapa noua</h4>
+                        <h4 class="text-sm font-medium text-orange-700 mb-3">{{ editingPhaseId ? 'Editeaza etapa' : 'Etapa noua' }}</h4>
                         <div class="grid grid-cols-2 gap-3 mb-3">
                             <div class="col-span-2">
                                 <label class="block text-xs text-gray-600 mb-1">Tip etapa</label>
@@ -296,10 +296,10 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button @click="storePhase" :disabled="phaseForm.processing" class="bg-orange-500 text-white px-4 py-1.5 rounded text-sm hover:bg-orange-600 disabled:opacity-50 transition">
-                                {{ phaseForm.processing ? '...' : 'Adauga' }}
+                            <button @click="submitPhaseForm" :disabled="phaseForm.processing" class="bg-orange-500 text-white px-4 py-1.5 rounded text-sm hover:bg-orange-600 disabled:opacity-50 transition">
+                                {{ phaseForm.processing ? '...' : (editingPhaseId ? 'Salveaza' : 'Adauga') }}
                             </button>
-                            <button @click="showAddPhase = false" class="border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50">Anuleaza</button>
+                            <button @click="cancelPhaseForm" class="border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50">Anuleaza</button>
                         </div>
                     </div>
 
@@ -333,6 +333,8 @@
                                     <span class="text-xs text-gray-500 w-8 text-right">{{ phase.progress_pct }}%</span>
                                 </div>
                             </div>
+                            <!-- Editeaza -->
+                            <button @click="editPhase(phase)" class="text-xs text-gray-400 hover:text-orange-500 transition shrink-0">Editeaza</button>
                             <!-- Delete -->
                             <button @click="deletePhase(phase)" class="text-gray-300 hover:text-red-400 transition text-lg leading-none">×</button>
                         </div>
@@ -848,6 +850,7 @@ const props = defineProps({
 });
 
 const showAddPhase = ref(false);
+const editingPhaseId = ref(null);
 const showAiInvoiceFlow = ref(false);
 const showBudgetAlertFlow = ref(false);
 const showEstimateFlow = ref(false);
@@ -1292,13 +1295,49 @@ async function commitAiInvoiceDraft() {
     }
 }
 
-function storePhase() {
-    phaseForm.post(route('phases.store', props.project.id), {
-        onSuccess: () => {
-            showAddPhase.value = false;
-            phaseForm.reset();
-        },
-    });
+function submitPhaseForm() {
+    const onSuccess = () => {
+        showAddPhase.value = false;
+        editingPhaseId.value = null;
+        phaseForm.reset();
+    };
+
+    if (editingPhaseId.value) {
+        phaseForm.put(route('phases.update', [props.project.id, editingPhaseId.value]), { onSuccess });
+    } else {
+        phaseForm.post(route('phases.store', props.project.id), { onSuccess });
+    }
+}
+
+function editPhase(phase) {
+    editingPhaseId.value = phase.id;
+    phaseForm.name = phase.name;
+    phaseForm.type = phase.type;
+    phaseForm.status = phase.status;
+    phaseForm.start_date = phase.start_date ?? '';
+    phaseForm.end_date = phase.end_date ?? '';
+    phaseForm.duration_days = phase.duration_days ?? null;
+    phaseForm.progress_pct = phase.progress_pct ?? 0;
+    phaseForm.contractor_id = phase.contractor_id ?? '';
+    phaseForm.parent_id = phase.parent_id ?? '';
+    phaseForm.notes = phase.notes ?? '';
+    showAddPhase.value = true;
+}
+
+function cancelPhaseForm() {
+    showAddPhase.value = false;
+    editingPhaseId.value = null;
+    phaseForm.reset();
+}
+
+function toggleAddPhase() {
+    if (showAddPhase.value) {
+        cancelPhaseForm();
+    } else {
+        editingPhaseId.value = null;
+        phaseForm.reset();
+        showAddPhase.value = true;
+    }
 }
 
 function deletePhase(phase) {

@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -73,6 +74,32 @@ class MaterialController extends Controller
         ]);
 
         return redirect()->route('materials.index')->with('success', 'Material adaugat cu succes!');
+    }
+
+    public function quickCreate(Request $request)
+    {
+        $this->authorize('create', Material::class);
+
+        // Not under /api/* - bootstrap/app.php only renders JSON error responses
+        // for that prefix, so validate manually to guarantee a JSON response
+        // instead of the redirect $request->validate() would otherwise trigger.
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'unit' => ['required', 'string', 'max:50'],
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:999999999'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Date invalide.', 'errors' => $validator->errors()], 422);
+        }
+
+        $material = Material::create([
+            ...$validator->validated(),
+            'tenant_id' => TenantContext::id($request->user()),
+            'active' => true,
+        ]);
+
+        return response()->json(['id' => $material->id, 'name' => $material->name, 'unit' => $material->unit]);
     }
 
     public function edit(Material $material): Response
