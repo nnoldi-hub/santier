@@ -22,6 +22,7 @@ class ProjectAiToolsController extends Controller
     public function generateEstimate(Request $request, Project $project): JsonResponse
     {
         $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
 
         $validated = $request->validate([
             'task_template_id' => ['required', 'integer', Rule::exists('task_templates', 'id')->where('tenant_id', $tenantId)],
@@ -112,6 +113,9 @@ class ProjectAiToolsController extends Controller
 
     public function commitEstimate(Request $request, Project $project): JsonResponse
     {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'total_net' => ['required', 'numeric', 'min:0'],
@@ -155,7 +159,7 @@ class ProjectAiToolsController extends Controller
         $nextVersion = (Quote::query()->where('project_id', $project->id)->max('version') ?? 0) + 1;
 
         $quote = Quote::create([
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
             'project_id' => $project->id,
             'version' => $nextVersion,
             'title' => $validated['title'],
@@ -216,7 +220,7 @@ class ProjectAiToolsController extends Controller
         }
 
         $estimateDocument = Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
             'project_id' => $project->id,
             'stage_id' => $estimateStageId,
             'type' => 'estimate',
@@ -238,6 +242,7 @@ class ProjectAiToolsController extends Controller
     public function budgetAlert(Request $request, Project $project): JsonResponse
     {
         $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
 
         $validated = $request->validate([
             'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
@@ -323,6 +328,8 @@ class ProjectAiToolsController extends Controller
 
     public function extractInvoice(Request $request, Project $project): JsonResponse
     {
+        abort_unless((int) $project->tenant_id === TenantContext::id($request->user()), 404);
+
         $validated = $request->validate([
             'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
             'attachment' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,pdf,webp'],
@@ -384,6 +391,9 @@ class ProjectAiToolsController extends Controller
 
     public function commitInvoice(Request $request, Project $project): JsonResponse
     {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+
         $validated = $request->validate([
             'stage_id' => ['required', 'integer', 'exists:project_phases,id'],
             'temp_file_path' => ['required', 'string'],
@@ -412,7 +422,7 @@ class ProjectAiToolsController extends Controller
 
         $contractor = Contractor::query()->firstOrCreate(
             [
-                'tenant_id' => 1,
+                'tenant_id' => $tenantId,
                 'name' => $validated['supplier_name'],
             ],
             [
@@ -427,7 +437,7 @@ class ProjectAiToolsController extends Controller
         Storage::disk('local')->move($validated['temp_file_path'], $finalPath);
 
         $document = Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $tenantId,
             'contractor_id' => $contractor->id,
             'project_id' => $project->id,
             'stage_id' => (int) $validated['stage_id'],

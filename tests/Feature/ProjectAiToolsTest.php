@@ -11,6 +11,7 @@ use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Models\Recipe;
 use App\Models\TaskTemplate;
+use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -255,6 +256,61 @@ class ProjectAiToolsTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonPath('needs_recipe', true);
         $response->assertJsonPath('task_template_id', $template->id);
+    }
+
+    public function test_ai_tools_endpoints_are_blocked_for_a_project_belonging_to_another_tenant(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        Tenant::create([
+            'id' => 2,
+            'name' => 'Tenant intrus',
+            'slug' => 'tenant-intrus',
+            'billing_plan' => 'free',
+            'status' => 'active',
+            'module_flags' => [],
+        ]);
+        $intruder = User::factory()->create([
+            'tenant_id' => 2,
+            'current_tenant_id' => 2,
+            'onboarding_step' => 3,
+            'onboarding_completed_at' => now(),
+            'billing_plan' => 'pro',
+        ]);
+
+        $this->actingAs($intruder)->post(route('projects.ai.budget-alert', $project), [
+            'stage_id' => $phase->id,
+            'purchase_amount' => 1000,
+        ])->assertNotFound();
+
+        $this->actingAs($intruder)->post(route('projects.ai.estimate.generate', $project), [
+            'task_template_id' => 1,
+            'measure_value' => 10,
+        ])->assertNotFound();
+
+        $this->actingAs($intruder)->post(route('projects.ai.estimate.commit', $project), [
+            'title' => 'Deviz intrus',
+            'total_net' => 100,
+            'wbs_stages' => [['name' => 'Etapa']],
+        ])->assertNotFound();
+
+        $this->actingAs($intruder)->post(route('projects.ai.invoice.extract', $project), [
+            'stage_id' => $phase->id,
+            'attachment' => UploadedFile::fake()->image('factura.jpg'),
+        ])->assertNotFound();
+
+        $this->actingAs($intruder)->post(route('projects.ai.invoice.commit', $project), [
+            'stage_id' => $phase->id,
+            'temp_file_path' => 'ai-temp-invoices/nu-exista.jpg',
+            'supplier_name' => 'Furnizor intrus',
+            'amount' => 100,
+            'issued_at' => now()->toDateString(),
+            'payment_status' => 'unpaid',
+        ])->assertNotFound();
+
+        $this->assertDatabaseCount('quotes', 0);
+        $this->assertDatabaseMissing('project_phases', ['project_id' => $project->id, 'name' => 'Etapa']);
     }
 
     private function seedTaskTemplateWithRecipe(): array
