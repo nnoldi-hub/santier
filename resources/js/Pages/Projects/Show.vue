@@ -700,33 +700,24 @@
                 <div class="flex items-start justify-between gap-4 mb-4">
                     <div>
                         <h3 class="text-base font-semibold text-gray-800">Deviz automat din dimensiuni</h3>
-                        <p class="text-xs text-gray-500 mt-1">Introdu dimensiunile, iar AI propune costuri și etape WBS pentru proiect.</p>
+                        <p class="text-xs text-gray-500 mt-1">Alege operatia de lucru si cantitatea, iar devizul se calculeaza din reteta de consum a sablonului.</p>
                     </div>
                     <button @click="closeEstimateFlow" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Tip lucrare *</label>
-                        <select v-model="estimateForm.work_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                            <option value="fence">Gard</option>
-                            <option value="foundation">Fundatie</option>
-                            <option value="plastering">Tencuieli</option>
-                            <option value="custom">Custom</option>
+                        <label class="block text-xs text-gray-600 mb-1">Operatie de lucru (sablon) *</label>
+                        <select v-model="estimateForm.task_template_id" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                            <option value="">Alege un sablon...</option>
+                            <option v-for="template in props.taskTemplates" :key="template.id" :value="template.id">
+                                {{ template.title }}{{ template.recipe ? '' : ' (fara reteta)' }}
+                            </option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Tip dimensiune *</label>
-                        <select v-model="estimateForm.measure_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                            <option value="area">Suprafata (mp)</option>
-                            <option value="length">Lungime (ml)</option>
-                            <option value="volume">Volum (mc)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Valoare dimensiune *</label>
+                        <label class="block text-xs text-gray-600 mb-1">Cantitate lucrare {{ selectedTemplate?.recipe ? `(${selectedTemplate.recipe.unit})` : '' }} *</label>
                         <input v-model="estimateForm.measure_value" type="number" min="0.1" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 120" />
                     </div>
 
@@ -738,10 +729,29 @@
                             <option value="high">Ridicata</option>
                         </select>
                     </div>
+
+                    <div></div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Cost manopera (RON/unitate)</label>
+                        <input v-model="estimateForm.labor_unit_cost" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Cost utilaje (RON/unitate)</label>
+                        <input v-model="estimateForm.equipment_unit_cost" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 20" />
+                    </div>
+                </div>
+
+                <div v-if="selectedTemplate && !selectedTemplate.recipe" class="mt-3 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg flex items-center justify-between gap-3">
+                    <span>Acest sablon nu are inca o reteta de consum, deci nu se poate calcula un deviz corect. Creeaza mai intai o reteta.</span>
+                    <a :href="route('recipes.create', { subject_type: 'task_template', subject_id: selectedTemplate.id })" target="_blank" class="shrink-0 bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700">
+                        + Reteta pentru sablon
+                    </a>
                 </div>
 
                 <div class="mt-3 flex gap-2">
-                    <button @click="generateEstimate" :disabled="estimateState.loading" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-violet-700 disabled:opacity-50">
+                    <button @click="generateEstimate" :disabled="estimateState.loading || !selectedTemplate?.recipe" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-violet-700 disabled:opacity-50">
                         {{ estimateState.loading ? 'Se genereaza...' : 'Genereaza deviz' }}
                     </button>
                     <button @click="closeEstimateFlow" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Inchide</button>
@@ -817,7 +827,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import axios from 'axios';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -842,6 +852,7 @@ const props = defineProps({
     teams:      { type: Array, default: () => [] },
     contractors:{ type: Array, default: () => [] },
     equipment:  { type: Array, default: () => [] },
+    taskTemplates: { type: Array, default: () => [] },
     projectRoleOptions: { type: Array, default: () => [] },
     projectRoleAssignments: { type: Array, default: () => [] },
     projectMemberCandidates: { type: Array, default: () => [] },
@@ -904,15 +915,20 @@ const budgetAlertForm = reactive({
 });
 
 const estimateForm = reactive({
-    work_type: 'foundation',
-    measure_type: 'volume',
+    task_template_id: '',
     measure_value: '',
     complexity: 'medium',
+    labor_unit_cost: '',
+    equipment_unit_cost: '',
 });
 
 const estimateCommitForm = reactive({
     title: '',
     notes: 'Deviz generat automat din modul AI Tools.',
+});
+
+const selectedTemplate = computed(() => {
+    return props.taskTemplates.find((template) => template.id === Number(estimateForm.task_template_id)) || null;
 });
 
 const phaseForm = useForm({
@@ -1036,10 +1052,11 @@ function closeEstimateFlow() {
     estimateState.hasResult = false;
     estimateState.result = null;
     estimateState.quoteId = null;
-    estimateForm.work_type = 'foundation';
-    estimateForm.measure_type = 'volume';
+    estimateForm.task_template_id = '';
     estimateForm.measure_value = '';
     estimateForm.complexity = 'medium';
+    estimateForm.labor_unit_cost = '';
+    estimateForm.equipment_unit_cost = '';
     estimateCommitForm.title = '';
     estimateCommitForm.notes = 'Deviz generat automat din modul AI Tools.';
 }
@@ -1048,8 +1065,18 @@ async function generateEstimate() {
     estimateState.error = '';
     estimateState.success = '';
 
+    if (!estimateForm.task_template_id) {
+        estimateState.error = 'Alege operatia de lucru pentru care generezi devizul.';
+        return;
+    }
+
+    if (!selectedTemplate.value?.recipe) {
+        estimateState.error = 'Sablonul ales nu are inca o reteta de consum.';
+        return;
+    }
+
     if (!estimateForm.measure_value || Number(estimateForm.measure_value) <= 0) {
-        estimateState.error = 'Introdu o dimensiune valida pentru generarea devizului.';
+        estimateState.error = 'Introdu o cantitate de lucrare valida pentru generarea devizului.';
         return;
     }
 
@@ -1057,10 +1084,11 @@ async function generateEstimate() {
 
     try {
         const response = await axios.post(route('projects.ai.estimate.generate', props.project.id), {
-            work_type: estimateForm.work_type,
-            measure_type: estimateForm.measure_type,
+            task_template_id: Number(estimateForm.task_template_id),
             measure_value: Number(estimateForm.measure_value),
             complexity: estimateForm.complexity,
+            labor_unit_cost: Number(estimateForm.labor_unit_cost || 0),
+            equipment_unit_cost: Number(estimateForm.equipment_unit_cost || 0),
         });
 
         estimateState.result = response.data?.estimate || null;
@@ -1068,7 +1096,7 @@ async function generateEstimate() {
         estimateState.success = response.data?.message || 'Deviz generat cu succes.';
         estimateState.quoteId = null;
 
-        estimateCommitForm.title = `Deviz AI - ${props.project.name} - ${estimateForm.work_type}`;
+        estimateCommitForm.title = `Deviz AI - ${props.project.name} - ${selectedTemplate.value.title}`;
     } catch (error) {
         estimateState.error = error?.response?.data?.message || 'Nu am putut genera devizul.';
     } finally {
@@ -1088,37 +1116,20 @@ async function commitEstimate() {
     estimateState.saving = true;
 
     try {
-        const laborDetails = [
-            {
-                name: `Manopera ${estimateForm.work_type}`,
-                estimated_hours: estimateState.result.labor?.estimated_hours || 0,
-                hour_rate: estimateState.result.labor?.hour_rate || 0,
-                estimated_cost: estimateState.result.labor?.estimated_cost || 0,
-            },
-        ];
-
-        const equipmentDetails = [
-            {
-                name: `Utilaje ${estimateForm.work_type}`,
-                estimated_hours: estimateState.result.equipment?.estimated_hours || 0,
-                hour_rate: estimateState.result.equipment?.hour_rate || 0,
-                estimated_cost: estimateState.result.equipment?.estimated_cost || 0,
-            },
-        ];
-
         const response = await axios.post(route('projects.ai.estimate.commit', props.project.id), {
             title: estimateCommitForm.title || `Deviz AI - ${props.project.name}`,
             total_net: estimateState.result.totals?.total_net || 0,
             wbs_stages: estimateState.result.wbs_stages || [],
             notes: estimateCommitForm.notes,
             estimate_details: {
-                work_type: estimateForm.work_type,
-                measure_type: estimateForm.measure_type,
+                task_template_id: estimateState.result.task_template_id,
+                task_template_title: estimateState.result.task_template_title,
+                recipe_unit: estimateState.result.recipe_unit,
                 measure_value: Number(estimateForm.measure_value || 0),
                 complexity: estimateForm.complexity,
                 materials: estimateState.result.materials || [],
-                labor: laborDetails,
-                equipment: equipmentDetails,
+                labor: estimateState.result.labor || {},
+                equipment: estimateState.result.equipment || {},
                 totals: estimateState.result.totals || {},
             },
         });

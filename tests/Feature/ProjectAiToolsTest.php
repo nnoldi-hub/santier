@@ -9,6 +9,8 @@ use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Models\Recipe;
+use App\Models\TaskTemplate;
 use App\Models\User;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -139,18 +141,23 @@ class ProjectAiToolsTest extends TestCase
     {
         $user = $this->createOnboardedUser();
         [$project] = $this->seedProjectContext($user);
+        [$template] = $this->seedTaskTemplateWithRecipe();
 
         $generateResponse = $this->actingAs($user)->post(route('projects.ai.estimate.generate', $project), [
-            'work_type' => 'foundation',
-            'measure_type' => 'volume',
+            'task_template_id' => $template->id,
             'measure_value' => 10,
             'complexity' => 'medium',
+            'labor_unit_cost' => 120,
+            'equipment_unit_cost' => 70,
         ]);
 
         $generateResponse->assertOk();
         $generateResponse->assertJsonStructure([
             'message',
             'estimate' => [
+                'task_template_id',
+                'task_template_title',
+                'recipe_unit',
                 'materials',
                 'labor',
                 'equipment',
@@ -159,12 +166,21 @@ class ProjectAiToolsTest extends TestCase
             ],
         ]);
 
+        $generateResponse->assertJsonPath('estimate.totals.materials_cost', 9430);
+        $generateResponse->assertJsonPath('estimate.totals.labor_cost', 1200);
+        $generateResponse->assertJsonPath('estimate.totals.equipment_cost', 700);
+        $generateResponse->assertJsonPath('estimate.totals.total_net', 11330);
+        $generateResponse->assertJsonPath('estimate.wbs_stages', [
+            ['name' => 'Pregatire', 'status' => 'pending'],
+            ['name' => 'Aprovizionare materiale', 'status' => 'pending'],
+            ['name' => 'Executie - Fundatie beton', 'status' => 'pending'],
+            ['name' => 'Control calitate', 'status' => 'pending'],
+            ['name' => 'Predare', 'status' => 'pending'],
+        ]);
+
         $totalNet = (float) $generateResponse->json('estimate.totals.total_net');
         $wbsStages = $generateResponse->json('estimate.wbs_stages');
-
-        $this->assertGreaterThan(0, $totalNet);
-        $this->assertIsArray($wbsStages);
-        $this->assertNotEmpty($wbsStages);
+        $estimate = $generateResponse->json('estimate');
 
         $commitResponse = $this->actingAs($user)->post(route('projects.ai.estimate.commit', $project), [
             'title' => 'Deviz AI fundatie',
@@ -172,33 +188,15 @@ class ProjectAiToolsTest extends TestCase
             'wbs_stages' => $wbsStages,
             'notes' => 'Test commit deviz AI',
             'estimate_details' => [
-                'work_type' => 'foundation',
-                'measure_type' => 'volume',
+                'task_template_id' => $estimate['task_template_id'],
+                'task_template_title' => $estimate['task_template_title'],
+                'recipe_unit' => $estimate['recipe_unit'],
                 'measure_value' => 10,
                 'complexity' => 'medium',
-                'materials' => [
-                    [
-                        'name' => 'Beton C25/30',
-                        'quantity' => 10,
-                        'unit' => 'mc',
-                        'unit_price' => 450,
-                        'estimated_cost' => 4500,
-                    ],
-                ],
-                'labor' => [
-                    [
-                        'name' => 'Manopera foundation',
-                        'estimated_hours' => 13,
-                        'hour_rate' => 92,
-                        'estimated_cost' => 1196,
-                    ],
-                ],
-                'totals' => [
-                    'materials_cost' => 3300,
-                    'labor_cost' => 1200,
-                    'equipment_cost' => 700,
-                    'total_net' => $totalNet,
-                ],
+                'materials' => $estimate['materials'],
+                'labor' => $estimate['labor'],
+                'equipment' => $estimate['equipment'],
+                'totals' => $estimate['totals'],
             ],
         ]);
 
@@ -239,6 +237,59 @@ class ProjectAiToolsTest extends TestCase
                 'name' => $stage['name'],
             ]);
         }
+    }
+
+    public function test_ai_estimate_generation_is_blocked_when_task_template_has_no_recipe(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Zugravit fara reteta']);
+
+        $response = $this->actingAs($user)->post(route('projects.ai.estimate.generate', $project), [
+            'task_template_id' => $template->id,
+            'measure_value' => 10,
+            'complexity' => 'medium',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('needs_recipe', true);
+        $response->assertJsonPath('task_template_id', $template->id);
+    }
+
+    private function seedTaskTemplateWithRecipe(): array
+    {
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Fundatie beton']);
+
+        $beton = Material::create([
+            'tenant_id' => 1,
+            'code' => 'AI-BETON',
+            'name' => 'Beton C25/30',
+            'unit' => 'mc',
+            'unit_price' => 450,
+            'active' => true,
+        ]);
+
+        $otel = Material::create([
+            'tenant_id' => 1,
+            'code' => 'AI-OTEL',
+            'name' => 'Otel beton',
+            'unit' => 'kg',
+            'unit_price' => 5.8,
+            'active' => true,
+        ]);
+
+        $recipe = Recipe::create([
+            'tenant_id' => 1,
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Fundatie beton',
+            'unit' => 'mc',
+        ]);
+        $recipe->items()->create(['material_id' => $beton->id, 'quantity_per_unit' => 1.0]);
+        $recipe->items()->create(['material_id' => $otel->id, 'quantity_per_unit' => 85]);
+
+        return [$template, $recipe];
     }
 
     private function seedProjectContext(User $user): array

@@ -51,3 +51,28 @@ Fara expandare recursiva (o reteta de material compus folosita ca item in alta
 reteta nu se expandeaza automat inca un nivel), fara camp persistent de
 "cantitate de lucru" pe `ProjectPhase`/`Task`, fara import/export de retete in
 masa, fara pagina de management dedicata a "cantitatii de lucru" per etapa.
+
+## Extindere: Deviz AI ghidat de retete (2026-07-18)
+
+Generatorul de deviz automat ("Deviz automat din dimensiuni", pe pagina unui
+proiect) calcula anterior costurile dintr-un catalog hardcodat pe 3 "tipuri de
+lucrare" (`fence`/`foundation`/`plastering`/`custom`), complet independent de
+retete. Utilizatorul nu intelegea de unde vin cifrele si voia un deviz corect
+estimat + etape de lucru profesionale.
+
+- `ProjectAiToolsController::generateEstimate()` foloseste acum un
+  `TaskTemplate` ales din catalog (in loc de un enum fix) - daca sablonul ales
+  nu are inca o reteta atasata, generarea e blocata cu raspuns
+  `422 {needs_recipe: true, task_template_id, task_template_title}`, iar
+  interfata (`Projects/Show.vue`) afiseaza un link direct "+ Reteta pentru
+  sablon" catre `recipes.create` cu `subject_type`/`subject_id` preseta.
+- Costul materialelor se calculeaza direct din `RecipeItem.quantity_per_unit *
+  cantitate_lucrare * factor_complexitate * Material.unit_price`. Costurile de
+  manopera/utilaje nu mai vin dintr-un catalog - au devenit inputuri manuale
+  simple (RON/unitate) in formular.
+- Etapele WBS generate sunt acum standard pentru orice deviz: `Pregatire`,
+  `Aprovizionare materiale`, `Executie - {numele sablonului}`,
+  `Control calitate`, `Predare` (inainte erau liste custom per tip de lucrare).
+- `TaskTemplate::forEstimatePicker()` (metoda statica noua pe model) inlocuieste
+  metoda privata duplicata `TaskController::taskTemplatesPayload()` - folosita
+  acum si de `ProjectController::show()` pentru noul prop `taskTemplates`.

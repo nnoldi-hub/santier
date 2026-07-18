@@ -96,7 +96,7 @@ class TaskController extends Controller
                 ])->values(),
             ]),
             'materials' => Material::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'unit', 'unit_price']),
-            'taskTemplates' => $this->taskTemplatesPayload($tenantId),
+            'taskTemplates' => TaskTemplate::forEstimatePicker($tenantId),
         ]);
     }
 
@@ -150,7 +150,7 @@ class TaskController extends Controller
                 'unit_override' => $material->pivot->unit_override,
                 'unit_price' => $material->pivot->unit_price,
             ])->values(),
-            'taskTemplates' => $this->taskTemplatesPayload($tenantId),
+            'taskTemplates' => TaskTemplate::forEstimatePicker($tenantId),
         ]);
     }
 
@@ -252,27 +252,5 @@ class TaskController extends Controller
             ->all();
 
         $task->materials()->sync($syncPayload);
-    }
-
-    private function taskTemplatesPayload(int $tenantId)
-    {
-        return TaskTemplate::where('tenant_id', $tenantId)
-            ->with(['recipe.items.material:id,name,unit'])
-            ->orderBy('title')
-            ->get(['id', 'title'])
-            ->map(fn (TaskTemplate $template) => [
-                'id' => $template->id,
-                'title' => $template->title,
-                'recipe' => $template->recipe ? [
-                    'id' => $template->recipe->id,
-                    'unit' => $template->recipe->unit,
-                    'items' => $template->recipe->items->map(fn ($item) => [
-                        'material_id' => $item->material_id,
-                        'material_name' => $item->material?->name,
-                        'quantity_per_unit' => (float) $item->quantity_per_unit,
-                        'unit' => $item->material?->unit,
-                    ]),
-                ] : null,
-            ]);
     }
 }

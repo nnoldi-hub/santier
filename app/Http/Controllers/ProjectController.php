@@ -15,6 +15,7 @@ use App\Models\QuoteTemplate;
 use App\Models\QualityCheck;
 use App\Models\StageTask;
 use App\Models\Team;
+use App\Models\TaskTemplate;
 use App\Models\TenantUser;
 use App\Models\User;
 use App\Notifications\ProjectRoleChangedNotification;
@@ -334,6 +335,7 @@ class ProjectController extends Controller
             'teams' => Team::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name']),
             'contractors' => Contractor::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'type']),
             'equipment' => Equipment::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'cost_per_hour', 'availability_status']),
+            'taskTemplates' => TaskTemplate::forEstimatePicker($tenantId),
             'projectRoleOptions' => $projectRoleOptions,
             'projectRoleAssignments' => $projectRoleAssignments,
             'projectMemberCandidates' => $projectMemberCandidates,

@@ -8,71 +8,95 @@ use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Models\TaskTemplate;
 use App\Support\InvoiceOcrService;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProjectAiToolsController extends Controller
 {
     public function generateEstimate(Request $request, Project $project): JsonResponse
     {
+        $tenantId = TenantContext::id($request->user());
+
         $validated = $request->validate([
-            'work_type' => ['required', 'in:fence,foundation,plastering,custom'],
-            'measure_type' => ['required', 'in:area,length,volume'],
+            'task_template_id' => ['required', 'integer', Rule::exists('task_templates', 'id')->where('tenant_id', $tenantId)],
             'measure_value' => ['required', 'numeric', 'min:0.1'],
             'complexity' => ['nullable', 'in:low,medium,high'],
+            'labor_unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'equipment_unit_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $workType = $validated['work_type'];
-        $measureType = $validated['measure_type'];
+        $template = TaskTemplate::with('recipe.items.material')->findOrFail($validated['task_template_id']);
+        abort_unless((int) $template->tenant_id === $tenantId, 404);
+
+        if (!$template->recipe) {
+            return response()->json([
+                'message' => 'Acest sablon nu are inca o reteta de consum. Creeaza o reteta pentru a putea genera un deviz corect.',
+                'needs_recipe' => true,
+                'task_template_id' => $template->id,
+                'task_template_title' => $template->title,
+            ], 422);
+        }
+
         $measureValue = (float) $validated['measure_value'];
         $complexity = $validated['complexity'] ?? 'medium';
+        $laborUnitCost = (float) ($validated['labor_unit_cost'] ?? 0);
+        $equipmentUnitCost = (float) ($validated['equipment_unit_cost'] ?? 0);
 
-        $norm = $this->normDefinition($workType, $measureType);
         $complexityFactor = match ($complexity) {
             'low' => 0.9,
             'high' => 1.2,
             default => 1.0,
         };
 
-        $materialsCost = round($measureValue * $norm['materials_unit_cost'] * $complexityFactor, 2);
-        $laborCost = round($measureValue * $norm['labor_unit_cost'] * $complexityFactor, 2);
-        $equipmentCost = round($measureValue * $norm['equipment_unit_cost'] * $complexityFactor, 2);
+        $recipe = $template->recipe;
+
+        $materials = $recipe->items->map(function ($item) use ($measureValue, $complexityFactor): array {
+            $quantity = round((float) $item->quantity_per_unit * $measureValue * $complexityFactor, 2);
+            $unitPrice = (float) ($item->material->unit_price ?? 0);
+
+            return [
+                'material_id' => $item->material_id,
+                'name' => $item->material->name ?? '',
+                'unit' => $item->material->unit ?? '',
+                'quantity_per_unit' => (float) $item->quantity_per_unit,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'estimated_cost' => round($quantity * $unitPrice, 2),
+            ];
+        })->values();
+
+        $materialsCost = round($materials->sum('estimated_cost'), 2);
+        $laborCost = round($laborUnitCost * $measureValue * $complexityFactor, 2);
+        $equipmentCost = round($equipmentUnitCost * $measureValue * $complexityFactor, 2);
         $subtotal = round($materialsCost + $laborCost + $equipmentCost, 2);
 
-        $materials = array_map(function (array $item) use ($measureValue, $complexityFactor): array {
-            return [
-                'name' => $item['name'],
-                'quantity' => round($item['qty_per_unit'] * $measureValue * $complexityFactor, 2),
-                'unit' => $item['unit'],
-                'unit_price' => $item['unit_price'],
-                'estimated_cost' => round($item['qty_per_unit'] * $measureValue * $complexityFactor * $item['unit_price'], 2),
-            ];
-        }, $norm['materials']);
-
-        $wbsStages = array_map(fn (string $name) => ['name' => $name, 'status' => 'pending'], $norm['wbs_stages']);
+        $wbsStages = collect(['Pregatire', 'Aprovizionare materiale', "Executie - {$template->title}", 'Control calitate', 'Predare'])
+            ->map(fn (string $name) => ['name' => $name, 'status' => 'pending'])
+            ->all();
 
         return response()->json([
-            'message' => 'Devizul automat a fost generat pe baza dimensiunilor introduse.',
+            'message' => 'Devizul automat a fost generat pe baza retetei de consum si a cantitatii introduse.',
             'estimate' => [
                 'project_id' => $project->id,
                 'project_name' => $project->name,
-                'work_type' => $workType,
-                'measure_type' => $measureType,
+                'task_template_id' => $template->id,
+                'task_template_title' => $template->title,
+                'recipe_unit' => $recipe->unit,
                 'measure_value' => $measureValue,
                 'complexity' => $complexity,
                 'materials' => $materials,
                 'labor' => [
-                    'estimated_hours' => round($measureValue * $norm['labor_hours_per_unit'] * $complexityFactor, 2),
-                    'hour_rate' => $norm['labor_hour_rate'],
+                    'unit_cost' => $laborUnitCost,
                     'estimated_cost' => $laborCost,
                 ],
                 'equipment' => [
-                    'estimated_hours' => round($measureValue * $norm['equipment_hours_per_unit'] * $complexityFactor, 2),
-                    'hour_rate' => $norm['equipment_hour_rate'],
+                    'unit_cost' => $equipmentUnitCost,
                     'estimated_cost' => $equipmentCost,
                 ],
                 'totals' => [
@@ -95,8 +119,9 @@ class ProjectAiToolsController extends Controller
             'wbs_stages.*.name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'estimate_details' => ['nullable', 'array'],
-            'estimate_details.work_type' => ['nullable', 'string', 'max:50'],
-            'estimate_details.measure_type' => ['nullable', 'string', 'max:50'],
+            'estimate_details.task_template_id' => ['nullable', 'integer'],
+            'estimate_details.task_template_title' => ['nullable', 'string', 'max:255'],
+            'estimate_details.recipe_unit' => ['nullable', 'string', 'max:50'],
             'estimate_details.measure_value' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.complexity' => ['nullable', 'string', 'max:50'],
             'estimate_details.materials' => ['nullable', 'array'],
@@ -106,15 +131,11 @@ class ProjectAiToolsController extends Controller
             'estimate_details.materials.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.materials.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.labor' => ['nullable', 'array'],
-            'estimate_details.labor.*.name' => ['nullable', 'string', 'max:255'],
-            'estimate_details.labor.*.estimated_hours' => ['nullable', 'numeric', 'min:0'],
-            'estimate_details.labor.*.hour_rate' => ['nullable', 'numeric', 'min:0'],
-            'estimate_details.labor.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.equipment' => ['nullable', 'array'],
-            'estimate_details.equipment.*.name' => ['nullable', 'string', 'max:255'],
-            'estimate_details.equipment.*.estimated_hours' => ['nullable', 'numeric', 'min:0'],
-            'estimate_details.equipment.*.hour_rate' => ['nullable', 'numeric', 'min:0'],
-            'estimate_details.equipment.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals' => ['nullable', 'array'],
             'estimate_details.totals.materials_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals.labor_cost' => ['nullable', 'numeric', 'min:0'],
@@ -518,8 +539,9 @@ class ProjectAiToolsController extends Controller
         }
 
         $payload = [
-            'work_type' => $estimateDetails['work_type'] ?? null,
-            'measure_type' => $estimateDetails['measure_type'] ?? null,
+            'task_template_id' => $estimateDetails['task_template_id'] ?? null,
+            'task_template_title' => $estimateDetails['task_template_title'] ?? null,
+            'recipe_unit' => $estimateDetails['recipe_unit'] ?? null,
             'measure_value' => $estimateDetails['measure_value'] ?? null,
             'complexity' => $estimateDetails['complexity'] ?? null,
             'materials' => $estimateDetails['materials'] ?? [],
@@ -546,89 +568,5 @@ class ProjectAiToolsController extends Controller
         }
 
         return 'Achizitia se incadreaza in bugetul etapei. Recomandare: continua conform planului curent.';
-    }
-
-    private function normDefinition(string $workType, string $measureType): array
-    {
-        $catalog = [
-            'fence' => [
-                'default_measure' => 'length',
-                'materials_unit_cost' => 210,
-                'labor_unit_cost' => 95,
-                'equipment_unit_cost' => 40,
-                'labor_hours_per_unit' => 1.1,
-                'equipment_hours_per_unit' => 0.45,
-                'labor_hour_rate' => 85,
-                'equipment_hour_rate' => 90,
-                'materials' => [
-                    ['name' => 'Stalp metalic', 'qty_per_unit' => 0.55, 'unit' => 'buc', 'unit_price' => 120],
-                    ['name' => 'Panou gard', 'qty_per_unit' => 1.0, 'unit' => 'ml', 'unit_price' => 72],
-                    ['name' => 'Beton fundare', 'qty_per_unit' => 0.08, 'unit' => 'mc', 'unit_price' => 420],
-                ],
-                'wbs_stages' => ['Trasare', 'Fundare stalpi', 'Montaj panouri', 'Finisaj si receptie'],
-            ],
-            'foundation' => [
-                'default_measure' => 'volume',
-                'materials_unit_cost' => 330,
-                'labor_unit_cost' => 120,
-                'equipment_unit_cost' => 70,
-                'labor_hours_per_unit' => 1.3,
-                'equipment_hours_per_unit' => 0.7,
-                'labor_hour_rate' => 92,
-                'equipment_hour_rate' => 110,
-                'materials' => [
-                    ['name' => 'Beton C25/30', 'qty_per_unit' => 1.0, 'unit' => 'mc', 'unit_price' => 450],
-                    ['name' => 'Otel beton', 'qty_per_unit' => 85, 'unit' => 'kg', 'unit_price' => 5.8],
-                    ['name' => 'Cofraj', 'qty_per_unit' => 2.8, 'unit' => 'mp', 'unit_price' => 42],
-                ],
-                'wbs_stages' => ['Sapatura', 'Armare si cofrare', 'Turnare beton', 'Decofrare si control calitate'],
-            ],
-            'plastering' => [
-                'default_measure' => 'area',
-                'materials_unit_cost' => 48,
-                'labor_unit_cost' => 35,
-                'equipment_unit_cost' => 8,
-                'labor_hours_per_unit' => 0.45,
-                'equipment_hours_per_unit' => 0.08,
-                'labor_hour_rate' => 78,
-                'equipment_hour_rate' => 65,
-                'materials' => [
-                    ['name' => 'Tencuiala mecanizata', 'qty_per_unit' => 16, 'unit' => 'kg', 'unit_price' => 2.8],
-                    ['name' => 'Amorsa', 'qty_per_unit' => 0.2, 'unit' => 'l', 'unit_price' => 18],
-                    ['name' => 'Plasa fibra', 'qty_per_unit' => 1.05, 'unit' => 'mp', 'unit_price' => 6.5],
-                ],
-                'wbs_stages' => ['Pregatire suport', 'Aplicare strat baza', 'Aplicare strat finisaj', 'Corectii si curatare'],
-            ],
-            'custom' => [
-                'default_measure' => 'area',
-                'materials_unit_cost' => 95,
-                'labor_unit_cost' => 50,
-                'equipment_unit_cost' => 25,
-                'labor_hours_per_unit' => 0.7,
-                'equipment_hours_per_unit' => 0.2,
-                'labor_hour_rate' => 80,
-                'equipment_hour_rate' => 80,
-                'materials' => [
-                    ['name' => 'Material principal', 'qty_per_unit' => 1, 'unit' => 'unit', 'unit_price' => 95],
-                ],
-                'wbs_stages' => ['Pregatire', 'Executie', 'Control calitate', 'Predare'],
-            ],
-        ];
-
-        $norm = $catalog[$workType] ?? $catalog['custom'];
-
-        if ($measureType !== ($norm['default_measure'] ?? $measureType)) {
-            $adjustment = match ($measureType) {
-                'volume' => 1.45,
-                'length' => 0.85,
-                default => 1.0,
-            };
-
-            $norm['materials_unit_cost'] = round($norm['materials_unit_cost'] * $adjustment, 2);
-            $norm['labor_unit_cost'] = round($norm['labor_unit_cost'] * $adjustment, 2);
-            $norm['equipment_unit_cost'] = round($norm['equipment_unit_cost'] * $adjustment, 2);
-        }
-
-        return $norm;
     }
 }
