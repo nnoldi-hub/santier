@@ -8,6 +8,7 @@ use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectPhase;
+use App\Models\Recipe;
 use App\Models\ResourceOrder;
 use App\Models\SiteBudgetPlan;
 use App\Models\SiteCompliancePlan;
@@ -63,6 +64,7 @@ class SiteOrganizationController extends Controller
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
             'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
+            'recipes' => Recipe::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
             'equipmentRiskLevels' => SiteEquipmentPlan::$riskLabels,
             'logisticsCategories' => SiteLogisticsPlan::$categoryLabels,
@@ -459,6 +461,34 @@ class SiteOrganizationController extends Controller
         $materialPlan->delete();
 
         return back()->with('success', 'Planul de material a fost sters.');
+    }
+
+    public function applyMaterialRecipe(Request $request, Project $project): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        $this->abortIfPlanLocked($project);
+
+        $validated = $request->validate([
+            'recipe_id' => ['required', 'integer', Rule::exists('recipes', 'id')->where('tenant_id', $tenantId)],
+            'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
+            'work_quantity' => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        $recipe = Recipe::with('items')->findOrFail($validated['recipe_id']);
+
+        foreach ($recipe->items as $item) {
+            SiteMaterialPlan::create([
+                'tenant_id' => $tenantId,
+                'project_id' => $project->id,
+                'phase_id' => $validated['phase_id'] ?? null,
+                'material_id' => $item->material_id,
+                'planned_quantity' => round((float) $item->quantity_per_unit * $validated['work_quantity'], 2),
+                'risk_level' => 'medium',
+            ]);
+        }
+
+        return back()->with('success', 'Planuri de materiale generate din reteta.');
     }
 
     private function validateMaterialPlan(Request $request, Project $project): array

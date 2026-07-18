@@ -11,6 +11,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskTemplateController;
 use App\Http\Controllers\DefectController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\EquipmentController;
@@ -1389,6 +1390,8 @@ Route::middleware('auth')->group(function () {
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
         Route::post('materials/quick-create', [MaterialController::class, 'quickCreate'])->name('materials.quick-create');
+        Route::resource('recipes', RecipeController::class)->except('show');
+        Route::post('recipes/quick-create', [RecipeController::class, 'quickCreate'])->name('recipes.quick-create');
         Route::resource('quotes', QuoteController::class)->except('show')
             ->middlewareFor(['index'], 'permission:quotes.view')
             ->middlewareFor(['create', 'store'], 'permission:quotes.create')
@@ -1466,6 +1469,7 @@ Route::middleware('auth')->group(function () {
         Route::post('projects/{project}/organizare/material-plans', [SiteOrganizationController::class, 'storeMaterialPlan'])->name('site-organization.material-plans.store');
         Route::patch('projects/{project}/organizare/material-plans/{materialPlan}', [SiteOrganizationController::class, 'updateMaterialPlan'])->name('site-organization.material-plans.update');
         Route::delete('projects/{project}/organizare/material-plans/{materialPlan}', [SiteOrganizationController::class, 'destroyMaterialPlan'])->name('site-organization.material-plans.destroy');
+        Route::post('projects/{project}/organizare/material-plans/apply-recipe', [SiteOrganizationController::class, 'applyMaterialRecipe'])->name('site-organization.material-plans.apply-recipe');
         Route::post('projects/{project}/organizare/equipment-plans', [SiteOrganizationController::class, 'storeEquipmentPlan'])->name('site-organization.equipment-plans.store');
         Route::patch('projects/{project}/organizare/equipment-plans/{equipmentPlan}', [SiteOrganizationController::class, 'updateEquipmentPlan'])->name('site-organization.equipment-plans.update');
         Route::delete('projects/{project}/organizare/equipment-plans/{equipmentPlan}', [SiteOrganizationController::class, 'destroyEquipmentPlan'])->name('site-organization.equipment-plans.destroy');

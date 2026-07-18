@@ -1,5 +1,5 @@
 <template>
-    <Modal :show="show" max-width="md" @close="$emit('close')">
+    <Modal :show="show" :max-width="maxWidth" @close="$emit('close')">
         <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">{{ title }}</h3>
             <div class="space-y-3">
@@ -26,6 +26,7 @@ defineProps({
     title: { type: String, required: true },
     processing: { type: Boolean, default: false },
     error: { type: String, default: '' },
+    maxWidth: { type: String, default: 'md' },
 });
 
 defineEmits(['close', 'submit']);

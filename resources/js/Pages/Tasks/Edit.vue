@@ -13,6 +13,19 @@
                         <option value="">— Alege un sablon (optional) —</option>
                         <option v-for="template in templatesList" :key="template.id" :value="template.id">{{ template.title }}</option>
                     </select>
+
+                    <div v-if="selectedTemplate?.recipe" class="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-end gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-600 mb-1">Cantitate lucrare ({{ selectedTemplate.recipe.unit }})</label>
+                            <input v-model="workQuantity" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <button type="button" @click="applyRecipe" :disabled="!workQuantity" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 disabled:opacity-50 shrink-0">
+                            Aplica reteta
+                        </button>
+                    </div>
+                    <button v-else-if="selectedTemplate" type="button" @click="showNewRecipeModal = true" class="mt-1 text-xs text-orange-500 hover:underline">
+                        + Reteta pentru acest sablon
+                    </button>
                 </div>
 
                 <div>
@@ -162,6 +175,39 @@
                 <input v-model="newMaterial.unit_price" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
         </QuickCreateModal>
+
+        <QuickCreateModal
+            :show="showNewRecipeModal"
+            title="Reteta noua pentru acest sablon"
+            max-width="lg"
+            :processing="newRecipeProcessing"
+            :error="newRecipeError"
+            @close="showNewRecipeModal = false"
+            @submit="submitNewRecipe"
+        >
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nume reteta *</label>
+                <input v-model="newRecipe.name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unitate de baza *</label>
+                <input v-model="newRecipe.unit" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: mp, mc, ml" />
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">Materiale (consum per 1 unitate)</label>
+                    <button type="button" @click="addNewRecipeItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Material</button>
+                </div>
+                <div v-for="(item, index) in newRecipe.items" :key="index" class="grid grid-cols-12 gap-2 items-center mb-2">
+                    <select v-model="item.material_id" class="col-span-7 border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                        <option value="">— Material —</option>
+                        <option v-for="material in materialsList" :key="material.id" :value="String(material.id)">{{ material.name }} ({{ material.unit }})</option>
+                    </select>
+                    <input v-model="item.quantity_per_unit" type="number" min="0.0001" step="0.0001" class="col-span-4 border border-gray-300 rounded-lg px-2 py-1.5 text-sm" placeholder="Cant." />
+                    <button type="button" @click="newRecipe.items.splice(index, 1)" class="col-span-1 text-xs border border-red-200 text-red-600 rounded px-1 py-1.5 hover:bg-red-50">X</button>
+                </div>
+            </div>
+        </QuickCreateModal>
     </AppLayout>
 </template>
 
@@ -302,6 +348,64 @@ function saveAsTemplate() {
         })
         .finally(() => {
             savingTemplate.value = false;
+        });
+}
+
+const selectedTemplate = computed(() => templatesList.value.find((t) => t.id === Number(selectedTemplateId.value)) || null);
+const workQuantity = ref('');
+
+function applyRecipe() {
+    const recipe = selectedTemplate.value?.recipe;
+    if (!recipe || !workQuantity.value) return;
+
+    const qty = Number(workQuantity.value);
+
+    recipe.items.forEach((item) => {
+        form.task_materials.push({
+            material_id: String(item.material_id),
+            quantity: Number((item.quantity_per_unit * qty).toFixed(4)),
+            unit_override: item.unit || '',
+            unit_price: '',
+        });
+    });
+
+    workQuantity.value = '';
+}
+
+const showNewRecipeModal = ref(false);
+const newRecipeProcessing = ref(false);
+const newRecipeError = ref('');
+const newRecipe = ref({ name: '', unit: '', items: [] });
+
+function addNewRecipeItem() {
+    if (newRecipe.value.items.length >= 30) return;
+    newRecipe.value.items.push({ material_id: '', quantity_per_unit: '' });
+}
+
+function submitNewRecipe() {
+    newRecipeProcessing.value = true;
+    newRecipeError.value = '';
+
+    axios.post(route('recipes.quick-create'), {
+        subject_type: 'task_template',
+        subject_id: selectedTemplateId.value,
+        name: newRecipe.value.name,
+        unit: newRecipe.value.unit,
+        items: newRecipe.value.items,
+    })
+        .then((response) => {
+            const template = templatesList.value.find((t) => t.id === Number(selectedTemplateId.value));
+            if (template) {
+                template.recipe = response.data;
+            }
+            showNewRecipeModal.value = false;
+            newRecipe.value = { name: '', unit: '', items: [] };
+        })
+        .catch((error) => {
+            newRecipeError.value = error.response?.data?.message || 'Nu am putut salva reteta.';
+        })
+        .finally(() => {
+            newRecipeProcessing.value = false;
         });
 }
 </script>

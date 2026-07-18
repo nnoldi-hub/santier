@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Material extends Model
@@ -42,5 +43,10 @@ class Material extends Model
     public function resourceOrders(): HasMany
     {
         return $this->hasMany(ResourceOrder::class)->latest();
+    }
+
+    public function recipe(): MorphOne
+    {
+        return $this->morphOne(Recipe::class, 'subject');
     }
 }

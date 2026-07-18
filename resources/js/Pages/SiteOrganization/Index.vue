@@ -306,6 +306,35 @@
             </div>
 
             <div v-else-if="activeTab === 'materials'" class="space-y-6">
+                <div v-if="recipes.length" class="bg-white border border-gray-200 rounded-xl p-5">
+                    <h3 class="font-semibold text-gray-800 mb-3">Aplica reteta</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end" @submit.prevent="submitApplyRecipe">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Reteta *</label>
+                            <select v-model="applyRecipeForm.recipe_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Selecteaza —</option>
+                                <option v-for="recipe in recipes" :key="recipe.id" :value="recipe.id">{{ recipe.name }} ({{ recipe.unit }})</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Etapa (optional)</label>
+                            <select v-model="applyRecipeForm.phase_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Fara etapa specifica</option>
+                                <option v-for="phase in project.phases" :key="phase.id" :value="phase.id">{{ phase.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Cantitate lucrare *</label>
+                            <input v-model.number="applyRecipeForm.work_quantity" type="number" min="0.01" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <button :disabled="applyRecipeForm.processing || isLocked" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60 w-full">
+                                {{ applyRecipeForm.processing ? 'Se genereaza...' : 'Genereaza planuri' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
                 <div class="bg-white border border-gray-200 rounded-xl p-5">
                     <h3 class="font-semibold text-gray-800 mb-3">Adauga plan de material</h3>
                     <form class="grid grid-cols-1 md:grid-cols-3 gap-3" @submit.prevent="submitMaterialPlan">
@@ -878,6 +907,7 @@ const props = defineProps({
     materialPlans: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
     materialRiskLevels: { type: Object, default: () => ({}) },
+    recipes: { type: Array, default: () => [] },
     equipmentPlans: { type: Array, default: () => [] },
     equipmentCatalog: { type: Array, default: () => [] },
     equipmentRiskLevels: { type: Object, default: () => ({}) },
@@ -1009,6 +1039,21 @@ function submitMaterialPlan() {
 function deleteMaterialPlan(plan) {
     router.delete(route('site-organization.material-plans.destroy', [props.project.id, plan.id]), {
         preserveScroll: true,
+    });
+}
+
+const applyRecipeForm = useForm({
+    recipe_id: '',
+    phase_id: '',
+    work_quantity: '',
+});
+
+function submitApplyRecipe() {
+    applyRecipeForm.post(route('site-organization.material-plans.apply-recipe', props.project.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            applyRecipeForm.reset();
+        },
     });
 }
 

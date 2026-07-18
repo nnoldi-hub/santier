@@ -1,9 +1,14 @@
 <template>
     <AppLayout :title="'Editeaza material: ' + material.name">
         <div class="max-w-2xl mx-auto">
-            <div class="flex items-center gap-3 mb-6">
-                <Link :href="route('materials.index')" class="text-gray-400 hover:text-gray-600 text-sm">← Inapoi</Link>
-                <h2 class="text-xl font-semibold text-gray-800">Editeaza material</h2>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <Link :href="route('materials.index')" class="text-gray-400 hover:text-gray-600 text-sm">← Inapoi</Link>
+                    <h2 class="text-xl font-semibold text-gray-800">Editeaza material</h2>
+                </div>
+                <Link :href="route('recipes.create', { subject_type: 'material', subject_id: material.id })" class="text-xs text-orange-500 hover:underline">
+                    + Reteta pentru acest material
+                </Link>
             </div>
 
             <form @submit.prevent="submit" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
