@@ -55,9 +55,6 @@
                     <div v-show="sections.projects" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
                         <NavItem :href="routeOrFallback('projects.index')" :disabled="routeMissing('projects.index')" :icon="FolderIcon" label="Toate proiectele" />
                         <NavItem :href="routeOrFallback('wbs.index')" :disabled="routeMissing('wbs.index')" :icon="PuzzlePieceIcon" label="Etape de lucru (WBS)" />
-                        <NavItem :href="routeOrFallback('contractors.index')" :disabled="routeMissing('contractors.index')" :icon="UserGroupIcon" label="Subcontractori alocati" />
-                        <NavItem :href="routeOrFallback('equipment.index')" :disabled="routeMissing('equipment.index')" :icon="TruckIcon" label="Utilaje rezervate" />
-                        <NavItem :href="routeOrFallback('documents.index')" :disabled="routeMissing('documents.index')" :icon="DocumentTextIcon" label="Documente proiect" />
                         <NavItem :href="routeOrFallback('stage-reports.index')" :disabled="routeMissing('stage-reports.index')" :icon="PresentationChartBarIcon" label="Rapoarte de progres" />
                     </div>
                 </div>
@@ -83,12 +80,14 @@
                         <span :class="['transition-transform', sections.resources ? 'rotate-0' : '-rotate-90']">▾</span>
                     </button>
                     <div v-show="sections.resources" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
+                        <div class="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Retetar (calcul consum)</div>
+                        <NavItem :href="routeOrFallback('recipes.index')" :disabled="routeMissing('recipes.index')" :icon="BeakerIcon" label="Retete" />
+                        <div class="px-3 pt-2 pb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Catalog resurse</div>
                         <NavItem :href="routeOrFallback('teams.index')" :disabled="routeMissing('teams.index')" :icon="UsersIcon" label="Echipe interne" />
                         <NavItem :href="routeOrFallback('contractors.index')" :disabled="routeMissing('contractors.index')" :icon="HandRaisedIcon" label="Subcontractori" />
                         <NavItem :href="routeOrFallback('equipment.index')" :disabled="routeMissing('equipment.index')" :icon="TruckIcon" label="Utilaje" />
                         <NavItem :href="routeOrFallback('trasabilitate-utilaje.index')" :disabled="routeMissing('trasabilitate-utilaje.index')" :icon="ScaleIcon" label="Trasabilitate utilaje" />
                         <NavItem :href="routeOrFallback('materials.index')" :disabled="routeMissing('materials.index')" :icon="CubeIcon" label="Materiale" />
-                        <NavItem :href="routeOrFallback('recipes.index')" :disabled="routeMissing('recipes.index')" :icon="BeakerIcon" label="Retete" />
                         <NavItem :href="routeOrFallback('resource-orders.index')" :disabled="routeMissing('resource-orders.index')" :icon="ClipboardDocumentListIcon" label="Documente resurse" />
                         <NavItem :href="routeOrFallback('trasabilitate-materiale.index')" :disabled="routeMissing('trasabilitate-materiale.index')" :icon="ArrowsRightLeftIcon" label="Trasabilitate materiale" />
                     </div>
@@ -101,7 +100,6 @@
                     </button>
                     <div v-show="sections.financial" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
                         <NavItem :href="routeOrFallback('quotes.index')" :disabled="routeMissing('quotes.index')" :icon="ClipboardDocumentCheckIcon" label="Oferte / Devize" />
-                        <NavItem :href="routeOrFallback('documents.index')" :disabled="routeMissing('documents.index')" :icon="DocumentChartBarIcon" label="Documente financiare" />
                         <NavItem :href="routeOrFallback('material-invoices.index')" :disabled="routeMissing('material-invoices.index')" :icon="ReceiptPercentIcon" label="Facturi materiale" />
                         <NavItem :href="routeOrFallback('situatii-lucrari.index')" :disabled="routeMissing('situatii-lucrari.index')" :icon="ChartBarSquareIcon" label="Situatii de lucrari" />
                         <NavItem :href="routeOrFallback('cost-tracking.index')" :disabled="routeMissing('cost-tracking.index')" :icon="BanknotesIcon" label="Cost tracking" />
@@ -126,7 +124,7 @@
                         <span :class="['transition-transform', sections.documents ? 'rotate-0' : '-rotate-90']">▾</span>
                     </button>
                     <div v-show="sections.documents" class="mt-1 space-y-1 pl-2 border-l border-gray-800">
-                        <NavItem :href="routeOrFallback('documents.index')" :disabled="routeMissing('documents.index')" :icon="ArchiveBoxIcon" label="Registru documente" />
+                        <NavItem :href="routeOrFallback('documents.index')" :disabled="routeMissing('documents.index')" :icon="ArchiveBoxIcon" label="Toate documentele" />
                         <NavItem :href="routeOrFallback('procese-verbale.index')" :disabled="routeMissing('procese-verbale.index')" :icon="DocumentCheckIcon" label="Procese verbale" />
                         <NavItem v-if="canManageDocumentBranding" :href="routeOrFallback('documents.branding.index')" :disabled="routeMissing('documents.branding.index')" :icon="PaintBrushIcon" label="Configurare documente" />
                         <NavItem :href="routeOrFallback('documente-subcontractori.index')" :disabled="routeMissing('documente-subcontractori.index')" :icon="FolderOpenIcon" label="Documente subcontractori" />
@@ -334,10 +332,8 @@ import {
     Cog6ToothIcon,
     CreditCardIcon,
     CubeIcon,
-    DocumentChartBarIcon,
     DocumentCheckIcon,
     DocumentMagnifyingGlassIcon,
-    DocumentTextIcon,
     ExclamationTriangleIcon,
     FolderIcon,
     FolderOpenIcon,
@@ -357,7 +353,6 @@ import {
     Squares2X2Icon,
     TruckIcon,
     UserCircleIcon,
-    UserGroupIcon,
     UsersIcon,
     ViewColumnsIcon,
     WrenchScrewdriverIcon,
@@ -388,10 +383,10 @@ const sections = reactive({ ...defaultSections });
 
 const sectionRoutes = {
     platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index'],
-    projects: ['projects.index', 'wbs.index', 'contractors.index', 'equipment.index', 'documents.index', 'stage-reports.index'],
+    projects: ['projects.index', 'wbs.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'recipes.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],
-    financial: ['quotes.index', 'documents.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
+    financial: ['quotes.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],
     reporting: ['exports.index', 'analytics.index', 'stage-progress.index'],
