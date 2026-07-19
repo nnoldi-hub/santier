@@ -730,17 +730,6 @@
                         </select>
                     </div>
 
-                    <div></div>
-
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Cost manopera (RON/unitate)</label>
-                        <input v-model="estimateForm.labor_unit_cost" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 50" />
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">Cost utilaje (RON/unitate)</label>
-                        <input v-model="estimateForm.equipment_unit_cost" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="ex: 20" />
-                    </div>
                 </div>
 
                 <div v-if="selectedTemplate && !selectedTemplate.recipe" class="mt-3 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg flex items-center justify-between gap-3">
@@ -781,6 +770,14 @@
                         </div>
                     </div>
 
+                    <div v-if="estimateState.result.timing?.total_hours > 0" class="bg-sky-50 border border-sky-200 rounded-lg p-3 mb-3 text-xs text-sky-800">
+                        <span class="font-semibold">Durata estimata:</span>
+                        {{ estimateState.result.timing.execution_hours }}h executie
+                        <template v-if="estimateState.result.timing.drying_hours > 0"> + {{ estimateState.result.timing.drying_hours }}h uscare</template>
+                        <template v-if="estimateState.result.timing.curing_hours > 0"> + {{ estimateState.result.timing.curing_hours }}h intarire</template>
+                        = <span class="font-semibold">{{ estimateState.result.timing.total_hours }}h total</span>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div class="border border-gray-200 rounded-lg p-3">
                             <div class="text-sm font-semibold text-gray-800 mb-2">Materiale estimate</div>
@@ -797,6 +794,32 @@
                             <div class="space-y-1 max-h-48 overflow-y-auto">
                                 <div v-for="(stage, idx) in estimateState.result.wbs_stages" :key="stage.name + idx" class="text-xs text-gray-700">
                                     {{ idx + 1 }}. {{ stage.name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="text-sm font-semibold text-gray-800 mb-2">Manopera estimata</div>
+                            <div v-if="!estimateState.result.labor.lines.length" class="text-xs text-gray-400">
+                                Nicio manopera definita pe reteta.
+                            </div>
+                            <div v-else class="space-y-1 max-h-48 overflow-y-auto">
+                                <div v-for="(item, idx) in estimateState.result.labor.lines" :key="item.role + idx" class="text-xs text-gray-700 flex items-center justify-between gap-3">
+                                    <span>{{ item.role }} ({{ item.hours }}h × {{ item.hourly_rate }} RON)</span>
+                                    <span class="font-medium">{{ fmtCur(item.estimated_cost) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="text-sm font-semibold text-gray-800 mb-2">Utilaje estimate</div>
+                            <div v-if="!estimateState.result.equipment.lines.length" class="text-xs text-gray-400">
+                                Niciun utilaj definit pe reteta.
+                            </div>
+                            <div v-else class="space-y-1 max-h-48 overflow-y-auto">
+                                <div v-for="(item, idx) in estimateState.result.equipment.lines" :key="item.equipment_id + idx" class="text-xs text-gray-700 flex items-center justify-between gap-3">
+                                    <span>{{ item.name }} ({{ item.hours }}h × {{ item.hourly_rate }} RON)</span>
+                                    <span class="font-medium">{{ fmtCur(item.estimated_cost) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -918,8 +941,6 @@ const estimateForm = reactive({
     task_template_id: '',
     measure_value: '',
     complexity: 'medium',
-    labor_unit_cost: '',
-    equipment_unit_cost: '',
 });
 
 const estimateCommitForm = reactive({
@@ -1055,8 +1076,6 @@ function closeEstimateFlow() {
     estimateForm.task_template_id = '';
     estimateForm.measure_value = '';
     estimateForm.complexity = 'medium';
-    estimateForm.labor_unit_cost = '';
-    estimateForm.equipment_unit_cost = '';
     estimateCommitForm.title = '';
     estimateCommitForm.notes = 'Deviz generat automat din modul AI Tools.';
 }
@@ -1087,8 +1106,6 @@ async function generateEstimate() {
             task_template_id: Number(estimateForm.task_template_id),
             measure_value: Number(estimateForm.measure_value),
             complexity: estimateForm.complexity,
-            labor_unit_cost: Number(estimateForm.labor_unit_cost || 0),
-            equipment_unit_cost: Number(estimateForm.equipment_unit_cost || 0),
         });
 
         estimateState.result = response.data?.estimate || null;
@@ -1130,6 +1147,7 @@ async function commitEstimate() {
                 materials: estimateState.result.materials || [],
                 labor: estimateState.result.labor || {},
                 equipment: estimateState.result.equipment || {},
+                timing: estimateState.result.timing || {},
                 totals: estimateState.result.totals || {},
             },
         });

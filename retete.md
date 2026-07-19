@@ -108,8 +108,35 @@ directia "lean" (extindere, nu schema paralela), inceput cu acest sprint.
   card, ca sa se vada dintr-o privire care retete sunt "complete".
 
 ### In afara scopului (sprinturi viitoare)
-Nu s-a extras inca `RecipeCalculatorService` si nu s-a modificat
-`ProjectAiToolsController::generateEstimate()` sa citeasca aceste date noi
-(ramane cu inputurile manuale de manopera/utilaje) - urmeaza intr-un sprint
-separat. Nu s-a legat inca de Gantt/WBS sau de `SiteEquipmentPlan`/
-`SiteStaffPlan`. Nu s-a construit un catalog separat de "tarife pe rol".
+Nu s-a legat inca de Gantt/WBS sau de `SiteEquipmentPlan`/`SiteStaffPlan`. Nu
+s-a construit un catalog separat de "tarife pe rol". Wiring-ul catre generatorul
+de deviz s-a facut in sprintul urmator (vezi mai jos).
+
+## Extindere: Deviz AI calculat din manopera/utilaje retetei (2026-07-20)
+
+Continuare directa a sprintului anterior - `ProjectAiToolsController::
+generateEstimate()` inca cerea manual "Cost manopera (RON/unitate)" si "Cost
+utilaje (RON/unitate)", desi reteta are acum aceste date. Inlocuit integral cu
+calcul automat, la fel ca la materiale.
+
+- Manopera: `laborItems->hours = hours_per_unit * cantitate * factor
+  complexitate`, `cost = hours * hourly_rate` (tariful e cel de pe randul
+  retetei). Utilaje: la fel, dar tariful se citeste live din
+  `Equipment.cost_per_hour` (nu de pe randul retetei).
+- Daca o reteta nu are inca randuri de manopera/utilaje (retete vechi,
+  neactualizate), costul respectiv e 0 - nu blocheaza generarea (spre
+  deosebire de lipsa completa a retetei, care tot blocheaza).
+- Raspunsul `generateEstimate()` capata `labor.lines`/`equipment.lines`
+  (defalcare per rol/utilaj, ca la materiale) si un bloc nou `timing`
+  (`execution_hours` = suma orelor de manopera, + `drying_hours`/
+  `curing_hours` de pe reteta = `total_hours`) - primul pas concret spre
+  "planificare cu timeline", fara sa construim inca integrarea cu Gantt.
+- `Projects/Show.vue`: sters cele 2 inputuri manuale RON/unitate; adaugate
+  liste de manopera/utilaje estimate (acelasi tipar ca materialele) si un
+  card mic "Durata estimata" cand `total_hours > 0`.
+
+### In afara scopului
+Nu s-a extras inca un `RecipeCalculatorService` dedicat (logica ramane in
+`ProjectAiToolsController`, ca si pana acum pentru materiale). Nu s-a legat
+inca de Gantt/WBS - blocul de durata e doar informativ in rezultatul
+devizului, nu influenteaza inca etapele generate.

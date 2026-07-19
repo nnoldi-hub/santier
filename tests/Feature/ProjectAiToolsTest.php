@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\MaterialInvoice;
 use App\Models\Project;
@@ -148,8 +149,6 @@ class ProjectAiToolsTest extends TestCase
             'task_template_id' => $template->id,
             'measure_value' => 10,
             'complexity' => 'medium',
-            'labor_unit_cost' => 120,
-            'equipment_unit_cost' => 70,
         ]);
 
         $generateResponse->assertOk();
@@ -160,17 +159,26 @@ class ProjectAiToolsTest extends TestCase
                 'task_template_title',
                 'recipe_unit',
                 'materials',
-                'labor',
-                'equipment',
+                'labor' => ['lines', 'estimated_cost'],
+                'equipment' => ['lines', 'estimated_cost'],
+                'timing' => ['execution_hours', 'drying_hours', 'curing_hours', 'total_hours'],
                 'totals',
                 'wbs_stages',
             ],
         ]);
 
         $generateResponse->assertJsonPath('estimate.totals.materials_cost', 9430);
-        $generateResponse->assertJsonPath('estimate.totals.labor_cost', 1200);
-        $generateResponse->assertJsonPath('estimate.totals.equipment_cost', 700);
-        $generateResponse->assertJsonPath('estimate.totals.total_net', 11330);
+        $generateResponse->assertJsonPath('estimate.totals.labor_cost', 225);
+        $generateResponse->assertJsonPath('estimate.totals.equipment_cost', 70);
+        $generateResponse->assertJsonPath('estimate.totals.total_net', 9725);
+        $generateResponse->assertJsonPath('estimate.labor.lines.0.role', 'Zidar');
+        $generateResponse->assertJsonPath('estimate.labor.lines.0.hours', 5);
+        $generateResponse->assertJsonPath('estimate.labor.lines.0.estimated_cost', 225);
+        $generateResponse->assertJsonPath('estimate.equipment.lines.0.name', 'Betoniera');
+        $generateResponse->assertJsonPath('estimate.equipment.lines.0.hours', 2);
+        $generateResponse->assertJsonPath('estimate.equipment.lines.0.estimated_cost', 70);
+        $generateResponse->assertJsonPath('estimate.timing.execution_hours', 5);
+        $generateResponse->assertJsonPath('estimate.timing.total_hours', 197);
         $generateResponse->assertJsonPath('estimate.wbs_stages', [
             ['name' => 'Pregatire', 'status' => 'pending'],
             ['name' => 'Aprovizionare materiale', 'status' => 'pending'],
@@ -197,6 +205,7 @@ class ProjectAiToolsTest extends TestCase
                 'materials' => $estimate['materials'],
                 'labor' => $estimate['labor'],
                 'equipment' => $estimate['equipment'],
+                'timing' => $estimate['timing'],
                 'totals' => $estimate['totals'],
             ],
         ]);
@@ -335,15 +344,28 @@ class ProjectAiToolsTest extends TestCase
             'active' => true,
         ]);
 
+        $mixer = Equipment::create([
+            'tenant_id' => 1,
+            'name' => 'Betoniera',
+            'type' => 'concrete_mixer',
+            'cost_per_hour' => 35,
+            'availability_status' => 'available',
+            'active' => true,
+        ]);
+
         $recipe = Recipe::create([
             'tenant_id' => 1,
             'subject_type' => 'task_template',
             'subject_id' => $template->id,
             'name' => 'Fundatie beton',
             'unit' => 'mc',
+            'drying_hours' => 24,
+            'curing_hours' => 168,
         ]);
         $recipe->items()->create(['material_id' => $beton->id, 'quantity_per_unit' => 1.0]);
         $recipe->items()->create(['material_id' => $otel->id, 'quantity_per_unit' => 85]);
+        $recipe->laborItems()->create(['role' => 'Zidar', 'hours_per_unit' => 0.5, 'hourly_rate' => 45]);
+        $recipe->equipmentItems()->create(['equipment_id' => $mixer->id, 'hours_per_unit' => 0.2]);
 
         return [$template, $recipe];
     }

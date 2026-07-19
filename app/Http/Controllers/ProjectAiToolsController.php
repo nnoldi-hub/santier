@@ -28,11 +28,9 @@ class ProjectAiToolsController extends Controller
             'task_template_id' => ['required', 'integer', Rule::exists('task_templates', 'id')->where('tenant_id', $tenantId)],
             'measure_value' => ['required', 'numeric', 'min:0.1'],
             'complexity' => ['nullable', 'in:low,medium,high'],
-            'labor_unit_cost' => ['nullable', 'numeric', 'min:0'],
-            'equipment_unit_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $template = TaskTemplate::with('recipe.items.material')->findOrFail($validated['task_template_id']);
+        $template = TaskTemplate::with(['recipe.items.material', 'recipe.laborItems', 'recipe.equipmentItems.equipment'])->findOrFail($validated['task_template_id']);
         abort_unless((int) $template->tenant_id === $tenantId, 404);
 
         if (!$template->recipe) {
@@ -46,8 +44,6 @@ class ProjectAiToolsController extends Controller
 
         $measureValue = (float) $validated['measure_value'];
         $complexity = $validated['complexity'] ?? 'medium';
-        $laborUnitCost = (float) ($validated['labor_unit_cost'] ?? 0);
-        $equipmentUnitCost = (float) ($validated['equipment_unit_cost'] ?? 0);
 
         $complexityFactor = match ($complexity) {
             'low' => 0.9,
@@ -72,10 +68,42 @@ class ProjectAiToolsController extends Controller
             ];
         })->values();
 
+        $laborLines = $recipe->laborItems->map(function ($item) use ($measureValue, $complexityFactor): array {
+            $hours = round((float) $item->hours_per_unit * $measureValue * $complexityFactor, 2);
+            $hourlyRate = (float) $item->hourly_rate;
+
+            return [
+                'role' => $item->role,
+                'hours_per_unit' => (float) $item->hours_per_unit,
+                'hours' => $hours,
+                'hourly_rate' => $hourlyRate,
+                'estimated_cost' => round($hours * $hourlyRate, 2),
+            ];
+        })->values();
+
+        $equipmentLines = $recipe->equipmentItems->map(function ($item) use ($measureValue, $complexityFactor): array {
+            $hours = round((float) $item->hours_per_unit * $measureValue * $complexityFactor, 2);
+            $hourlyRate = (float) ($item->equipment->cost_per_hour ?? 0);
+
+            return [
+                'equipment_id' => $item->equipment_id,
+                'name' => $item->equipment->name ?? '',
+                'hours_per_unit' => (float) $item->hours_per_unit,
+                'hours' => $hours,
+                'hourly_rate' => $hourlyRate,
+                'estimated_cost' => round($hours * $hourlyRate, 2),
+            ];
+        })->values();
+
         $materialsCost = round($materials->sum('estimated_cost'), 2);
-        $laborCost = round($laborUnitCost * $measureValue * $complexityFactor, 2);
-        $equipmentCost = round($equipmentUnitCost * $measureValue * $complexityFactor, 2);
+        $laborCost = round($laborLines->sum('estimated_cost'), 2);
+        $equipmentCost = round($equipmentLines->sum('estimated_cost'), 2);
         $subtotal = round($materialsCost + $laborCost + $equipmentCost, 2);
+
+        $executionHours = round($laborLines->sum('hours'), 2);
+        $dryingHours = (float) ($recipe->drying_hours ?? 0);
+        $curingHours = (float) ($recipe->curing_hours ?? 0);
+        $totalHours = round($executionHours + $dryingHours + $curingHours, 2);
 
         $wbsStages = collect(['Pregatire', 'Aprovizionare materiale', "Executie - {$template->title}", 'Control calitate', 'Predare'])
             ->map(fn (string $name) => ['name' => $name, 'status' => 'pending'])
@@ -93,12 +121,18 @@ class ProjectAiToolsController extends Controller
                 'complexity' => $complexity,
                 'materials' => $materials,
                 'labor' => [
-                    'unit_cost' => $laborUnitCost,
+                    'lines' => $laborLines,
                     'estimated_cost' => $laborCost,
                 ],
                 'equipment' => [
-                    'unit_cost' => $equipmentUnitCost,
+                    'lines' => $equipmentLines,
                     'estimated_cost' => $equipmentCost,
+                ],
+                'timing' => [
+                    'execution_hours' => $executionHours,
+                    'drying_hours' => $dryingHours,
+                    'curing_hours' => $curingHours,
+                    'total_hours' => $totalHours,
                 ],
                 'totals' => [
                     'materials_cost' => $materialsCost,
@@ -135,11 +169,24 @@ class ProjectAiToolsController extends Controller
             'estimate_details.materials.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.materials.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.labor' => ['nullable', 'array'],
-            'estimate_details.labor.unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.lines' => ['nullable', 'array'],
+            'estimate_details.labor.lines.*.role' => ['nullable', 'string', 'max:100'],
+            'estimate_details.labor.lines.*.hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.lines.*.hourly_rate' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.labor.lines.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.labor.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.equipment' => ['nullable', 'array'],
-            'estimate_details.equipment.unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.lines' => ['nullable', 'array'],
+            'estimate_details.equipment.lines.*.name' => ['nullable', 'string', 'max:255'],
+            'estimate_details.equipment.lines.*.hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.lines.*.hourly_rate' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.equipment.lines.*.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.equipment.estimated_cost' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.timing' => ['nullable', 'array'],
+            'estimate_details.timing.execution_hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.timing.drying_hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.timing.curing_hours' => ['nullable', 'numeric', 'min:0'],
+            'estimate_details.timing.total_hours' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals' => ['nullable', 'array'],
             'estimate_details.totals.materials_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.totals.labor_cost' => ['nullable', 'numeric', 'min:0'],
@@ -557,6 +604,7 @@ class ProjectAiToolsController extends Controller
             'materials' => $estimateDetails['materials'] ?? [],
             'labor' => $estimateDetails['labor'] ?? [],
             'equipment' => $estimateDetails['equipment'] ?? [],
+            'timing' => $estimateDetails['timing'] ?? [],
             'totals' => $estimateDetails['totals'] ?? [],
         ];
 
