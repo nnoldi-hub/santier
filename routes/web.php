@@ -1107,13 +1107,19 @@ Route::middleware('auth')->get('/help', function () {
             ],
             [
                 'name' => 'Resurse',
-                'summary' => 'Echipe interne, subcontractori, utilaje si materiale.',
+                'summary' => 'Echipe interne, subcontractori, utilaje, materiale si Retetar - normele de consum care alimenteaza devizele automate.',
                 'route' => route('teams.index'),
                 'example' => 'Verifici cine este alocat pe mai multe proiecte si unde apar supraincarcari.',
             ],
             [
+                'name' => 'Retetar',
+                'summary' => 'Norme de consum pentru o operatie de lucru (ex: zugravit) sau un material compus (ex: beton): cate materiale, cate ore de manopera si utilaje, si cat timp de uscare/intarire e nevoie per unitate.',
+                'route' => route('recipes.index'),
+                'example' => 'Definesti reteta "Turnare beton" o singura data - dupa aceea, orice deviz generat pentru acel sablon calculeaza automat costul si etapele din ea.',
+            ],
+            [
                 'name' => 'Financiar',
-                'summary' => 'Oferte, documente, facturi materiale, cost tracking si situatii de lucrari.',
+                'summary' => 'Oferte (creare manuala cu sabloane inteligente, sau deviz automat generat direct din reteta unei operatii), documente, facturi materiale, cost tracking si situatii de lucrari.',
                 'route' => route('quotes.index'),
                 'example' => 'Daca ai cost mare pe o etapa, vezi imediat ce documente o imping peste medie.',
             ],
@@ -1178,7 +1184,21 @@ Route::middleware('auth')->get('/help', function () {
                 'links' => [
                     ['label' => 'Oferta noua', 'href' => route('quotes.create')],
                     ['label' => 'Lista oferte', 'href' => route('quotes.index')],
-                    ['label' => 'Documente financiare', 'href' => route('documents.index')],
+                    ['label' => 'Toate documentele', 'href' => route('documents.index')],
+                ],
+            ],
+            [
+                'title' => 'Exemplu: generezi un deviz automat dintr-o reteta',
+                'steps' => [
+                    'Deschizi proiectul si apesi "Deviz automat din dimensiuni".',
+                    'Alegi operatia de lucru (sablonul) - daca nu are inca reteta, esti ghidat sa o creezi pe loc.',
+                    'Introduci cantitatea de lucrare - costul de materiale, manopera si utilaje se calculeaza automat din reteta.',
+                    'Confirmi devizul - se creeaza oferta draft, etapele WBS capata durata reala pe Gantt, iar planurile de personal si utilaje apar automat in Organizare Santier.',
+                ],
+                'links' => [
+                    ['label' => 'Retete', 'href' => route('recipes.index')],
+                    ['label' => 'Gantt', 'href' => route('gantt.index')],
+                    ['label' => 'Proiectele mele', 'href' => route('projects.index')],
                 ],
             ],
             [
@@ -1191,7 +1211,7 @@ Route::middleware('auth')->get('/help', function () {
                 ],
                 'links' => [
                     ['label' => 'Configurare documente', 'href' => route('documents.branding.index')],
-                    ['label' => 'Registru documente', 'href' => route('documents.index')],
+                    ['label' => 'Toate documentele', 'href' => route('documents.index')],
                     ['label' => 'Oferte / Devize', 'href' => route('quotes.index')],
                 ],
             ],
@@ -1243,6 +1263,17 @@ Route::middleware('auth')->get('/help', function () {
                 'href' => route('documents.branding.index'),
                 'cta' => 'Deschide configurare',
             ],
+            [
+                'title' => 'Reteta: ce completezi',
+                'items' => [
+                    'Alege tipul de subiect: operatie de lucru sau material compus.',
+                    'Adauga materialele necesare (consum per 1 unitate).',
+                    'Adauga manopera (rol, ore/unitate, tarif orar) si utilajele (din catalog, ore/unitate).',
+                    'Completeaza timpii de uscare/intarire, daca e cazul - influenteaza durata etapei generate.',
+                ],
+                'href' => route('recipes.create'),
+                'cta' => 'Creeaza reteta',
+            ],
         ],
         'faqs' => [
             [
@@ -1284,6 +1315,14 @@ Route::middleware('auth')->get('/help', function () {
             [
                 'question' => 'Ce se intampla cand aprob planul de organizare?',
                 'answer' => 'Editarea planurilor se blocheaza si se genereaza automat elementele reale de executie: sarcini pentru echipe, comenzi de materiale, rezervari de utilaje si alocarea subcontractorilor pe etape. Poti oricand anula aprobarea daca mai trebuie ajustat ceva.',
+            ],
+            [
+                'question' => 'Ce este o Reteta si de ce am nevoie de ea?',
+                'answer' => 'O reteta e norma de consum a unei operatii de lucru sau a unui material compus: cate materiale, cate ore de manopera si utilaje, si ce timp de uscare/intarire e nevoie per 1 unitate (mp, mc, ml, buc). Odata definita, alimenteaza automat devizele automate si planurile de personal/utilaje - nu mai introduci aceleasi cifre manual de fiecare data.',
+            ],
+            [
+                'question' => 'Ce legatura are devizul automat cu planurile din Organizare Santier?',
+                'answer' => 'Cand confirmi un deviz automat generat dintr-o reteta, se genereaza automat si planuri de personal si utilaje in Organizare Santier (din manopera/utilajele retetei), plus etape WBS cu durata reala pe Gantt. Cand aprobi apoi planul de organizare, acele planuri devin task-uri, comenzi si rezervari reale de executie - devizul si organizarea santierului sunt legate, nu doua fluxuri separate.',
             ],
             [
                 'question' => 'Pot exporta planul de organizare pentru echipa sau client?',
