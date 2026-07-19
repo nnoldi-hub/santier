@@ -11,6 +11,8 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Models\Recipe;
+use App\Models\SiteEquipmentPlan;
+use App\Models\SiteStaffPlan;
 use App\Models\TaskTemplate;
 use App\Models\Tenant;
 use App\Models\User;
@@ -270,6 +272,68 @@ class ProjectAiToolsTest extends TestCase
             $actualStart = $orderedStages[$i]->start_date->toDateString();
             $this->assertSame($expectedStart, $actualStart);
         }
+
+        $executionStage = $stagesByName['Executie - Fundatie beton'];
+        $mixer = Equipment::where('name', 'Betoniera')->firstOrFail();
+
+        $this->assertSame(1, $commitResponse->json('created_staff_plans'));
+        $this->assertSame(1, $commitResponse->json('created_equipment_plans'));
+
+        $this->assertDatabaseHas('site_staff_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $executionStage->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 1,
+        ]);
+
+        $staffPlan = SiteStaffPlan::where('project_id', $project->id)->firstOrFail();
+        $this->assertSame($executionStage->start_date->toDateString(), $staffPlan->planned_start->toDateString());
+        $this->assertSame($executionStage->end_date->toDateString(), $staffPlan->planned_end->toDateString());
+
+        $this->assertDatabaseHas('site_equipment_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $executionStage->id,
+            'equipment_id' => $mixer->id,
+            'quantity' => 1,
+        ]);
+
+        $equipmentPlan = SiteEquipmentPlan::where('project_id', $project->id)->firstOrFail();
+        $this->assertSame($executionStage->start_date->toDateString(), $equipmentPlan->usage_start->toDateString());
+        $this->assertSame($executionStage->end_date->toDateString(), $equipmentPlan->usage_end->toDateString());
+    }
+
+    public function test_ai_estimate_commit_skips_staff_equipment_plans_when_plan_is_locked(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+        [$template] = $this->seedTaskTemplateWithRecipe();
+        $project->update(['plan_approved_at' => now(), 'plan_approved_by' => $user->id]);
+
+        $generateResponse = $this->actingAs($user)->post(route('projects.ai.estimate.generate', $project), [
+            'task_template_id' => $template->id,
+            'measure_value' => 10,
+            'complexity' => 'medium',
+        ]);
+        $estimate = $generateResponse->json('estimate');
+
+        $commitResponse = $this->actingAs($user)->post(route('projects.ai.estimate.commit', $project), [
+            'title' => 'Deviz plan blocat',
+            'total_net' => $estimate['totals']['total_net'],
+            'wbs_stages' => $estimate['wbs_stages'],
+            'estimate_details' => [
+                'labor' => $estimate['labor'],
+                'equipment' => $estimate['equipment'],
+                'timing' => $estimate['timing'],
+                'totals' => $estimate['totals'],
+            ],
+        ]);
+
+        $commitResponse->assertOk();
+        $this->assertNotNull($commitResponse->json('quote_id'));
+        $this->assertSame(0, $commitResponse->json('created_staff_plans'));
+        $this->assertSame(0, $commitResponse->json('created_equipment_plans'));
+        $this->assertDatabaseCount('site_staff_plans', 0);
+        $this->assertDatabaseCount('site_equipment_plans', 0);
     }
 
     public function test_ai_estimate_commit_defaults_to_one_day_stages_without_timing_data(): void

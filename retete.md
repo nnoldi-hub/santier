@@ -164,7 +164,34 @@ aceste coloane de pe `ProjectPhase`).
   nicio schimbare de frontend - efectul se vede direct pe Gantt-ul existent.
 
 ### In afara scopului
-Nu s-a facut inca integrarea cu `SiteEquipmentPlan`/`SiteStaffPlan` (generare
-automata de randuri de rezervare utilaje/echipe la commit-ul devizului, din
-`equipmentItems`/`laborItems` ale retetei) - ramane sprint separat, daca se
-alege aceasta directie ulterior.
+Integrarea cu `SiteEquipmentPlan`/`SiteStaffPlan` s-a facut in sprintul urmator
+(vezi mai jos).
+
+## Extindere: Rezervare automata de utilaje/personal la commit deviz (2026-07-20)
+
+Ultimul punct din directia "Retetar -> Planificare": devizul calcula deja
+manopera/utilajele necesare din reteta, dar nu genera nimic in Organizare
+Santier - `SiteStaffPlan`/`SiteEquipmentPlan` ramaneau goale, desi informatia
+exista deja in devizul confirmat.
+
+- La `commitEstimate()`, cate un rand `SiteStaffPlan` per linie de manopera
+  (`specialty` = rolul de pe reteta, `planned_headcount` = 1 implicit,
+  `team_id`/`contractor_id` neasignate - completabile manual) si cate un rand
+  `SiteEquipmentPlan` per linie de utilaj (`quantity` = 1 implicit). Ambele
+  au `phase_id`/datele preluate de la etapa "Executie..." generata in
+  sprintul anterior (cea cu timeline real).
+- **Nu se deduplichica** - fiecare commit adauga randuri noi, la fel ca
+  `SiteOrganizationController::applyMaterialRecipe()` (niciun flux existent
+  din Organizare Santier nu deduplica azi).
+- Respecta blocarea planului (`plan_approved_at`) - daca planul e deja
+  aprobat, randurile de personal/utilaje nu se mai genereaza (dar
+  Quote/Document/etape WBS ale devizului se creeaza normal, neschimbat -
+  blocarea planului nu are legatura cu oferta in sine).
+- `SiteEquipmentPlan`/`SiteStaffPlan` nu au camp de cost/tarif (sunt planuri
+  de rezervare/logistica, nu de cost) - costul ramane doar in Quote, generat
+  ca si pana acum.
+
+### In afara scopului
+Nu se genereaza automat si `SiteMaterialPlan` la commit-ul devizului -
+materialele au deja fluxul lor separat, manual, in tab-ul Materiale din
+Organizare Santier (`applyMaterialRecipe`), neschimbat.

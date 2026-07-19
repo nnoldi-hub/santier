@@ -8,6 +8,8 @@ use App\Models\MaterialInvoice;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
+use App\Models\SiteEquipmentPlan;
+use App\Models\SiteStaffPlan;
 use App\Models\TaskTemplate;
 use App\Support\InvoiceOcrService;
 use App\Support\TenantContext;
@@ -177,6 +179,7 @@ class ProjectAiToolsController extends Controller
             'estimate_details.labor.estimated_cost' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.equipment' => ['nullable', 'array'],
             'estimate_details.equipment.lines' => ['nullable', 'array'],
+            'estimate_details.equipment.lines.*.equipment_id' => ['nullable', 'integer'],
             'estimate_details.equipment.lines.*.name' => ['nullable', 'string', 'max:255'],
             'estimate_details.equipment.lines.*.hours' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.equipment.lines.*.hourly_rate' => ['nullable', 'numeric', 'min:0'],
@@ -296,11 +299,72 @@ class ProjectAiToolsController extends Controller
             'notes' => $validated['notes'] ?? 'Deviz generat automat din modul AI Tools.',
         ]);
 
+        $createdStaffPlans = 0;
+        $createdEquipmentPlans = 0;
+        $planLocked = $project->plan_approved_at !== null;
+
+        if (!$planLocked) {
+            $executionPhase = ProjectPhase::query()
+                ->where('project_id', $project->id)
+                ->where('name', 'like', 'Executie%')
+                ->latest('id')
+                ->first();
+
+            $laborLines = $validated['estimate_details']['labor']['lines'] ?? [];
+            foreach ($laborLines as $line) {
+                if (empty($line['role'])) {
+                    continue;
+                }
+
+                SiteStaffPlan::create([
+                    'tenant_id' => $tenantId,
+                    'project_id' => $project->id,
+                    'phase_id' => $executionPhase?->id,
+                    'specialty' => $line['role'],
+                    'planned_headcount' => 1,
+                    'planned_start' => $executionPhase?->start_date?->toDateString(),
+                    'planned_end' => $executionPhase?->end_date?->toDateString(),
+                    'risk_level' => 'medium',
+                    'notes' => 'Generat automat din reteta la commit deviz AI.',
+                ]);
+                $createdStaffPlans++;
+            }
+
+            $equipmentLines = $validated['estimate_details']['equipment']['lines'] ?? [];
+            foreach ($equipmentLines as $line) {
+                if (empty($line['equipment_id'])) {
+                    continue;
+                }
+
+                SiteEquipmentPlan::create([
+                    'tenant_id' => $tenantId,
+                    'project_id' => $project->id,
+                    'phase_id' => $executionPhase?->id,
+                    'equipment_id' => $line['equipment_id'],
+                    'quantity' => 1,
+                    'usage_start' => $executionPhase?->start_date?->toDateString(),
+                    'usage_end' => $executionPhase?->end_date?->toDateString(),
+                    'risk_level' => 'medium',
+                    'notes' => 'Generat automat din reteta la commit deviz AI.',
+                ]);
+                $createdEquipmentPlans++;
+            }
+        }
+
+        $message = 'Devizul a fost salvat ca oferta draft, document de tip deviz si etapele WBS au fost adaugate in proiect.';
+        if ($planLocked) {
+            $message .= ' Planul de organizare santier e deja aprobat, deci nu s-au generat automat planuri de personal/utilaje.';
+        } elseif ($createdStaffPlans > 0 || $createdEquipmentPlans > 0) {
+            $message .= " S-au generat automat {$createdStaffPlans} planuri de personal si {$createdEquipmentPlans} planuri de utilaje in Organizare Santier.";
+        }
+
         return response()->json([
-            'message' => 'Devizul a fost salvat ca oferta draft, document de tip deviz si etapele WBS au fost adaugate in proiect.',
+            'message' => $message,
             'quote_id' => $quote->id,
             'document_id' => $estimateDocument->id,
             'created_stages' => $createdStages,
+            'created_staff_plans' => $createdStaffPlans,
+            'created_equipment_plans' => $createdEquipmentPlans,
         ]);
     }
 
