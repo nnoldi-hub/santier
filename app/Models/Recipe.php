@@ -15,6 +15,13 @@ class Recipe extends Model
         'name',
         'unit',
         'notes',
+        'drying_hours',
+        'curing_hours',
+    ];
+
+    protected $casts = [
+        'drying_hours' => 'decimal:2',
+        'curing_hours' => 'decimal:2',
     ];
 
     public function subject(): MorphTo
@@ -25,5 +32,15 @@ class Recipe extends Model
     public function items(): HasMany
     {
         return $this->hasMany(RecipeItem::class);
+    }
+
+    public function laborItems(): HasMany
+    {
+        return $this->hasMany(RecipeLaborItem::class);
+    }
+
+    public function equipmentItems(): HasMany
+    {
+        return $this->hasMany(RecipeEquipmentItem::class);
     }
 }

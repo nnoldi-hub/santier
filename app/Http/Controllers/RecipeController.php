@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Equipment;
 use App\Models\Material;
 use App\Models\Recipe;
 use App\Models\TaskTemplate;
@@ -21,7 +22,7 @@ class RecipeController extends Controller
         $tenantId = TenantContext::id($request->user());
 
         $recipes = Recipe::where('tenant_id', $tenantId)
-            ->with(['subject', 'items'])
+            ->with(['subject', 'items', 'laborItems', 'equipmentItems'])
             ->orderBy('name')
             ->get()
             ->map(fn (Recipe $recipe) => [
@@ -32,6 +33,8 @@ class RecipeController extends Controller
                 'subject_label' => $recipe->subject_type === 'material' ? 'Material compus' : 'Operatie de lucru',
                 'subject_name' => $recipe->subject?->name ?? $recipe->subject?->title ?? '-',
                 'items_count' => $recipe->items->count(),
+                'labor_items_count' => $recipe->laborItems->count(),
+                'equipment_items_count' => $recipe->equipmentItems->count(),
             ]);
 
         return Inertia::render('Recipes/Index', [
@@ -46,6 +49,7 @@ class RecipeController extends Controller
         return Inertia::render('Recipes/Create', [
             'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
             'materials' => Material::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'unit']),
+            'equipment' => Equipment::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'cost_per_hour']),
             'presetSubjectType' => $request->string('subject_type')->toString() ?: null,
             'presetSubjectId' => $request->integer('subject_id') ?: null,
         ]);
@@ -64,10 +68,20 @@ class RecipeController extends Controller
                 'name' => $validated['name'],
                 'unit' => $validated['unit'],
                 'notes' => $validated['notes'] ?? null,
+                'drying_hours' => $validated['drying_hours'] ?? null,
+                'curing_hours' => $validated['curing_hours'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {
                 $recipe->items()->create($item);
+            }
+
+            foreach ($validated['labor_items'] ?? [] as $item) {
+                $recipe->laborItems()->create($item);
+            }
+
+            foreach ($validated['equipment_items'] ?? [] as $item) {
+                $recipe->equipmentItems()->create($item);
             }
         });
 
@@ -79,7 +93,7 @@ class RecipeController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $recipe->tenant_id === $tenantId, 404);
 
-        $recipe->load('items');
+        $recipe->load(['items', 'laborItems', 'equipmentItems']);
 
         return Inertia::render('Recipes/Edit', [
             'recipe' => [
@@ -89,13 +103,25 @@ class RecipeController extends Controller
                 'name' => $recipe->name,
                 'unit' => $recipe->unit,
                 'notes' => $recipe->notes,
+                'drying_hours' => $recipe->drying_hours !== null ? (float) $recipe->drying_hours : null,
+                'curing_hours' => $recipe->curing_hours !== null ? (float) $recipe->curing_hours : null,
                 'items' => $recipe->items->map(fn ($item) => [
                     'material_id' => $item->material_id,
                     'quantity_per_unit' => (float) $item->quantity_per_unit,
                 ]),
+                'labor_items' => $recipe->laborItems->map(fn ($item) => [
+                    'role' => $item->role,
+                    'hours_per_unit' => (float) $item->hours_per_unit,
+                    'hourly_rate' => (float) $item->hourly_rate,
+                ]),
+                'equipment_items' => $recipe->equipmentItems->map(fn ($item) => [
+                    'equipment_id' => $item->equipment_id,
+                    'hours_per_unit' => (float) $item->hours_per_unit,
+                ]),
             ],
             'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
             'materials' => Material::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'unit']),
+            'equipment' => Equipment::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'cost_per_hour']),
         ]);
     }
 
@@ -113,12 +139,24 @@ class RecipeController extends Controller
                 'name' => $validated['name'],
                 'unit' => $validated['unit'],
                 'notes' => $validated['notes'] ?? null,
+                'drying_hours' => $validated['drying_hours'] ?? null,
+                'curing_hours' => $validated['curing_hours'] ?? null,
             ]);
 
             $recipe->items()->delete();
+            $recipe->laborItems()->delete();
+            $recipe->equipmentItems()->delete();
 
             foreach ($validated['items'] as $item) {
                 $recipe->items()->create($item);
+            }
+
+            foreach ($validated['labor_items'] ?? [] as $item) {
+                $recipe->laborItems()->create($item);
+            }
+
+            foreach ($validated['equipment_items'] ?? [] as $item) {
+                $recipe->equipmentItems()->create($item);
             }
         });
 
@@ -206,9 +244,18 @@ class RecipeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['required', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'drying_hours' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'curing_hours' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.material_id' => ['required', 'integer', Rule::exists('materials', 'id')->where('tenant_id', $tenantId)],
             'items.*.quantity_per_unit' => ['required', 'numeric', 'min:0.0001', 'max:999999999'],
+            'labor_items' => ['nullable', 'array'],
+            'labor_items.*.role' => ['required', 'string', 'max:100'],
+            'labor_items.*.hours_per_unit' => ['required', 'numeric', 'min:0.0001', 'max:999999999'],
+            'labor_items.*.hourly_rate' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'equipment_items' => ['nullable', 'array'],
+            'equipment_items.*.equipment_id' => ['required', 'integer', Rule::exists('equipment', 'id')->where('tenant_id', $tenantId)],
+            'equipment_items.*.hours_per_unit' => ['required', 'numeric', 'min:0.0001', 'max:999999999'],
         ]);
     }
 }

@@ -65,6 +65,59 @@
                 </div>
 
                 <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Manopera necesara (ore per 1 {{ form.unit || 'unitate' }})</label>
+                        <button type="button" @click="addLaborItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Manopera</button>
+                    </div>
+                    <div v-if="form.labor_items.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
+                        Optional - fara randuri de manopera.
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div v-for="(item, index) in form.labor_items" :key="index" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                            <input v-model="item.role" type="text" class="md:col-span-5 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Rol (ex: zugrav)" />
+                            <input v-model="item.hours_per_unit" type="number" min="0.0001" step="0.0001" class="md:col-span-3 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ore/unitate" />
+                            <input v-model="item.hourly_rate" type="number" min="0" step="0.01" class="md:col-span-3 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Tarif orar (RON)" />
+                            <button type="button" @click="removeLaborItem(index)" class="md:col-span-1 text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50">X</button>
+                        </div>
+                    </div>
+                    <p v-if="form.errors.labor_items" class="text-red-500 text-xs mt-1">{{ form.errors.labor_items }}</p>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Utilaje necesare (ore per 1 {{ form.unit || 'unitate' }})</label>
+                        <button type="button" @click="addEquipmentItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Utilaj</button>
+                    </div>
+                    <div v-if="form.equipment_items.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
+                        Optional - fara randuri de utilaje.
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div v-for="(item, index) in form.equipment_items" :key="index" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                            <select v-model="item.equipment_id" class="md:col-span-7 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">— Utilaj —</option>
+                                <option v-for="eq in equipment" :key="eq.id" :value="String(eq.id)">{{ eq.name }} ({{ eq.cost_per_hour }} RON/h)</option>
+                            </select>
+                            <input v-model="item.hours_per_unit" type="number" min="0.0001" step="0.0001" class="md:col-span-4 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ore/unitate" />
+                            <button type="button" @click="removeEquipmentItem(index)" class="md:col-span-1 text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50">X</button>
+                        </div>
+                    </div>
+                    <p v-if="form.errors.equipment_items" class="text-red-500 text-xs mt-1">{{ form.errors.equipment_items }}</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Timp uscare (ore)</label>
+                        <input v-model="form.drying_hours" type="number" min="0" step="0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: 24" />
+                        <p v-if="form.errors.drying_hours" class="text-red-500 text-xs mt-1">{{ form.errors.drying_hours }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Timp intarire - curing (ore)</label>
+                        <input v-model="form.curing_hours" type="number" min="0" step="0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: 168" />
+                        <p v-if="form.errors.curing_hours" class="text-red-500 text-xs mt-1">{{ form.errors.curing_hours }}</p>
+                    </div>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
                     <textarea v-model="form.notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                 </div>
@@ -90,6 +143,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 const props = defineProps({
     taskTemplates: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
+    equipment: { type: Array, default: () => [] },
     presetSubjectType: { type: String, default: null },
     presetSubjectId: { type: Number, default: null },
 });
@@ -101,6 +155,10 @@ const form = useForm({
     unit: '',
     notes: '',
     items: [],
+    labor_items: [],
+    equipment_items: [],
+    drying_hours: '',
+    curing_hours: '',
 });
 
 const subjectOptions = computed(() => {
@@ -137,5 +195,23 @@ function addItem() {
 
 function removeItem(index) {
     form.items.splice(index, 1);
+}
+
+function addLaborItem() {
+    if (form.labor_items.length >= 30) return;
+    form.labor_items.push({ role: '', hours_per_unit: '', hourly_rate: '' });
+}
+
+function removeLaborItem(index) {
+    form.labor_items.splice(index, 1);
+}
+
+function addEquipmentItem() {
+    if (form.equipment_items.length >= 30) return;
+    form.equipment_items.push({ equipment_id: '', hours_per_unit: '' });
+}
+
+function removeEquipmentItem(index) {
+    form.equipment_items.splice(index, 1);
 }
 </script>

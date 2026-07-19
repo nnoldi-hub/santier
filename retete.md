@@ -76,3 +76,40 @@ estimat + etape de lucru profesionale.
 - `TaskTemplate::forEstimatePicker()` (metoda statica noua pe model) inlocuieste
   metoda privata duplicata `TaskController::taskTemplatesPayload()` - folosita
   acum si de `ProjectController::show()` pentru noul prop `taskTemplates`.
+
+## Extindere: Reteta completa - manopera + utilaje + timpi (2026-07-20)
+
+Utilizatorul a propus o arhitectura pe 3 niveluri (Resurse -> Retetar ->
+Planificare) in 4 sprinturi. Verificare in cod (agent de cercetare): nivelul
+Resurse era deja complet, iar Planificarea avea deja suprapunere semnificativa
+cu ce se propunea (7 tabele `Site*Plan`, Gantt/WBS real, calculator de risc
+`SiteReadinessCalculator`, pipeline PDF existent). Singurul gol real era la
+Retetar: `Recipe`/`RecipeItem` capturau doar consum de materiale. S-a ales
+directia "lean" (extindere, nu schema paralela), inceput cu acest sprint.
+
+- Tabele noi `recipe_labor_items` (recipe_id, `role` text liber, hours_per_unit,
+  hourly_rate - autonom, NU legat de un `Team` anume, fiindca o reteta e un
+  sablon generic, nu depinde de echipa care o executa) si
+  `recipe_equipment_items` (recipe_id, equipment_id FK obligatoriu catre
+  `Equipment`, hours_per_unit - costul se citeste live din
+  `Equipment.cost_per_hour`, nu se duplica pe rand, exact ca la materiale).
+- Coloane noi `drying_hours`/`curing_hours` pe `recipes` (timpi ficsi, nu
+  proportionali cu cantitatea - de asta stau pe reteta, nu pe un item).
+- Nu s-a adaugat un camp separat de "timp executie" - va fi calculat din orele
+  de manopera in viitorul `RecipeCalculatorService` (sprint urmator).
+- `RecipeController::store()`/`update()` creeaza/inlocuiesc si randurile de
+  manopera/utilaje, in aceeasi tranzactie ca materialele. `create()`/`edit()`
+  primesc un prop nou `equipment` (catalogul de utilaje al tenantului).
+  `quickCreate()` (creare rapida din context) ramane neschimbat - doar
+  materiale, ca sa nu complice fluxul efemer de pe `Tasks/Create.vue`.
+- `Recipes/Create.vue`/`Edit.vue` capata 2 blocuri noi de randuri repetabile
+  (acelasi tipar ca "Materiale necesare") + 2 inputuri de timpi.
+  `Recipes/Index.vue` arata numarul de randuri de manopera/utilaje pe fiecare
+  card, ca sa se vada dintr-o privire care retete sunt "complete".
+
+### In afara scopului (sprinturi viitoare)
+Nu s-a extras inca `RecipeCalculatorService` si nu s-a modificat
+`ProjectAiToolsController::generateEstimate()` sa citeasca aceste date noi
+(ramane cu inputurile manuale de manopera/utilaje) - urmeaza intr-un sprint
+separat. Nu s-a legat inca de Gantt/WBS sau de `SiteEquipmentPlan`/
+`SiteStaffPlan`. Nu s-a construit un catalog separat de "tarife pe rol".
