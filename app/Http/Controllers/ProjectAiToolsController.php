@@ -224,6 +224,14 @@ class ProjectAiToolsController extends Controller
         $createdStages = [];
         $estimateStageId = null;
 
+        $timing = $validated['estimate_details']['timing'] ?? [];
+        $executionDays = max(1, (int) ceil((float) ($timing['execution_hours'] ?? 0) / 8));
+        $controlDays = max(1, (int) ceil(
+            ((float) ($timing['drying_hours'] ?? 0) + (float) ($timing['curing_hours'] ?? 0)) / 24
+        ));
+        $durationsByIndex = [0 => 1, 1 => 1, 2 => $executionDays, 3 => $controlDays, 4 => 1];
+        $dateCursor = now()->startOfDay();
+
         foreach ($validated['wbs_stages'] as $index => $stageInput) {
             $name = trim($stageInput['name']);
             if ($name === '') {
@@ -241,6 +249,11 @@ class ProjectAiToolsController extends Controller
 
             $maxOrder += 1;
 
+            $duration = $durationsByIndex[$index] ?? 1;
+            $stageStart = $dateCursor->copy();
+            $stageEnd = $dateCursor->copy()->addDays($duration - 1);
+            $dateCursor = $stageEnd->copy()->addDay();
+
             $stage = ProjectPhase::create([
                 'project_id' => $project->id,
                 'name' => $name,
@@ -249,12 +262,17 @@ class ProjectAiToolsController extends Controller
                 'progress_pct' => 0,
                 'order' => $maxOrder,
                 'notes' => 'Etapa propusa automat de AI Tools.',
+                'start_date' => $stageStart->toDateString(),
+                'end_date' => $stageEnd->toDateString(),
+                'duration_days' => $duration,
             ]);
 
             $createdStages[] = [
                 'id' => $stage->id,
                 'name' => $stage->name,
                 'position' => $index + 1,
+                'start_date' => $stageStart->toDateString(),
+                'end_date' => $stageEnd->toDateString(),
             ];
 
             if ($estimateStageId === null) {

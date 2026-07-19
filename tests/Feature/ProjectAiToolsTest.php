@@ -247,6 +247,57 @@ class ProjectAiToolsTest extends TestCase
                 'name' => $stage['name'],
             ]);
         }
+
+        $stagesByName = collect($createdStages)
+            ->mapWithKeys(fn ($stage) => [$stage['name'] => ProjectPhase::find($stage['id'])]);
+
+        $this->assertSame(1, $stagesByName['Pregatire']->duration_days);
+        $this->assertSame(1, $stagesByName['Aprovizionare materiale']->duration_days);
+        $this->assertSame(1, $stagesByName['Executie - Fundatie beton']->duration_days);
+        $this->assertSame(8, $stagesByName['Control calitate']->duration_days);
+        $this->assertSame(1, $stagesByName['Predare']->duration_days);
+
+        $orderedStages = [
+            $stagesByName['Pregatire'],
+            $stagesByName['Aprovizionare materiale'],
+            $stagesByName['Executie - Fundatie beton'],
+            $stagesByName['Control calitate'],
+            $stagesByName['Predare'],
+        ];
+
+        for ($i = 1; $i < count($orderedStages); $i++) {
+            $expectedStart = $orderedStages[$i - 1]->end_date->copy()->addDay()->toDateString();
+            $actualStart = $orderedStages[$i]->start_date->toDateString();
+            $this->assertSame($expectedStart, $actualStart);
+        }
+    }
+
+    public function test_ai_estimate_commit_defaults_to_one_day_stages_without_timing_data(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+
+        $response = $this->actingAs($user)->post(route('projects.ai.estimate.commit', $project), [
+            'title' => 'Deviz fara timing',
+            'total_net' => 1000,
+            'wbs_stages' => [
+                ['name' => 'Pregatire'],
+                ['name' => 'Aprovizionare materiale'],
+                ['name' => 'Executie'],
+                ['name' => 'Control calitate'],
+                ['name' => 'Predare'],
+            ],
+        ]);
+
+        $response->assertOk();
+
+        $createdStages = $response->json('created_stages');
+        foreach ($createdStages as $stage) {
+            $this->assertDatabaseHas('project_phases', [
+                'id' => $stage['id'],
+                'duration_days' => 1,
+            ]);
+        }
     }
 
     public function test_ai_estimate_generation_is_blocked_when_task_template_has_no_recipe(): void

@@ -137,6 +137,34 @@ calcul automat, la fel ca la materiale.
 
 ### In afara scopului
 Nu s-a extras inca un `RecipeCalculatorService` dedicat (logica ramane in
-`ProjectAiToolsController`, ca si pana acum pentru materiale). Nu s-a legat
-inca de Gantt/WBS - blocul de durata e doar informativ in rezultatul
-devizului, nu influenteaza inca etapele generate.
+`ProjectAiToolsController`, ca si pana acum pentru materiale). Legarea catre
+Gantt/WBS s-a facut in sprintul urmator (vezi mai jos).
+
+## Extindere: Etapele generate de deviz capata timeline pe Gantt (2026-07-20)
+
+Blocul `timing` din sprintul anterior era doar informativ - etapele WBS create
+la `commitEstimate()` nu primeau `start_date`/`end_date`/`duration_days`, deci
+nu aparea nimic pe Gantt-ul deja existent (`GanttController`, citeste direct
+aceste coloane de pe `ProjectPhase`).
+
+- Din cele 5 etape standard, doar 2 au date reale din reteta: "Executie" -
+  `execution_hours` (suma orelor de manopera) convertit in zile lucratoare
+  (8h/zi); "Control calitate" - `drying_hours + curing_hours` (timp de
+  asteptare calendaristic, nu ore de lucru) convertit in zile (24h/zi) - ideea
+  fiind ca verificarea calitatii are sens abia dupa ce suprafata s-a uscat/
+  materialul a intarit. Celelalte 3 etape ("Pregatire"/"Aprovizionare
+  materiale"/"Predare") nu au date din reteta - primesc un default de 1 zi,
+  editabil oricand din UI-ul de timeline deja existent.
+- Datele sunt secventiale, inlantuite pornind de azi - fiecare etapa incepe a
+  doua zi dupa ce se termina precedenta. Daca `commitEstimate()` e apelat fara
+  `estimate_details.timing` (defensiv, fara `generate` anterior), toate cele 5
+  etape primesc implicit 1 zi - strict mai bine decat starea anterioara (fara
+  nicio data).
+- Nicio schimbare de schema (coloanele existau deja pe `project_phases`) si
+  nicio schimbare de frontend - efectul se vede direct pe Gantt-ul existent.
+
+### In afara scopului
+Nu s-a facut inca integrarea cu `SiteEquipmentPlan`/`SiteStaffPlan` (generare
+automata de randuri de rezervare utilaje/echipe la commit-ul devizului, din
+`equipmentItems`/`laborItems` ale retetei) - ramane sprint separat, daca se
+alege aceasta directie ulterior.
