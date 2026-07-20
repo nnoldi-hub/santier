@@ -12,6 +12,7 @@ use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Models\Recipe;
 use App\Models\SiteEquipmentPlan;
+use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\TaskTemplate;
 use App\Models\Tenant;
@@ -300,6 +301,30 @@ class ProjectAiToolsTest extends TestCase
         $equipmentPlan = SiteEquipmentPlan::where('project_id', $project->id)->firstOrFail();
         $this->assertSame($executionStage->start_date->toDateString(), $equipmentPlan->usage_start->toDateString());
         $this->assertSame($executionStage->end_date->toDateString(), $equipmentPlan->usage_end->toDateString());
+
+        $materialsStage = $stagesByName['Aprovizionare materiale'];
+        $beton = Material::where('code', 'AI-BETON')->firstOrFail();
+        $otel = Material::where('code', 'AI-OTEL')->firstOrFail();
+
+        $this->assertSame(2, $commitResponse->json('created_material_plans'));
+        $this->assertDatabaseCount('site_material_plans', 2);
+
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $materialsStage->id,
+            'material_id' => $beton->id,
+            'planned_quantity' => 10,
+        ]);
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $materialsStage->id,
+            'material_id' => $otel->id,
+            'planned_quantity' => 850,
+        ]);
+
+        $materialPlan = SiteMaterialPlan::where('project_id', $project->id)->firstOrFail();
+        $this->assertSame($materialsStage->start_date->toDateString(), $materialPlan->planned_order_date->toDateString());
+        $this->assertSame($materialsStage->end_date->toDateString(), $materialPlan->planned_delivery_date->toDateString());
     }
 
     public function test_ai_estimate_commit_skips_staff_equipment_plans_when_plan_is_locked(): void
@@ -321,6 +346,7 @@ class ProjectAiToolsTest extends TestCase
             'total_net' => $estimate['totals']['total_net'],
             'wbs_stages' => $estimate['wbs_stages'],
             'estimate_details' => [
+                'materials' => $estimate['materials'],
                 'labor' => $estimate['labor'],
                 'equipment' => $estimate['equipment'],
                 'timing' => $estimate['timing'],
@@ -332,8 +358,10 @@ class ProjectAiToolsTest extends TestCase
         $this->assertNotNull($commitResponse->json('quote_id'));
         $this->assertSame(0, $commitResponse->json('created_staff_plans'));
         $this->assertSame(0, $commitResponse->json('created_equipment_plans'));
+        $this->assertSame(0, $commitResponse->json('created_material_plans'));
         $this->assertDatabaseCount('site_staff_plans', 0);
         $this->assertDatabaseCount('site_equipment_plans', 0);
+        $this->assertDatabaseCount('site_material_plans', 0);
     }
 
     public function test_ai_estimate_commit_defaults_to_one_day_stages_without_timing_data(): void

@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Quote;
 use App\Models\SiteEquipmentPlan;
+use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
 use App\Models\TaskTemplate;
 use App\Support\InvoiceOcrService;
@@ -165,6 +166,7 @@ class ProjectAiToolsController extends Controller
             'estimate_details.measure_value' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.complexity' => ['nullable', 'string', 'max:50'],
             'estimate_details.materials' => ['nullable', 'array'],
+            'estimate_details.materials.*.material_id' => ['nullable', 'integer'],
             'estimate_details.materials.*.name' => ['nullable', 'string', 'max:255'],
             'estimate_details.materials.*.quantity' => ['nullable', 'numeric', 'min:0'],
             'estimate_details.materials.*.unit' => ['nullable', 'string', 'max:50'],
@@ -301,6 +303,7 @@ class ProjectAiToolsController extends Controller
 
         $createdStaffPlans = 0;
         $createdEquipmentPlans = 0;
+        $createdMaterialPlans = 0;
         $planLocked = $project->plan_approved_at !== null;
 
         if (!$planLocked) {
@@ -309,6 +312,32 @@ class ProjectAiToolsController extends Controller
                 ->where('name', 'like', 'Executie%')
                 ->latest('id')
                 ->first();
+
+            $materialsPhase = ProjectPhase::query()
+                ->where('project_id', $project->id)
+                ->where('name', 'Aprovizionare materiale')
+                ->latest('id')
+                ->first();
+
+            $materialLines = $validated['estimate_details']['materials'] ?? [];
+            foreach ($materialLines as $line) {
+                if (empty($line['material_id'])) {
+                    continue;
+                }
+
+                SiteMaterialPlan::create([
+                    'tenant_id' => $tenantId,
+                    'project_id' => $project->id,
+                    'phase_id' => $materialsPhase?->id,
+                    'material_id' => $line['material_id'],
+                    'planned_quantity' => $line['quantity'] ?? 0,
+                    'planned_order_date' => $materialsPhase?->start_date?->toDateString(),
+                    'planned_delivery_date' => $materialsPhase?->end_date?->toDateString(),
+                    'risk_level' => 'medium',
+                    'notes' => 'Generat automat din reteta la commit deviz AI.',
+                ]);
+                $createdMaterialPlans++;
+            }
 
             $laborLines = $validated['estimate_details']['labor']['lines'] ?? [];
             foreach ($laborLines as $line) {
@@ -353,9 +382,9 @@ class ProjectAiToolsController extends Controller
 
         $message = 'Devizul a fost salvat ca oferta draft, document de tip deviz si etapele WBS au fost adaugate in proiect.';
         if ($planLocked) {
-            $message .= ' Planul de organizare santier e deja aprobat, deci nu s-au generat automat planuri de personal/utilaje.';
-        } elseif ($createdStaffPlans > 0 || $createdEquipmentPlans > 0) {
-            $message .= " S-au generat automat {$createdStaffPlans} planuri de personal si {$createdEquipmentPlans} planuri de utilaje in Organizare Santier.";
+            $message .= ' Planul de organizare santier e deja aprobat, deci nu s-au generat automat planuri de personal/utilaje/materiale.';
+        } elseif ($createdStaffPlans > 0 || $createdEquipmentPlans > 0 || $createdMaterialPlans > 0) {
+            $message .= " S-au generat automat {$createdStaffPlans} planuri de personal, {$createdEquipmentPlans} planuri de utilaje si {$createdMaterialPlans} planuri de materiale in Organizare Santier.";
         }
 
         return response()->json([
@@ -365,6 +394,7 @@ class ProjectAiToolsController extends Controller
             'created_stages' => $createdStages,
             'created_staff_plans' => $createdStaffPlans,
             'created_equipment_plans' => $createdEquipmentPlans,
+            'created_material_plans' => $createdMaterialPlans,
         ]);
     }
 

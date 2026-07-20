@@ -64,6 +64,7 @@ deja construit).
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, refoloseste sablonul PDF si `CollectionSheetExport` existente | **Facut** |
 | 11 | Aprobare plan + activare executie | Bara "Aproba planul": campuri noi `plan_approved_at`/`plan_approved_by` pe proiect, istoric `site_plan_approvals`, blocare editare pe toate cele 7 domenii, generare automata de `Task`/`ResourceOrder`/`StageEquipment` + `ProjectPhase.contractor_id` | **Facut** |
 | 12 | Cost & ore manopera | `hourly_rate` pe `site_staff_plans` + `LaborCostEstimator` (oglinda la `EquipmentCostEstimator`) - ore/cost estimat per plan de personal, semnal de suprapunere echipa, integrare in rezumatul de buget si in export | **Facut** |
+| 13 | Deviz -> SiteMaterialPlan | `commitEstimate()` genereaza automat planuri de materiale (nu doar personal/utilaje) din lista de materiale a devizului, legate de etapa "Aprovizionare materiale" | **Facut** |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
 dupa prioritate de business), dar faza 8 (scorul de pregatire) are nevoie de cel putin
@@ -324,3 +325,26 @@ Acelasi flux stabilit in aceasta sesiune:
   ore/cost, `team_overlap_count`), `tests/Feature/SiteBudgetPlanTest.php`
   (test existent actualizat sa reflecte excluderea categoriei `labor` + test
   nou pentru `labor_cost` automat).
+
+### Faza 13 - Deviz -> SiteMaterialPlan (Facut, 2026-07-20)
+- Continuare directa a Fazei 12 - `commitEstimate()` genera deja automat
+  `SiteStaffPlan`/`SiteEquipmentPlan` din manopera/utilaje la commit, dar nu
+  si `SiteMaterialPlan` din materiale, desi lista completa (cu `material_id`)
+  era deja calculata in `estimate_details.materials`. Inconsistenta
+  confirmata la analiza initiala pe 7 arii.
+- Gol mic descoperit la implementare: validarea din `commitEstimate()` nu
+  includea `estimate_details.materials.*.material_id` in whitelist - desi
+  `generateEstimate()` il trimite pe fiecare rand, ar fi fost eliminat
+  silentios de `$request->validate()`. Adaugat.
+- Spre deosebire de personal/utilaje (legate de etapa "Executie"),
+  materialele se leaga de etapa **"Aprovizionare materiale"** (semantic
+  corect - materialele se comanda/livreaza inainte de executie) -
+  `planned_order_date`/`planned_delivery_date` preiau
+  start/end date-ul acelei etape (din sprintul de timeline, Faza anterioara
+  sesiunii curente).
+- Acelasi tipar ca personal/utilaje: fara deduplicare, respecta
+  `plan_approved_at` (skip silentios, nu blocheaza restul commit-ului), fara
+  `supplier_name`/`lead_time_days` (nicio sursa de date in deviz pentru ele).
+- Teste: `tests/Feature/ProjectAiToolsTest.php` extins (assert pe cele 2
+  planuri de materiale generate + datele legate de etapa corecta; testul de
+  plan blocat extins sa verifice si `site_material_plans`).
