@@ -545,6 +545,17 @@ class ProjectAiToolsTest extends TestCase
         $this->assertDatabaseMissing('project_phases', ['project_id' => $project->id, 'name' => 'Etapa']);
     }
 
+    public function test_project_page_loads_with_task_templates_that_have_a_recipe(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+        $this->seedTaskTemplateWithRecipe();
+
+        $response = $this->actingAs($user)->get(route('projects.show', $project));
+
+        $response->assertOk();
+    }
+
     private function seedTaskTemplateWithRecipe(): array
     {
         $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Fundatie beton']);
