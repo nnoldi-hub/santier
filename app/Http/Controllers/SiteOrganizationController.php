@@ -33,6 +33,7 @@ use App\Support\SitePlanningExporter;
 use App\Support\SiteReadinessCalculator;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -467,6 +468,7 @@ class SiteOrganizationController extends Controller
         }
 
         $validated = $this->applySupplierSnapshot($validated);
+        $validated = $this->applyLeadTimeOrderDate($validated);
 
         SiteMaterialPlan::create([
             ...$validated,
@@ -486,6 +488,7 @@ class SiteOrganizationController extends Controller
 
         $validated = $this->validateMaterialPlan($request, $project);
         $validated = $this->applySupplierSnapshot($validated);
+        $validated = $this->applyLeadTimeOrderDate($validated);
 
         $materialPlan->update($validated);
 
@@ -556,6 +559,19 @@ class SiteOrganizationController extends Controller
     {
         if (! empty($validated['supplier_id'])) {
             $validated['supplier_name'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier_name'] ?? null);
+        }
+
+        return $validated;
+    }
+
+    private function applyLeadTimeOrderDate(array $validated): array
+    {
+        if (! array_key_exists('planned_order_date', $validated)
+            && ! empty($validated['planned_delivery_date'])
+            && ! empty($validated['lead_time_days'])) {
+            $validated['planned_order_date'] = Carbon::parse($validated['planned_delivery_date'])
+                ->subDays((int) $validated['lead_time_days'])
+                ->toDateString();
         }
 
         return $validated;

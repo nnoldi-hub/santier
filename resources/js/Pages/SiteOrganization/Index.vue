@@ -433,7 +433,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Lead-time (zile)</label>
-                            <input v-model.number="materialPlanForm.lead_time_days" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                            <input v-model.number="materialPlanForm.lead_time_days" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillOrderDate" />
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Risc</label>
@@ -443,11 +443,11 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Data comanda planificata</label>
-                            <input v-model="materialPlanForm.planned_order_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                            <input v-model="materialPlanForm.planned_order_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="calculata din livrare - lead-time daca lasi gol" />
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Data livrare planificata</label>
-                            <input v-model="materialPlanForm.planned_delivery_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                            <input v-model="materialPlanForm.planned_delivery_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillOrderDate" />
                         </div>
                         <div class="md:col-span-3">
                             <label class="block text-xs text-gray-600 mb-1">Note</label>
@@ -1150,6 +1150,18 @@ function prefillMaterialPrice() {
 function prefillSupplierName() {
     const supplier = props.suppliers.find((item) => item.id === Number(materialPlanForm.supplier_id));
     materialPlanForm.supplier_name = supplier?.name ?? '';
+}
+
+function prefillOrderDate() {
+    if (!materialPlanForm.planned_delivery_date || !materialPlanForm.lead_time_days) return;
+
+    const delivery = new Date(materialPlanForm.planned_delivery_date);
+    delivery.setDate(delivery.getDate() - Number(materialPlanForm.lead_time_days));
+
+    const year = delivery.getFullYear();
+    const month = String(delivery.getMonth() + 1).padStart(2, '0');
+    const day = String(delivery.getDate()).padStart(2, '0');
+    materialPlanForm.planned_order_date = `${year}-${month}-${day}`;
 }
 
 function submitMaterialPlan() {

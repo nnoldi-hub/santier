@@ -45,6 +45,55 @@ class ProjectPhaseUpdateTest extends TestCase
         ]);
     }
 
+    public function test_user_can_set_a_buffer_on_a_phase(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $phase = ProjectPhase::create([
+            'project_id' => $project->id,
+            'name' => 'Structura',
+            'type' => 'structura',
+            'order' => 1,
+            'status' => 'pending',
+            'progress_pct' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->put("/projects/{$project->id}/phases/{$phase->id}", [
+            'name' => 'Structura',
+            'type' => 'structura',
+            'status' => 'pending',
+            'progress_pct' => 0,
+            'buffer_days' => 5,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('project_phases', ['id' => $phase->id, 'buffer_days' => 5]);
+    }
+
+    public function test_buffer_days_cannot_be_negative(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $phase = ProjectPhase::create([
+            'project_id' => $project->id,
+            'name' => 'Structura',
+            'type' => 'structura',
+            'order' => 1,
+            'status' => 'pending',
+            'progress_pct' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->put("/projects/{$project->id}/phases/{$phase->id}", [
+            'name' => 'Structura',
+            'type' => 'structura',
+            'status' => 'pending',
+            'progress_pct' => 0,
+            'buffer_days' => -3,
+        ]);
+
+        $response->assertSessionHasErrors('buffer_days');
+    }
+
     public function test_user_cannot_update_a_phase_on_another_tenants_project(): void
     {
         Tenant::create([

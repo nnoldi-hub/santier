@@ -97,6 +97,46 @@ class SiteMaterialPlanTest extends TestCase
         $this->assertEquals(45.50, (float) $plan->unit_price);
     }
 
+    public function test_order_date_is_computed_from_delivery_date_and_lead_time(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial();
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'planned_delivery_date' => '2026-08-15',
+                'lead_time_days' => 7,
+                'risk_level' => 'medium',
+            ]);
+
+        $plan = SiteMaterialPlan::where('project_id', $project->id)->first();
+        $this->assertSame('2026-08-15', $plan->planned_delivery_date->toDateString());
+        $this->assertSame('2026-08-08', $plan->planned_order_date->toDateString());
+    }
+
+    public function test_explicit_order_date_is_not_overwritten_by_lead_time_calculation(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial();
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'planned_delivery_date' => '2026-08-15',
+                'lead_time_days' => 7,
+                'planned_order_date' => '2026-08-01',
+                'risk_level' => 'medium',
+            ]);
+
+        $plan = SiteMaterialPlan::where('project_id', $project->id)->first();
+        $this->assertSame('2026-08-01', $plan->planned_order_date->toDateString());
+    }
+
     public function test_choosing_a_supplier_from_catalog_fills_in_the_supplier_name(): void
     {
         $user = $this->createOnboardedUser();

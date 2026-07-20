@@ -10,12 +10,13 @@ class ProjectPhase extends Model
 {
     protected $fillable = [
         'project_id', 'name', 'type', 'order', 'start_date', 'end_date',
-        'duration_days', 'status', 'progress_pct', 'contractor_id', 'parent_id', 'notes',
+        'duration_days', 'buffer_days', 'status', 'progress_pct', 'contractor_id', 'parent_id', 'notes',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date'   => 'date',
+        'buffer_days' => 'integer',
     ];
 
     public function project(): BelongsTo

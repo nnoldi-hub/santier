@@ -17,6 +17,7 @@ class StorePhaseRequest extends FormRequest
             'start_date'   => ['nullable', 'date'],
             'end_date'     => ['nullable', 'date', 'after_or_equal:start_date'],
             'duration_days'=> ['nullable', 'integer', 'min:1'],
+            'buffer_days'  => ['nullable', 'integer', 'min:0', 'max:365'],
             'progress_pct' => ['required', 'integer', 'min:0', 'max:100'],
             'contractor_id'=> ['nullable', 'integer', 'exists:contractors,id'],
             'parent_id'    => ['nullable', 'integer', 'exists:project_phases,id'],

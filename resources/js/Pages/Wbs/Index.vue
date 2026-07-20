@@ -124,6 +124,7 @@
                         <div class="text-xs text-gray-500 mt-1">
                             <span v-if="phase.start_date">Start: {{ formatDate(phase.start_date) }}</span>
                             <span v-if="phase.end_date"> · End: {{ formatDate(phase.end_date) }}</span>
+                            <span v-if="phase.buffer_days > 0" class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 font-medium">+{{ phase.buffer_days }} zile buffer</span>
                         </div>
                     </div>
 

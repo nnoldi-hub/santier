@@ -271,6 +271,26 @@ function phaseBarStyle(phase) {
     };
 }
 
+function phaseBufferBarStyle(phase) {
+    if (!phase.start_date || !phase.end_date || !phase.buffer_days || timelineMeta.value.totalDays <= 0) {
+        return null;
+    }
+
+    const start = new Date(phase.start_date);
+    const end = new Date(phase.end_date);
+
+    const leftDays = Math.max(diffDays(timelineMeta.value.minDate, start), 0);
+    const duration = Math.max(diffDays(start, end), 1);
+
+    const leftPct = Math.min(((leftDays + duration) / timelineMeta.value.totalDays) * 100, 100);
+    const widthPct = (phase.buffer_days / timelineMeta.value.totalDays) * 100;
+
+    return {
+        left: `${leftPct}%`,
+        width: `${Math.max(Math.min(widthPct, 100 - leftPct), 1)}%`,
+    };
+}
+
 function diffDays(dateA, dateB) {
     const oneDayMs = 24 * 60 * 60 * 1000;
     return Math.ceil((dateB.getTime() - dateA.getTime()) / oneDayMs);
@@ -328,6 +348,13 @@ const PhaseRow = {
                             onPointerdown: (event) => emit('drag-start', rowProps.phase, event),
                             title: 'Trage bara pentru a muta intervalul etapei',
                         }),
+                        rowProps.phase.buffer_days > 0 && phaseBufferBarStyle(rowProps.phase)
+                            ? h('div', {
+                                class: 'absolute top-1 h-6 rounded-r border border-dashed border-amber-500 bg-amber-300/50',
+                                style: phaseBufferBarStyle(rowProps.phase),
+                                title: `Buffer neprevazute: ${rowProps.phase.buffer_days} zile`,
+                            })
+                            : null,
                     ]
                 ),
                 h('div', { class: 'flex items-center justify-between mt-2 text-xs text-gray-500' }, [

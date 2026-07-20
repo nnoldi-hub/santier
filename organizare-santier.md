@@ -509,3 +509,36 @@ Acelasi flux stabilit in aceasta sesiune:
 - Ramas explicit in afara scopului: consolidarea celorlalte 4 campuri
   "furnizor" text liber din aplicatie, istoric de preturi per furnizor,
   legatura furnizor-material (ce materiale ofera fiecare furnizor).
+
+### Faza 18 - Lead-time -> data comanda + buffer neprevazute pe termene (Facut, 2026-07-20)
+- Ultimele 2 goluri mici ramase din auditul de planificare a resurselor.
+- **Lead-time**: `lead_time_days` exista deja pe `SiteMaterialPlan` dar
+  nu era folosit nicaieri. Acum, la `storeMaterialPlan`/`updateMaterialPlan`,
+  daca `planned_delivery_date` si `lead_time_days` sunt ambele prezente si
+  `planned_order_date` NU a fost trimis explicit, se calculeaza server-side
+  (acelasi tipar de fallback ca `unit_price`/`hourly_rate` din Faza 16).
+  Formularul din Organizare Santier face acelasi calcul client-side la
+  completarea datei de livrare + lead-time, editabil manual dupa aceea.
+- **Buffer neprevazute**: `buffer_days` nou pe `ProjectPhase` (editabil din
+  acelasi formular unde se editeaza deja start/end/durata,
+  `Projects/Show.vue` + `ProjectPhaseController::update()`) - **fara**
+  auto-populare la generarea automata din deviz AI (decizie deliberata a
+  omului per etapa cu risc, la fel ca "Rezerva" pe buget, nu o presupunere
+  a sistemului) si **fara** motor de reprogramare in cascada (schimbarea
+  unei etape nu impinge automat etapele urmatoare - confirmat ca nu exista
+  nicaieri in aplicatie o asemenea logica, ar fi fost un proiect mult mai
+  mare decat cerut).
+- Impact vizibil, fara recalcul de date: badge "+N zile buffer" in
+  `Projects/Show.vue` si `Wbs/Index.vue` langa data de sfarsit; in
+  `Gantt/Index.vue`, bara etapei capata un segment suplimentar haşurat dupa
+  `end_date`, latime proportionala cu `buffer_days` (`phaseBufferBarStyle()`,
+  mirror pe `phaseBarStyle()` existent) - nu e tragabil, drag-ul ramane
+  neschimbat.
+- Teste: `tests/Feature/SiteMaterialPlanTest.php` (calcul automat + pastrare
+  valoare explicita), `tests/Feature/ProjectPhaseUpdateTest.php`
+  (`buffer_days` se salveaza, respins daca e negativ), `tests/Feature/
+  GanttTest.php` (nou - primul test care exercita `gantt.index`, confirma
+  ca `buffer_days` apare in raspuns; `/gantt` nu avea niciun test inainte).
+- Ramas explicit in afara scopului: motor de reprogramare in cascada,
+  auto-populare buffer din deviz AI, buffer in exporturi PDF/XLSX
+  (`SitePlanningExporter` nu are coloane de date pentru etape azi).

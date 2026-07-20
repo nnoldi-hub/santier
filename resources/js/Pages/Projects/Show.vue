@@ -294,6 +294,10 @@
                                 <label class="block text-xs text-gray-600 mb-1">Data sfarsit</label>
                                 <input v-model="phaseForm.end_date" type="date" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                             </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Buffer neprevazute (zile)</label>
+                                <input v-model.number="phaseForm.buffer_days" type="number" min="0" max="365" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                            </div>
                         </div>
                         <div class="flex gap-2">
                             <button @click="submitPhaseForm" :disabled="phaseForm.processing" class="bg-orange-500 text-white px-4 py-1.5 rounded text-sm hover:bg-orange-600 disabled:opacity-50 transition">
@@ -323,6 +327,7 @@
                                 <div class="flex items-center gap-3 text-xs text-gray-400">
                                     <span v-if="phase.start_date" class="inline-flex items-center gap-1"><Icon :icon="CalendarIcon" size="h-3.5 w-3.5" /> {{ fmt(phase.start_date) }}</span>
                                     <span v-if="phase.end_date">→ {{ fmt(phase.end_date) }}</span>
+                                    <span v-if="phase.buffer_days > 0" class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 font-medium">+{{ phase.buffer_days }} zile buffer</span>
                                     <span v-if="phase.contractor" class="inline-flex items-center gap-1">· <Icon :icon="UserIcon" size="h-3.5 w-3.5" /> {{ phase.contractor.name }}</span>
                                 </div>
                                 <!-- Progress bar -->
@@ -959,6 +964,7 @@ const phaseForm = useForm({
     start_date:   '',
     end_date:     '',
     duration_days: null,
+    buffer_days:  null,
     progress_pct: 0,
     contractor_id: '',
     parent_id: '',
@@ -1346,6 +1352,7 @@ function editPhase(phase) {
     phaseForm.start_date = phase.start_date ?? '';
     phaseForm.end_date = phase.end_date ?? '';
     phaseForm.duration_days = phase.duration_days ?? null;
+    phaseForm.buffer_days = phase.buffer_days ?? null;
     phaseForm.progress_pct = phase.progress_pct ?? 0;
     phaseForm.contractor_id = phase.contractor_id ?? '';
     phaseForm.parent_id = phase.parent_id ?? '';

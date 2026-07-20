@@ -34,7 +34,7 @@ class GanttController extends Controller
                 ->whereHas('project', fn ($query) => $query->where('tenant_id', $tenantId))
                 ->orderBy('project_id')
                 ->orderBy('order')
-                ->get(['id', 'project_id', 'name', 'status', 'progress_pct', 'start_date', 'end_date', 'duration_days'])
+                ->get(['id', 'project_id', 'name', 'status', 'progress_pct', 'start_date', 'end_date', 'duration_days', 'buffer_days'])
                 ->map(fn (ProjectPhase $phase) => [
                     'id' => $phase->id,
                     'project_id' => $phase->project_id,
@@ -45,6 +45,7 @@ class GanttController extends Controller
                     'start_date' => $phase->start_date,
                     'end_date' => $phase->end_date,
                     'duration_days' => $phase->duration_days,
+                    'buffer_days' => $phase->buffer_days,
                 ]);
         } elseif ($projectId > 0) {
             $project = Project::where('tenant_id', $tenantId)->find($projectId, ['id', 'name', 'status', 'start_date', 'end_date']);
@@ -52,7 +53,7 @@ class GanttController extends Controller
             if ($project) {
                 $phases = ProjectPhase::where('project_id', $project->id)
                     ->orderBy('order')
-                    ->get(['id', 'project_id', 'name', 'status', 'progress_pct', 'start_date', 'end_date', 'duration_days'])
+                    ->get(['id', 'project_id', 'name', 'status', 'progress_pct', 'start_date', 'end_date', 'duration_days', 'buffer_days'])
                     ->map(fn (ProjectPhase $phase) => [
                         'id' => $phase->id,
                         'project_id' => $phase->project_id,
@@ -63,6 +64,7 @@ class GanttController extends Controller
                         'start_date' => $phase->start_date,
                         'end_date' => $phase->end_date,
                         'duration_days' => $phase->duration_days,
+                        'buffer_days' => $phase->buffer_days,
                     ]);
             }
         }
