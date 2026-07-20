@@ -45,6 +45,7 @@ class ResourceOrder extends Model
         'resource_type',
         'material_id',
         'equipment_id',
+        'supplier_id',
         'supplier_name',
         'carrier_name',
         'equipment_name',
@@ -81,6 +82,11 @@ class ResourceOrder extends Model
     public function equipment(): BelongsTo
     {
         return $this->belongsTo(Equipment::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function responsibleUser(): BelongsTo

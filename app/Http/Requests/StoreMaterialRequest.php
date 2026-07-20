@@ -22,6 +22,7 @@ class StoreMaterialRequest extends FormRequest
             'stock_quantity' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'min_stock_quantity' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'supplier' => ['nullable', 'string', 'max:255'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'active' => ['required', 'boolean'],
         ];

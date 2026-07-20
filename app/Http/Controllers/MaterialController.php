@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMaterialRequest;
 use App\Models\Material;
+use App\Models\Supplier;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,26 +55,39 @@ class MaterialController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Materials/Create', [
             'defaults' => [
                 'stock_quantity' => null,
                 'min_stock_quantity' => null,
             ],
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function store(StoreMaterialRequest $request): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());
+        $validated = $this->applySupplierSnapshot($request->validated());
 
         Material::create([
-            ...$request->validated(),
+            ...$validated,
             'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('materials.index')->with('success', 'Material adaugat cu succes!');
+    }
+
+    private function applySupplierSnapshot(array $validated): array
+    {
+        if (! empty($validated['supplier_id'])) {
+            $validated['supplier'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier'] ?? null);
+        }
+
+        return $validated;
     }
 
     public function quickCreate(Request $request)
@@ -102,16 +116,19 @@ class MaterialController extends Controller
         return response()->json(['id' => $material->id, 'name' => $material->name, 'unit' => $material->unit]);
     }
 
-    public function edit(Material $material): Response
+    public function edit(Request $request, Material $material): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Materials/Edit', [
             'material' => $material,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function update(StoreMaterialRequest $request, Material $material): RedirectResponse
     {
-        $material->update($request->validated());
+        $material->update($this->applySupplierSnapshot($request->validated()));
 
         return redirect()->route('materials.index')->with('success', 'Material actualizat!');
     }

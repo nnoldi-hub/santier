@@ -16,6 +16,7 @@ class ResourceDocumentLink extends Model
         'document_id',
         'document_role',
         'document_number',
+        'supplier_id',
         'supplier_name',
         'carrier_name',
         'equipment_name',

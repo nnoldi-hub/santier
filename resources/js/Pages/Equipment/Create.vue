@@ -29,7 +29,14 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Furnizor</label>
+                        <label class="block text-xs text-gray-600 mb-1">Furnizor (catalog)</label>
+                        <select v-model="form.supplier_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillSupplier">
+                            <option value="">— Fara furnizor din catalog —</option>
+                            <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Furnizor (nume afisat)</label>
                         <input v-model="form.supplier_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     </div>
                     <div>
@@ -65,17 +72,24 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 const props = defineProps({
     types: Object,
     availabilityStatuses: Object,
+    suppliers: { type: Array, default: () => [] },
 });
 
 const form = useForm({
     name: '',
     type: 'custom',
+    supplier_id: '',
     supplier_name: '',
     cost_per_hour: 0,
     availability_status: 'available',
     notes: '',
     active: true,
 });
+
+function prefillSupplier() {
+    const supplier = props.suppliers.find((item) => item.id === Number(form.supplier_id));
+    form.supplier_name = supplier?.name ?? '';
+}
 
 function submit() {
     form.post(route('equipment.store'));

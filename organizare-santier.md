@@ -542,3 +542,39 @@ Acelasi flux stabilit in aceasta sesiune:
 - Ramas explicit in afara scopului: motor de reprogramare in cascada,
   auto-populare buffer din deviz AI, buffer in exporturi PDF/XLSX
   (`SitePlanningExporter` nu are coloane de date pentru etape azi).
+
+### Faza 19 - Consolidare catalog Furnizori (Facut, 2026-07-20)
+- Ultimul gol ramas din audit: `supplier_name`/`supplier` existau ca text
+  liber independent in 5 locuri. Faza 17 a legat `SiteMaterialPlan` de
+  catalog; aceasta faza extinde acelasi tipar la celelalte 4:
+  `Material.supplier`, `Equipment.supplier_name`,
+  `MaterialInvoice.supplier_name`, `ResourceOrder.supplier_name`.
+- **`supplier_id` (FK nullabil catre `suppliers`) adaugat alaturi de** (nu in
+  locul) fiecarui camp text existent - acelasi tipar de snapshot ca la Faza
+  16/17: alegerea unui furnizor din catalog completeaza automat campul text
+  propriu, editabil manual dupa aceea pentru furnizori ad-hoc.
+- **`ResourceDocumentLink.supplier_id`** adaugat si el (fara UI proprie) -
+  copiat alaturi de `supplier_name` la cele 2 puncte unde `ResourceOrder`
+  isi duplica deja datele catre documentele atasate.
+- **Propagare `SiteMaterialPlan` -> `ResourceOrder`**: la conversia
+  planului in comanda (`SiteOrganizationController.php`), `supplier_id` se
+  propaga acum si el, alaturi de `supplier_name`.
+- **Bug adiacent reparat pe aceeasi linie**: acel loc de conversie
+  calcula costul comenzii din pretul live de catalog
+  (`$plan->material?->unit_price`) in loc de snapshot-ul inghetat de pe
+  plan (`$plan->unit_price`, din Faza 16) - inconsecvent cu restul
+  aplicatiei dupa Faza 16, reparat acum.
+- **Descoperire in timpul implementarii**: `EquipmentPolicy` si
+  `MaterialInvoicePolicy` folosesc permisiuni Spatie granulare
+  (`equipment.create`, `finance.create`), spre deosebire de
+  `MaterialPolicy` (verificare simpla de tenant, folosita ca model pentru
+  `SupplierPolicy` la Faza 17) - testele noi au nevoie de
+  `$this->seed(IamSeeder::class)` pentru utilizatorul de test, la fel ca
+  `EquipmentManagementTest.php` deja existent.
+- Teste: `tests/Feature/SupplierCatalogLinkingTest.php` (nou - 8 teste, 2
+  per model: completare automata + inghetare dupa redenumire furnizor,
+  acelasi tipar ca la Faza 17).
+- Ramas explicit in afara scopului: filtre de furnizor pe paginile de
+  listare, istoric de preturi per furnizor, redenumirea coloanei
+  `Material.supplier` la `supplier_name` (ar sparge exporturile fara
+  beneficiu real).

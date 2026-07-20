@@ -6,6 +6,7 @@ use App\Http\Requests\StoreMaterialInvoiceRequest;
 use App\Models\Material;
 use App\Models\MaterialInvoice;
 use App\Models\Project;
+use App\Models\Supplier;
 use App\Support\DemoScope;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -97,19 +98,30 @@ class MaterialInvoiceController extends Controller
             ]),
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'paymentStatuses' => MaterialInvoice::$paymentStatusLabels,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function store(StoreMaterialInvoiceRequest $request): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());
+        $validated = $this->applySupplierSnapshot($request->validated());
 
         MaterialInvoice::create([
-            ...$request->validated(),
+            ...$validated,
             'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('material-invoices.index')->with('success', 'Factura materiale a fost creata.');
+    }
+
+    private function applySupplierSnapshot(array $validated): array
+    {
+        if (! empty($validated['supplier_id'])) {
+            $validated['supplier_name'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier_name'] ?? null);
+        }
+
+        return $validated;
     }
 
     public function edit(MaterialInvoice $material_invoice): Response
@@ -136,12 +148,13 @@ class MaterialInvoiceController extends Controller
             ]),
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'paymentStatuses' => MaterialInvoice::$paymentStatusLabels,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function update(StoreMaterialInvoiceRequest $request, MaterialInvoice $material_invoice): RedirectResponse
     {
-        $material_invoice->update($request->validated());
+        $material_invoice->update($this->applySupplierSnapshot($request->validated()));
 
         return redirect()->route('material-invoices.index')->with('success', 'Factura materiale a fost actualizata.');
     }

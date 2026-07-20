@@ -12,6 +12,7 @@ use App\Models\ProjectPhase;
 use App\Models\ResourceConfirmation;
 use App\Models\ResourceDocumentLink;
 use App\Models\ResourceOrder;
+use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
@@ -113,6 +114,7 @@ class ResourceOrderController extends Controller
             'resourceTypes' => ResourceOrder::$resourceTypeLabels,
             'statuses' => ResourceOrder::$statusLabels,
             'resourceDocumentTypes' => ResourceOrder::$documentTypeLabels,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -266,7 +268,7 @@ class ResourceOrderController extends Controller
     public function store(StoreResourceOrderRequest $request): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());
-        $payload = $request->validated();
+        $payload = $this->applySupplierSnapshot($request->validated());
         $documents = $payload['documents'] ?? [];
         $actorId = (int) $request->user()->id;
 
@@ -298,6 +300,15 @@ class ResourceOrderController extends Controller
         });
 
         return redirect()->route('resource-orders.index')->with('success', 'Documentul de resursa a fost inregistrat.');
+    }
+
+    private function applySupplierSnapshot(array $validated): array
+    {
+        if (! empty($validated['supplier_id'])) {
+            $validated['supplier_name'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier_name'] ?? null);
+        }
+
+        return $validated;
     }
 
     public function updateConfirmation(Request $request, ResourceOrder $resource_order): RedirectResponse
@@ -433,6 +444,7 @@ class ResourceOrderController extends Controller
                 'document_id' => $document->id,
                 'document_role' => $validated['type'],
                 'document_number' => $validated['document_number'] ?? null,
+                'supplier_id' => $resource_order->supplier_id,
                 'supplier_name' => $resource_order->supplier_name,
                 'carrier_name' => $resource_order->carrier_name,
                 'equipment_name' => $resource_order->equipment_name,
@@ -571,6 +583,7 @@ class ResourceOrderController extends Controller
                 'document_id' => $document->id,
                 'document_role' => $documentInput['type'],
                 'document_number' => $documentInput['document_number'] ?? null,
+                'supplier_id' => $order->supplier_id,
                 'supplier_name' => $order->supplier_name,
                 'carrier_name' => $order->carrier_name,
                 'equipment_name' => $order->equipment_name,

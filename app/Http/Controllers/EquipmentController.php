@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreEquipmentRequest;
 use App\Models\Equipment;
 use App\Models\StageEquipment;
+use App\Models\Supplier;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,38 +98,54 @@ class EquipmentController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Equipment/Create', [
             'types' => Equipment::$typeLabels,
             'availabilityStatuses' => Equipment::$availabilityLabels,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function store(StoreEquipmentRequest $request): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());
+        $validated = $this->applySupplierSnapshot($request->validated());
 
         Equipment::create([
-            ...$request->validated(),
+            ...$validated,
             'tenant_id' => $tenantId,
         ]);
 
         return redirect()->route('equipment.index')->with('success', 'Utilaj adaugat cu succes!');
     }
 
-    public function edit(Equipment $equipment): Response
+    private function applySupplierSnapshot(array $validated): array
     {
+        if (! empty($validated['supplier_id'])) {
+            $validated['supplier_name'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier_name'] ?? null);
+        }
+
+        return $validated;
+    }
+
+    public function edit(Request $request, Equipment $equipment): Response
+    {
+        $tenantId = TenantContext::id($request->user());
+
         return Inertia::render('Equipment/Edit', [
             'equipment' => $equipment,
             'types' => Equipment::$typeLabels,
             'availabilityStatuses' => Equipment::$availabilityLabels,
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function update(StoreEquipmentRequest $request, Equipment $equipment): RedirectResponse
     {
-        $equipment->update($request->validated());
+        $equipment->update($this->applySupplierSnapshot($request->validated()));
 
         return redirect()->route('equipment.index')->with('success', 'Utilaj actualizat!');
     }

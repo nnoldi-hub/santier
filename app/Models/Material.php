@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -22,6 +23,7 @@ class Material extends Model
         'stock_quantity',
         'min_stock_quantity',
         'supplier',
+        'supplier_id',
         'notes',
         'active',
     ];
@@ -48,5 +50,10 @@ class Material extends Model
     public function recipe(): MorphOne
     {
         return $this->morphOne(Recipe::class, 'subject');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 }

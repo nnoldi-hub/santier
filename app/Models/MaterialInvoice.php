@@ -22,6 +22,7 @@ class MaterialInvoice extends Model
         'project_id',
         'phase_id',
         'material_id',
+        'supplier_id',
         'supplier_name',
         'invoice_no',
         'issue_date',
@@ -54,5 +55,10 @@ class MaterialInvoice extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 }

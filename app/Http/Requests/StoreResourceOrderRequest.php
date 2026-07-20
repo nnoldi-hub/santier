@@ -24,6 +24,7 @@ class StoreResourceOrderRequest extends FormRequest
             'resource_type' => ['required', Rule::in(array_keys(ResourceOrder::$resourceTypeLabels))],
             'material_id' => ['nullable', 'integer', 'exists:materials,id'],
             'equipment_id' => ['nullable', 'integer', 'exists:equipment,id'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'supplier_name' => ['nullable', 'string', 'max:255'],
             'carrier_name' => ['nullable', 'string', 'max:255'],
             'equipment_name' => ['nullable', 'string', 'max:255'],

@@ -20,6 +20,7 @@ class StoreMaterialInvoiceRequest extends FormRequest
             'project_id' => ['required', 'exists:projects,id'],
             'phase_id' => ['nullable', 'exists:project_phases,id'],
             'material_id' => ['nullable', 'exists:materials,id'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'supplier_name' => ['nullable', 'string', 'max:255'],
             'invoice_no' => ['nullable', 'string', 'max:255'],
             'issue_date' => ['required', 'date'],

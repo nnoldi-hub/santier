@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -39,6 +40,7 @@ class Equipment extends Model
         'name',
         'type',
         'supplier_name',
+        'supplier_id',
         'cost_per_hour',
         'availability_status',
         'active',
@@ -58,5 +60,10 @@ class Equipment extends Model
     public function resourceOrders(): HasMany
     {
         return $this->hasMany(ResourceOrder::class)->latest();
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 }

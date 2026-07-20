@@ -49,9 +49,18 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Furnizor</label>
-                    <input v-model="form.supplier" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: Dedeman" />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Furnizor (catalog)</label>
+                        <select v-model="form.supplier_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillSupplier">
+                            <option value="">— Fara furnizor din catalog —</option>
+                            <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Furnizor (nume afisat)</label>
+                        <input v-model="form.supplier" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: Dedeman" />
+                    </div>
                 </div>
 
                 <div>
@@ -85,6 +94,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
     defaults: { type: Object, default: () => ({ stock_quantity: null, min_stock_quantity: null }) },
+    suppliers: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -95,10 +105,16 @@ const form = useForm({
     unit_price: 0,
     stock_quantity: props.defaults?.stock_quantity,
     min_stock_quantity: props.defaults?.min_stock_quantity,
+    supplier_id: '',
     supplier: '',
     active: true,
     notes: '',
 });
+
+function prefillSupplier() {
+    const supplier = props.suppliers.find((item) => item.id === Number(form.supplier_id));
+    form.supplier = supplier?.name ?? '';
+}
 
 function submit() {
     form.post(route('materials.store'));
