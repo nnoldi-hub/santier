@@ -20,6 +20,7 @@ class SiteMaterialPlan extends Model
         'material_id',
         'planned_quantity',
         'unit_price',
+        'supplier_id',
         'supplier_name',
         'lead_time_days',
         'planned_order_date',
@@ -48,5 +49,10 @@ class SiteMaterialPlan extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 }

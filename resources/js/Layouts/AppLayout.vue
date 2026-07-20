@@ -88,6 +88,7 @@
                         <NavItem :href="routeOrFallback('equipment.index')" :disabled="routeMissing('equipment.index')" :icon="TruckIcon" label="Utilaje" />
                         <NavItem :href="routeOrFallback('trasabilitate-utilaje.index')" :disabled="routeMissing('trasabilitate-utilaje.index')" :icon="ScaleIcon" label="Trasabilitate utilaje" />
                         <NavItem :href="routeOrFallback('materials.index')" :disabled="routeMissing('materials.index')" :icon="CubeIcon" label="Materiale" />
+                        <NavItem :href="routeOrFallback('suppliers.index')" :disabled="routeMissing('suppliers.index')" :icon="BuildingStorefrontIcon" label="Furnizori materiale" />
                         <NavItem :href="routeOrFallback('resource-orders.index')" :disabled="routeMissing('resource-orders.index')" :icon="ClipboardDocumentListIcon" label="Documente resurse" />
                         <NavItem :href="routeOrFallback('trasabilitate-materiale.index')" :disabled="routeMissing('trasabilitate-materiale.index')" :icon="ArrowsRightLeftIcon" label="Trasabilitate materiale" />
                     </div>
@@ -321,6 +322,7 @@ import {
     BeakerIcon,
     BellIcon,
     BuildingOffice2Icon,
+    BuildingStorefrontIcon,
     CalendarDateRangeIcon,
     CalendarDaysIcon,
     CalendarIcon,
@@ -385,7 +387,7 @@ const sectionRoutes = {
     platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index'],
     projects: ['projects.index', 'wbs.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
-    resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'recipes.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],
+    resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'suppliers.index', 'recipes.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],
     financial: ['quotes.index', 'material-invoices.index', 'situatii-lucrari.index', 'cost-tracking.index'],
     quality: ['defects.index', 'quality-checks.index', 'rapoarte-calitate.index'],
     documents: ['documents.index', 'procese-verbale.index', 'documents.branding.index', 'documente-subcontractori.index'],

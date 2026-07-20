@@ -474,3 +474,38 @@ Acelasi flux stabilit in aceasta sesiune:
   folosirea efectiva a `lead_time_days` pentru calculul automat al datei de
   comanda, buffer pentru neprevazute pe termene - toate discutate, raman
   pentru o faza viitoare.
+
+### Faza 17 - Modul Furnizori materiale (Facut, 2026-07-20)
+- Golul ramas explicit din Faza 16: "furnizor" pe planul de materiale
+  (`SiteMaterialPlan.supplier_name`) era doar text liber, fara catalog, fara
+  istoric, fara reutilizare - spre deosebire de Subcontractori
+  (`Contractor`), care au modul CRUD complet.
+- **Tipar de mirror ales: `Material`/`MaterialController`/`MaterialPolicy`,
+  nu `Contractor`/`ContractorPolicy`** - `ContractorPolicy` verifica
+  permisiuni Spatie granulare generate din `IamSeeder::
+  buildPermissionList()`; `MaterialPolicy` e simpla verificare de tenant,
+  fara permisiuni noi - exact ce trebuie pentru un catalog simplu, fara sa
+  ating `IamSeeder.php`.
+- Modul nou `Supplier` (tabel `suppliers`, soft-deletes): `name*`,
+  `contact_name`, `phone`, `email`, `notes`, `active` - CRUD complet
+  (`SupplierController`, pagini `Suppliers/Index|Create|Edit.vue`), catalog
+  global tenant-wide, nou in sidebar sub "Resurse → Catalog resurse".
+- **`supplier_name` (text liber) exista in 5 locuri independente** in
+  aplicatie (`SiteMaterialPlan`, `Material.supplier`, `Equipment`,
+  `MaterialInvoice`, `ResourceOrder`) - doar `SiteMaterialPlan` e vizat
+  acum. Celelalte raman neatinse - consolidarea lor ar fi un proiect
+  separat, mult mai mare.
+- `SiteMaterialPlan` capata `supplier_id` (FK nullabil) **alaturi de**
+  `supplier_name` existent, nu il inlocuieste - `supplier_name` propaga deja
+  in `ResourceOrder::create()` la conversia unui plan in comanda si in
+  exportul PDF/XLSX, ambele ramase neschimbate. Alegerea unui furnizor din
+  catalog completeaza automat `supplier_name` (acelasi tipar "snapshot" ca
+  `unit_price`/`hourly_rate` din Faza 16) - editabil manual dupa aceea
+  pentru furnizori ad-hoc fara catalog.
+- Teste: `tests/Feature/SupplierManagementTest.php` (nou - creare/
+  actualizare/stergere, validare `name`, izolare tenant), `tests/Feature/
+  SiteMaterialPlanTest.php` (alegerea unui furnizor completeaza automat
+  numele, numele ramane "inghetat" daca furnizorul e redenumit ulterior).
+- Ramas explicit in afara scopului: consolidarea celorlalte 4 campuri
+  "furnizor" text liber din aplicatie, istoric de preturi per furnizor,
+  legatura furnizor-material (ce materiale ofera fiecare furnizor).

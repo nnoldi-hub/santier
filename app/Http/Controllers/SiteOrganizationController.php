@@ -21,6 +21,7 @@ use App\Models\SitePlanApproval;
 use App\Models\SiteStaffPlan;
 use App\Models\SiteStaffTimeEntry;
 use App\Models\StageEquipment;
+use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\Team;
 use App\Support\DocumentBranding;
@@ -66,6 +67,7 @@ class SiteOrganizationController extends Controller
             'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
             'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit', 'unit_price']),
+            'suppliers' => Supplier::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
             'recipes' => Recipe::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
@@ -464,6 +466,8 @@ class SiteOrganizationController extends Controller
             $validated['unit_price'] = Material::find($validated['material_id'])?->unit_price ?? 0;
         }
 
+        $validated = $this->applySupplierSnapshot($validated);
+
         SiteMaterialPlan::create([
             ...$validated,
             'tenant_id' => $tenantId,
@@ -481,6 +485,7 @@ class SiteOrganizationController extends Controller
         $this->abortIfPlanLocked($project);
 
         $validated = $this->validateMaterialPlan($request, $project);
+        $validated = $this->applySupplierSnapshot($validated);
 
         $materialPlan->update($validated);
 
@@ -537,6 +542,7 @@ class SiteOrganizationController extends Controller
             'material_id' => ['required', 'integer', Rule::exists('materials', 'id')->where('tenant_id', $tenantId)],
             'planned_quantity' => ['required', 'numeric', 'min:0'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
+            'supplier_id' => ['nullable', 'integer', Rule::exists('suppliers', 'id')->where('tenant_id', $tenantId)],
             'supplier_name' => ['nullable', 'string', 'max:150'],
             'lead_time_days' => ['nullable', 'integer', 'min:0'],
             'planned_order_date' => ['nullable', 'date'],
@@ -544,6 +550,15 @@ class SiteOrganizationController extends Controller
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteMaterialPlan::$riskLabels))],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+    }
+
+    private function applySupplierSnapshot(array $validated): array
+    {
+        if (! empty($validated['supplier_id'])) {
+            $validated['supplier_name'] = Supplier::find($validated['supplier_id'])?->name ?? ($validated['supplier_name'] ?? null);
+        }
+
+        return $validated;
     }
 
     public function storeEquipmentPlan(Request $request, Project $project): RedirectResponse

@@ -421,7 +421,14 @@
                             <input v-model.number="materialPlanForm.unit_price" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="din catalog daca lasi gol" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-600 mb-1">Furnizor</label>
+                            <label class="block text-xs text-gray-600 mb-1">Furnizor (catalog)</label>
+                            <select v-model="materialPlanForm.supplier_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillSupplierName">
+                                <option value="">— Fara furnizor din catalog —</option>
+                                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Furnizor (nume afisat)</label>
                             <input v-model="materialPlanForm.supplier_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                         </div>
                         <div>
@@ -986,6 +993,7 @@ const props = defineProps({
     availabilityLabels: { type: Object, default: () => ({}) },
     materialPlans: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
+    suppliers: { type: Array, default: () => [] },
     materialRiskLevels: { type: Object, default: () => ({}) },
     recipes: { type: Array, default: () => [] },
     equipmentPlans: { type: Array, default: () => [] },
@@ -1125,6 +1133,7 @@ const materialPlanForm = useForm({
     material_id: '',
     planned_quantity: 0,
     unit_price: '',
+    supplier_id: '',
     supplier_name: '',
     lead_time_days: '',
     planned_order_date: '',
@@ -1136,6 +1145,11 @@ const materialPlanForm = useForm({
 function prefillMaterialPrice() {
     const material = props.materials.find((item) => item.id === Number(materialPlanForm.material_id));
     materialPlanForm.unit_price = material?.unit_price ?? '';
+}
+
+function prefillSupplierName() {
+    const supplier = props.suppliers.find((item) => item.id === Number(materialPlanForm.supplier_id));
+    materialPlanForm.supplier_name = supplier?.name ?? '';
 }
 
 function submitMaterialPlan() {

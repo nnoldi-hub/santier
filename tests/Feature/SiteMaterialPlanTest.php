@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\SiteMaterialPlan;
+use App\Models\Supplier;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,6 +95,49 @@ class SiteMaterialPlanTest extends TestCase
 
         $plan = SiteMaterialPlan::where('project_id', $project->id)->first();
         $this->assertEquals(45.50, (float) $plan->unit_price);
+    }
+
+    public function test_choosing_a_supplier_from_catalog_fills_in_the_supplier_name(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial();
+        $supplier = Supplier::create(['tenant_id' => 1, 'name' => 'Dedeman SRL', 'active' => true]);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'supplier_id' => $supplier->id,
+                'risk_level' => 'medium',
+            ]);
+
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'supplier_id' => $supplier->id,
+            'supplier_name' => 'Dedeman SRL',
+        ]);
+    }
+
+    public function test_supplier_name_snapshot_is_frozen_after_supplier_is_renamed(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial();
+        $supplier = Supplier::create(['tenant_id' => 1, 'name' => 'Dedeman SRL', 'active' => true]);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'supplier_id' => $supplier->id,
+                'risk_level' => 'medium',
+            ]);
+
+        $supplier->update(['name' => 'Dedeman Nume Nou SRL']);
+
+        $plan = SiteMaterialPlan::where('project_id', $project->id)->first();
+        $this->assertSame('Dedeman SRL', $plan->supplier_name);
     }
 
     public function test_user_can_delete_a_material_plan(): void

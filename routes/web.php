@@ -11,6 +11,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskTemplateController;
 use App\Http\Controllers\DefectController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ContractorController;
@@ -1429,6 +1430,7 @@ Route::middleware('auth')->group(function () {
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
         Route::post('materials/quick-create', [MaterialController::class, 'quickCreate'])->name('materials.quick-create');
+        Route::resource('suppliers', SupplierController::class)->except('show');
         Route::resource('recipes', RecipeController::class)->except('show');
         Route::post('recipes/quick-create', [RecipeController::class, 'quickCreate'])->name('recipes.quick-create');
         Route::resource('quotes', QuoteController::class)->except('show')
