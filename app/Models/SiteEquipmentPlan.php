@@ -19,6 +19,7 @@ class SiteEquipmentPlan extends Model
         'phase_id',
         'equipment_id',
         'quantity',
+        'hourly_rate',
         'usage_start',
         'usage_end',
         'risk_level',
@@ -27,6 +28,7 @@ class SiteEquipmentPlan extends Model
 
     protected $casts = [
         'quantity' => 'integer',
+        'hourly_rate' => 'decimal:2',
         'usage_start' => 'date',
         'usage_end' => 'date',
     ];

@@ -54,6 +54,42 @@ class SiteMaterialPlanRecipeApplicationTest extends TestCase
         ]);
     }
 
+    public function test_applying_a_recipe_snapshots_the_material_unit_price(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $ciment = Material::create(['tenant_id' => 1, 'name' => 'Ciment', 'unit' => 'kg', 'unit_price' => 0.85]);
+
+        $recipe = Recipe::create([
+            'tenant_id' => 1,
+            'subject_type' => 'material',
+            'subject_id' => Material::create(['tenant_id' => 1, 'name' => 'Beton C25/30', 'unit' => 'mc'])->id,
+            'name' => 'Beton C25/30',
+            'unit' => 'mc',
+        ]);
+        $recipe->items()->create(['material_id' => $ciment->id, 'quantity_per_unit' => 300]);
+
+        $this->actingAs($user)->post("/projects/{$project->id}/organizare/material-plans/apply-recipe", [
+            'recipe_id' => $recipe->id,
+            'work_quantity' => 10,
+        ]);
+
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'material_id' => $ciment->id,
+            'unit_price' => 0.85,
+        ]);
+
+        $ciment->update(['unit_price' => 99]);
+
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'material_id' => $ciment->id,
+            'unit_price' => 0.85,
+        ]);
+    }
+
     public function test_apply_recipe_is_blocked_when_plan_is_approved(): void
     {
         $user = $this->createOnboardedUser();

@@ -296,6 +296,7 @@ class ProjectAiToolsTest extends TestCase
         $staffPlan = SiteStaffPlan::where('project_id', $project->id)->firstOrFail();
         $this->assertSame($executionStage->start_date->toDateString(), $staffPlan->planned_start->toDateString());
         $this->assertSame($executionStage->end_date->toDateString(), $staffPlan->planned_end->toDateString());
+        $this->assertEquals(45, (float) $staffPlan->hourly_rate);
 
         $this->assertDatabaseHas('site_equipment_plans', [
             'project_id' => $project->id,
@@ -307,6 +308,7 @@ class ProjectAiToolsTest extends TestCase
         $equipmentPlan = SiteEquipmentPlan::where('project_id', $project->id)->firstOrFail();
         $this->assertSame($executionStage->start_date->toDateString(), $equipmentPlan->usage_start->toDateString());
         $this->assertSame($executionStage->end_date->toDateString(), $equipmentPlan->usage_end->toDateString());
+        $this->assertEquals(35, (float) $equipmentPlan->hourly_rate);
 
         $materialsStage = $stagesByName['Aprovizionare materiale'];
         $beton = Material::where('code', 'AI-BETON')->firstOrFail();
@@ -320,12 +322,14 @@ class ProjectAiToolsTest extends TestCase
             'phase_id' => $materialsStage->id,
             'material_id' => $beton->id,
             'planned_quantity' => 10,
+            'unit_price' => 450,
         ]);
         $this->assertDatabaseHas('site_material_plans', [
             'project_id' => $project->id,
             'phase_id' => $materialsStage->id,
             'material_id' => $otel->id,
             'planned_quantity' => 850,
+            'unit_price' => 5.8,
         ]);
 
         $materialPlan = SiteMaterialPlan::where('project_id', $project->id)->firstOrFail();

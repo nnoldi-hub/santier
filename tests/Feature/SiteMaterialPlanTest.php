@@ -57,6 +57,45 @@ class SiteMaterialPlanTest extends TestCase
         $this->assertDatabaseCount('site_material_plans', 0);
     }
 
+    public function test_material_plan_defaults_unit_price_from_catalog_when_not_provided(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial(45.50);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'risk_level' => 'medium',
+            ]);
+
+        $this->assertDatabaseHas('site_material_plans', [
+            'project_id' => $project->id,
+            'material_id' => $material->id,
+            'unit_price' => 45.50,
+        ]);
+    }
+
+    public function test_material_plan_price_is_frozen_after_catalog_price_changes(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $material = $this->createMaterial(45.50);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/material-plans", [
+                'material_id' => $material->id,
+                'planned_quantity' => 10,
+                'risk_level' => 'medium',
+            ]);
+
+        $material->update(['unit_price' => 999]);
+
+        $plan = SiteMaterialPlan::where('project_id', $project->id)->first();
+        $this->assertEquals(45.50, (float) $plan->unit_price);
+    }
+
     public function test_user_can_delete_a_material_plan(): void
     {
         $user = $this->createOnboardedUser();
@@ -146,13 +185,14 @@ class SiteMaterialPlanTest extends TestCase
         ]);
     }
 
-    private function createMaterial(): Material
+    private function createMaterial(float $unitPrice = 0): Material
     {
         return Material::create([
             'tenant_id' => 1,
             'code' => 'MAT-001',
             'name' => 'Ciment',
             'unit' => 'sac',
+            'unit_price' => $unitPrice,
             'active' => true,
         ]);
     }

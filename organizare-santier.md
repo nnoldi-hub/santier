@@ -427,3 +427,50 @@ Acelasi flux stabilit in aceasta sesiune:
 - Ramas explicit in afara scopului: disponibilitate/concediu echipa,
   productivitate echipa, editare de intrari de pontaj, cost real pentru
   materiale/utilaje.
+
+### Faza 16 - Preturi "inghetate" pe proiect (Facut, 2026-07-20)
+- Din auditul cerut de utilizator ("cum planificam materiale/manopera/
+  utilaje/furnizori/termene per proiect fara sa se amestece intre ele") a
+  iesit un risc real: costul de materiale si utilaje nu era salvat pe planul
+  proiectului, ci calculat live la fiecare citire prin join catre catalogul
+  global (`Material.unit_price`, `Equipment.cost_per_hour`) - o schimbare de
+  pret in catalog modifica retroactiv bugetul unor proiecte deja finalizate.
+  Manopera era deja facuta corect (`SiteStaffPlan.hourly_rate` salvat pe
+  plan) - model urmat acum si pentru materiale/utilaje.
+- **Bug confirmat si reparat in acelasi loc**: la comiterea unui deviz
+  automat, tariful de manopera calculat se pierdea la salvare -
+  `SiteStaffPlan::create()` nu-l transmitea, desi era deja validat si
+  disponibil - planurile de personal generate automat ieseau cu cost 0.
+- `unit_price` nou pe `SiteMaterialPlan`, `hourly_rate` nou pe
+  `SiteEquipmentPlan` - snapshot salvat o singura data la creare, niciodata
+  recalculat automat din catalog dupa aceea. Migratii cu backfill pentru
+  randurile existente (din pretul curent de catalog - cel mai bun proxy
+  posibil, istoricul real nu poate fi reconstituit).
+- 3 puncte de creare seteaza acum snapshot-ul: formular manual (fallback din
+  catalog daca pretul nu e trimis explicit), "Aplica reteta" (Faza 13), si
+  commit-ul de deviz AI (unde s-a reparat si bug-ul de manopera).
+  `EquipmentCostEstimator::estimate()` foloseste `SiteEquipmentPlan.
+  hourly_rate` cand e setat, altfel cade pe rata live - neschimbat pentru
+  `StageEquipment` (alt flux, in afara riscului identificat).
+- Materialele capata si ele `estimated_cost` calculat
+  (`materialPlansWithEstimates()`, mirror pe `equipmentPlansWithEstimates()`
+  deja existent) - `buildBudgetSummary()` devine uniform, toate cele 3
+  costuri citesc `estimated_cost` de pe planul propriu, nimic nu mai
+  calculeaza live din catalog.
+- UI: coloanele "Pret unitar"/"Cost estimat" pe tabelul de materiale (mirror
+  pe utilaje), camp de pret/tarif prefilled automat din catalog la alegerea
+  materialului/utilajului (poti suprascrie inainte de salvare). Export
+  PDF/XLSX (`SitePlanningExporter::materialsSection()`) capata aceleasi 2
+  coloane.
+- Teste: `tests/Feature/SiteMaterialPlanTest.php` si `tests/Feature/
+  SiteEquipmentPlanTest.php` (pret/tarif implicit din catalog, pret
+  "inghetat" dupa schimbare de catalog), `tests/Feature/
+  SiteMaterialPlanRecipeApplicationTest.php` (acelasi test pentru "Aplica
+  reteta"), `tests/Feature/SiteBudgetPlanTest.php` (bugetul unui proiect
+  ramane neschimbat dupa o schimbare de pret in catalog),
+  `tests/Feature/ProjectAiToolsTest.php` (dupa commit, tariful de manopera
+  si preturile de materiale sunt populate corect, nu 0).
+- Ramas explicit in afara scopului: modul de Furnizori (catalog dedicat),
+  folosirea efectiva a `lead_time_days` pentru calculul automat al datei de
+  comanda, buffer pentru neprevazute pe termene - toate discutate, raman
+  pentru o faza viitoare.

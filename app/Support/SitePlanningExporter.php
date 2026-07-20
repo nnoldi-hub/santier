@@ -70,12 +70,14 @@ class SitePlanningExporter
 
     private static function materialsSection(Collection $plans): array
     {
-        $headings = ['Etapa', 'Material', 'Cantitate', 'Furnizor', 'Lead-time (zile)', 'Comanda planificata', 'Livrare planificata', 'Risc', 'Note'];
+        $headings = ['Etapa', 'Material', 'Cantitate', 'Pret unitar', 'Cost estimat', 'Furnizor', 'Lead-time (zile)', 'Comanda planificata', 'Livrare planificata', 'Risc', 'Note'];
 
         $rows = $plans->map(fn (SiteMaterialPlan $plan) => [
             'Etapa' => $plan->phase?->name ?? 'Fara etapa',
             'Material' => $plan->material?->name ?? '-',
             'Cantitate' => $plan->planned_quantity . ' ' . ($plan->material?->unit ?? ''),
+            'Pret unitar' => number_format((float) ($plan->unit_price ?? 0), 2) . ' lei',
+            'Cost estimat' => number_format((float) ($plan->estimated_cost ?? 0), 2) . ' lei',
             'Furnizor' => $plan->supplier_name ?? '-',
             'Lead-time (zile)' => $plan->lead_time_days ?? '-',
             'Comanda planificata' => self::formatDate($plan->planned_order_date),

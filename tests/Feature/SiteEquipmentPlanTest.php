@@ -56,6 +56,45 @@ class SiteEquipmentPlanTest extends TestCase
         $this->assertDatabaseCount('site_equipment_plans', 0);
     }
 
+    public function test_equipment_plan_defaults_hourly_rate_from_catalog_when_not_provided(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $equipment = $this->createEquipment();
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/equipment-plans", [
+                'equipment_id' => $equipment->id,
+                'quantity' => 1,
+                'risk_level' => 'medium',
+            ]);
+
+        $this->assertDatabaseHas('site_equipment_plans', [
+            'project_id' => $project->id,
+            'equipment_id' => $equipment->id,
+            'hourly_rate' => 150,
+        ]);
+    }
+
+    public function test_equipment_plan_rate_is_frozen_after_catalog_price_changes(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+        $equipment = $this->createEquipment();
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/equipment-plans", [
+                'equipment_id' => $equipment->id,
+                'quantity' => 1,
+                'risk_level' => 'medium',
+            ]);
+
+        $equipment->update(['cost_per_hour' => 999]);
+
+        $plan = SiteEquipmentPlan::where('project_id', $project->id)->first();
+        $this->assertEquals(150, (float) $plan->hourly_rate);
+    }
+
     public function test_user_can_delete_an_equipment_plan(): void
     {
         $user = $this->createOnboardedUser();

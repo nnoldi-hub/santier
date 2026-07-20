@@ -407,7 +407,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Material *</label>
-                            <select v-model="materialPlanForm.material_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <select v-model="materialPlanForm.material_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillMaterialPrice">
                                 <option value="">— Selecteaza —</option>
                                 <option v-for="material in materials" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
                             </select>
@@ -415,6 +415,10 @@
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Cantitate planificata *</label>
                             <input v-model.number="materialPlanForm.planned_quantity" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Pret unitar (RON)</label>
+                            <input v-model.number="materialPlanForm.unit_price" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="din catalog daca lasi gol" />
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Furnizor</label>
@@ -464,6 +468,8 @@
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Etapa</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Material</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Cantitate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Pret unitar</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cost estimat</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Furnizor</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Lead-time</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
@@ -476,6 +482,8 @@
                                 <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ plan.material?.name || '-' }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ plan.planned_quantity }} {{ plan.material?.unit }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.unit_price) }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ plan.supplier_name || '-' }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ plan.lead_time_days ?? '-' }}</td>
                                 <td class="px-4 py-3 text-gray-600 text-xs">
@@ -508,7 +516,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Utilaj *</label>
-                            <select v-model="equipmentPlanForm.equipment_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <select v-model="equipmentPlanForm.equipment_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" @change="prefillEquipmentRate">
                                 <option value="">— Selecteaza —</option>
                                 <option v-for="equipment in equipmentCatalog" :key="equipment.id" :value="equipment.id">{{ equipment.name }}</option>
                             </select>
@@ -516,6 +524,10 @@
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Cantitate *</label>
                             <input v-model.number="equipmentPlanForm.quantity" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Tarif orar (RON/ora)</label>
+                            <input v-model.number="equipmentPlanForm.hourly_rate" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="din catalog daca lasi gol" />
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Inceput planificat</label>
@@ -559,6 +571,7 @@
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Cantitate</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Zile</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Tarif orar</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Cost estimat</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
@@ -578,6 +591,7 @@
                                     {{ formatDate(plan.usage_start) }} → {{ formatDate(plan.usage_end) }}
                                 </td>
                                 <td class="px-4 py-3 text-gray-600">{{ plan.reserved_days }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.hourly_rate) }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
@@ -1110,6 +1124,7 @@ const materialPlanForm = useForm({
     phase_id: '',
     material_id: '',
     planned_quantity: 0,
+    unit_price: '',
     supplier_name: '',
     lead_time_days: '',
     planned_order_date: '',
@@ -1117,6 +1132,11 @@ const materialPlanForm = useForm({
     risk_level: 'medium',
     notes: '',
 });
+
+function prefillMaterialPrice() {
+    const material = props.materials.find((item) => item.id === Number(materialPlanForm.material_id));
+    materialPlanForm.unit_price = material?.unit_price ?? '';
+}
 
 function submitMaterialPlan() {
     materialPlanForm.post(route('site-organization.material-plans.store', props.project.id), {
@@ -1154,11 +1174,17 @@ const equipmentPlanForm = useForm({
     phase_id: '',
     equipment_id: '',
     quantity: 1,
+    hourly_rate: '',
     usage_start: '',
     usage_end: '',
     risk_level: 'medium',
     notes: '',
 });
+
+function prefillEquipmentRate() {
+    const equipment = props.equipmentCatalog.find((item) => item.id === Number(equipmentPlanForm.equipment_id));
+    equipmentPlanForm.hourly_rate = equipment?.cost_per_hour ?? '';
+}
 
 function submitEquipmentPlan() {
     equipmentPlanForm.post(route('site-organization.equipment-plans.store', props.project.id), {

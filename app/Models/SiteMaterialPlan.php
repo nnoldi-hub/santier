@@ -19,6 +19,7 @@ class SiteMaterialPlan extends Model
         'phase_id',
         'material_id',
         'planned_quantity',
+        'unit_price',
         'supplier_name',
         'lead_time_days',
         'planned_order_date',
@@ -29,6 +30,7 @@ class SiteMaterialPlan extends Model
 
     protected $casts = [
         'planned_quantity' => 'decimal:2',
+        'unit_price' => 'decimal:2',
         'planned_order_date' => 'date',
         'planned_delivery_date' => 'date',
     ];

@@ -20,10 +20,25 @@ class EquipmentCostEstimator
     public static function estimate(StageEquipment|SiteEquipmentPlan $reservation): float
     {
         $days = self::reservedDays($reservation);
-        $hourlyCost = (float) ($reservation->equipment?->cost_per_hour ?? 0);
+        $hourlyCost = self::hourlyCost($reservation);
         $quantity = max(1, (int) $reservation->quantity);
 
         return round($hourlyCost * $quantity * $days * self::DAILY_HOURS, 2);
+    }
+
+    /**
+     * SiteEquipmentPlan snapshots its own hourly rate at creation time so a later
+     * change to Equipment.cost_per_hour doesn't retroactively alter an already
+     * committed project plan - StageEquipment has no such snapshot and keeps
+     * reading the live catalog rate.
+     */
+    private static function hourlyCost(StageEquipment|SiteEquipmentPlan $reservation): float
+    {
+        if ($reservation instanceof SiteEquipmentPlan && $reservation->hourly_rate !== null) {
+            return (float) $reservation->hourly_rate;
+        }
+
+        return (float) ($reservation->equipment?->cost_per_hour ?? 0);
     }
 
     public static function reservedDays(StageEquipment|SiteEquipmentPlan $reservation): int

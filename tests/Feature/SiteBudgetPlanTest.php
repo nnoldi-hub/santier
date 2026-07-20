@@ -135,6 +135,7 @@ class SiteBudgetPlanTest extends TestCase
             'project_id' => $project->id,
             'material_id' => $material->id,
             'planned_quantity' => 10,
+            'unit_price' => $material->unit_price,
             'risk_level' => 'low',
         ]);
 
@@ -156,6 +157,14 @@ class SiteBudgetPlanTest extends TestCase
                 ->where('budgetSummary.total_estimated', 3250)
                 ->where('budgetSummary.project_budget', 20000)
                 ->where('budgetSummary.difference', 16750);
+        });
+
+        $material->update(['unit_price' => 999]);
+
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('budgetSummary.materials_cost', 250);
         });
     }
 

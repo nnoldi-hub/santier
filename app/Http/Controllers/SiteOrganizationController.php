@@ -65,7 +65,7 @@ class SiteOrganizationController extends Controller
             'riskLevels' => SiteStaffPlan::$riskLabels,
             'contractStatusLabels' => SiteContractorPlan::$contractStatusLabels,
             'availabilityLabels' => SiteContractorPlan::$availabilityLabels,
-            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit']),
+            'materials' => Material::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'code', 'unit', 'unit_price']),
             'materialRiskLevels' => SiteMaterialPlan::$riskLabels,
             'recipes' => Recipe::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'unit']),
             'equipmentCatalog' => Equipment::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'type', 'cost_per_hour', 'availability_status']),
@@ -253,10 +253,7 @@ class SiteOrganizationController extends Controller
 
         $contractorPlans = $this->contractorPlansWithOverlap($project);
 
-        $materialPlans = SiteMaterialPlan::where('project_id', $project->id)
-            ->with(['phase:id,name', 'material:id,name,code,unit,unit_price'])
-            ->latest('id')
-            ->get();
+        $materialPlans = $this->materialPlansWithEstimates($project);
 
         $equipmentPlans = $this->equipmentPlansWithEstimates($project);
 
@@ -463,6 +460,10 @@ class SiteOrganizationController extends Controller
 
         $validated = $this->validateMaterialPlan($request, $project);
 
+        if (! array_key_exists('unit_price', $validated)) {
+            $validated['unit_price'] = Material::find($validated['material_id'])?->unit_price ?? 0;
+        }
+
         SiteMaterialPlan::create([
             ...$validated,
             'tenant_id' => $tenantId,
@@ -510,7 +511,7 @@ class SiteOrganizationController extends Controller
             'work_quantity' => ['required', 'numeric', 'min:0.01'],
         ]);
 
-        $recipe = Recipe::with('items')->findOrFail($validated['recipe_id']);
+        $recipe = Recipe::with('items.material:id,unit_price')->findOrFail($validated['recipe_id']);
 
         foreach ($recipe->items as $item) {
             SiteMaterialPlan::create([
@@ -519,6 +520,7 @@ class SiteOrganizationController extends Controller
                 'phase_id' => $validated['phase_id'] ?? null,
                 'material_id' => $item->material_id,
                 'planned_quantity' => round((float) $item->quantity_per_unit * $validated['work_quantity'], 2),
+                'unit_price' => $item->material?->unit_price ?? 0,
                 'risk_level' => 'medium',
             ]);
         }
@@ -534,6 +536,7 @@ class SiteOrganizationController extends Controller
             'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
             'material_id' => ['required', 'integer', Rule::exists('materials', 'id')->where('tenant_id', $tenantId)],
             'planned_quantity' => ['required', 'numeric', 'min:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
             'supplier_name' => ['nullable', 'string', 'max:150'],
             'lead_time_days' => ['nullable', 'integer', 'min:0'],
             'planned_order_date' => ['nullable', 'date'],
@@ -550,6 +553,10 @@ class SiteOrganizationController extends Controller
         $this->abortIfPlanLocked($project);
 
         $validated = $this->validateEquipmentPlan($request, $project);
+
+        if (! array_key_exists('hourly_rate', $validated)) {
+            $validated['hourly_rate'] = Equipment::find($validated['equipment_id'])?->cost_per_hour ?? 0;
+        }
 
         SiteEquipmentPlan::create([
             ...$validated,
@@ -594,6 +601,7 @@ class SiteOrganizationController extends Controller
             'phase_id' => ['nullable', 'integer', Rule::exists('project_phases', 'id')->where('project_id', $project->id)],
             'equipment_id' => ['required', 'integer', Rule::exists('equipment', 'id')->where('tenant_id', $tenantId)],
             'quantity' => ['required', 'integer', 'min:1'],
+            'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'usage_start' => ['nullable', 'date'],
             'usage_end' => ['nullable', 'date'],
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteEquipmentPlan::$riskLabels))],
@@ -652,6 +660,20 @@ class SiteOrganizationController extends Controller
             }
 
             $plan->setAttribute('reserved_elsewhere_count', $reservedElsewhereCount);
+
+            return $plan;
+        });
+    }
+
+    private function materialPlansWithEstimates(Project $project): Collection
+    {
+        $plans = SiteMaterialPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'material:id,name,code,unit,unit_price'])
+            ->latest('id')
+            ->get();
+
+        return $plans->map(function (SiteMaterialPlan $plan) {
+            $plan->setAttribute('estimated_cost', round((float) $plan->planned_quantity * (float) ($plan->unit_price ?? 0), 2));
 
             return $plan;
         });
@@ -836,7 +858,7 @@ class SiteOrganizationController extends Controller
         });
 
         $materialsCost = $materialPlans->sum(function (SiteMaterialPlan $plan) {
-            return (float) $plan->planned_quantity * (float) ($plan->material?->unit_price ?? 0);
+            return (float) $plan->estimated_cost;
         });
 
         $equipmentCost = $equipmentPlans->sum(function (SiteEquipmentPlan $plan) {
