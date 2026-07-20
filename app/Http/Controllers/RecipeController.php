@@ -22,7 +22,7 @@ class RecipeController extends Controller
         $tenantId = TenantContext::id($request->user());
 
         $recipes = Recipe::where('tenant_id', $tenantId)
-            ->with(['subject', 'items', 'laborItems', 'equipmentItems'])
+            ->with(['subject', 'items', 'laborItems', 'equipmentItems', 'wbsStages'])
             ->orderBy('name')
             ->get()
             ->map(fn (Recipe $recipe) => [
@@ -35,6 +35,7 @@ class RecipeController extends Controller
                 'items_count' => $recipe->items->count(),
                 'labor_items_count' => $recipe->laborItems->count(),
                 'equipment_items_count' => $recipe->equipmentItems->count(),
+                'wbs_stages_count' => $recipe->wbsStages->count(),
             ]);
 
         return Inertia::render('Recipes/Index', [
@@ -83,6 +84,14 @@ class RecipeController extends Controller
             foreach ($validated['equipment_items'] ?? [] as $item) {
                 $recipe->equipmentItems()->create($item);
             }
+
+            foreach ($validated['wbs_stages'] ?? [] as $index => $stage) {
+                $recipe->wbsStages()->create([
+                    'name' => trim($stage['name']),
+                    'order' => $index,
+                    'default_tasks' => $this->normalizeDefaultTasks($stage['default_tasks'] ?? []),
+                ]);
+            }
         });
 
         return redirect()->route('recipes.index')->with('success', 'Reteta a fost creata!');
@@ -93,7 +102,7 @@ class RecipeController extends Controller
         $tenantId = TenantContext::id($request->user());
         abort_unless((int) $recipe->tenant_id === $tenantId, 404);
 
-        $recipe->load(['items', 'laborItems', 'equipmentItems']);
+        $recipe->load(['items', 'laborItems', 'equipmentItems', 'wbsStages']);
 
         return Inertia::render('Recipes/Edit', [
             'recipe' => [
@@ -117,6 +126,10 @@ class RecipeController extends Controller
                 'equipment_items' => $recipe->equipmentItems->map(fn ($item) => [
                     'equipment_id' => $item->equipment_id,
                     'hours_per_unit' => (float) $item->hours_per_unit,
+                ]),
+                'wbs_stages' => $recipe->wbsStages->map(fn ($stage) => [
+                    'name' => $stage->name,
+                    'default_tasks' => $stage->default_tasks ?? [],
                 ]),
             ],
             'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
@@ -146,6 +159,7 @@ class RecipeController extends Controller
             $recipe->items()->delete();
             $recipe->laborItems()->delete();
             $recipe->equipmentItems()->delete();
+            $recipe->wbsStages()->delete();
 
             foreach ($validated['items'] as $item) {
                 $recipe->items()->create($item);
@@ -157,6 +171,14 @@ class RecipeController extends Controller
 
             foreach ($validated['equipment_items'] ?? [] as $item) {
                 $recipe->equipmentItems()->create($item);
+            }
+
+            foreach ($validated['wbs_stages'] ?? [] as $index => $stage) {
+                $recipe->wbsStages()->create([
+                    'name' => trim($stage['name']),
+                    'order' => $index,
+                    'default_tasks' => $this->normalizeDefaultTasks($stage['default_tasks'] ?? []),
+                ]);
             }
         });
 
@@ -256,6 +278,19 @@ class RecipeController extends Controller
             'equipment_items' => ['nullable', 'array'],
             'equipment_items.*.equipment_id' => ['required', 'integer', Rule::exists('equipment', 'id')->where('tenant_id', $tenantId)],
             'equipment_items.*.hours_per_unit' => ['required', 'numeric', 'min:0.0001', 'max:999999999'],
+            'wbs_stages' => ['nullable', 'array', 'max:10'],
+            'wbs_stages.*.name' => ['required_with:wbs_stages', 'string', 'max:255'],
+            'wbs_stages.*.default_tasks' => ['nullable', 'array', 'max:10'],
+            'wbs_stages.*.default_tasks.*' => ['nullable', 'string', 'max:255'],
         ]);
+    }
+
+    private function normalizeDefaultTasks(array $defaultTasks): array
+    {
+        return collect($defaultTasks)
+            ->map(fn ($task) => trim((string) $task))
+            ->filter()
+            ->values()
+            ->all();
     }
 }

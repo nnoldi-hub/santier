@@ -11,6 +11,7 @@ use App\Models\Quote;
 use App\Models\SiteEquipmentPlan;
 use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
+use App\Models\StageTask;
 use App\Models\TaskTemplate;
 use App\Support\InvoiceOcrService;
 use App\Support\TenantContext;
@@ -33,7 +34,7 @@ class ProjectAiToolsController extends Controller
             'complexity' => ['nullable', 'in:low,medium,high'],
         ]);
 
-        $template = TaskTemplate::with(['recipe.items.material', 'recipe.laborItems', 'recipe.equipmentItems.equipment'])->findOrFail($validated['task_template_id']);
+        $template = TaskTemplate::with(['recipe.items.material', 'recipe.laborItems', 'recipe.equipmentItems.equipment', 'recipe.wbsStages'])->findOrFail($validated['task_template_id']);
         abort_unless((int) $template->tenant_id === $tenantId, 404);
 
         if (!$template->recipe) {
@@ -108,8 +109,29 @@ class ProjectAiToolsController extends Controller
         $curingHours = (float) ($recipe->curing_hours ?? 0);
         $totalHours = round($executionHours + $dryingHours + $curingHours, 2);
 
-        $wbsStages = collect(['Pregatire', 'Aprovizionare materiale', "Executie - {$template->title}", 'Control calitate', 'Predare'])
-            ->map(fn (string $name) => ['name' => $name, 'status' => 'pending'])
+        $wbsStages = collect([
+            ['name' => 'Pregatire', 'stage_role' => 'pregatire'],
+            ['name' => 'Aprovizionare materiale', 'stage_role' => 'aprovizionare'],
+        ]);
+
+        if ($recipe->wbsStages->isNotEmpty()) {
+            foreach ($recipe->wbsStages as $customStage) {
+                $wbsStages->push([
+                    'name' => $customStage->name,
+                    'stage_role' => 'executie',
+                    'default_tasks' => $customStage->default_tasks ?? [],
+                ]);
+            }
+        } else {
+            $wbsStages->push(['name' => "Executie - {$template->title}", 'stage_role' => 'executie']);
+        }
+
+        $wbsStages->push(['name' => 'Control calitate', 'stage_role' => 'control_calitate']);
+        $wbsStages->push(['name' => 'Predare', 'stage_role' => 'predare']);
+
+        $wbsStages = $wbsStages
+            ->map(fn (array $stage) => array_merge(['default_tasks' => []], $stage, ['status' => 'pending']))
+            ->values()
             ->all();
 
         return response()->json([
@@ -158,6 +180,9 @@ class ProjectAiToolsController extends Controller
             'total_net' => ['required', 'numeric', 'min:0'],
             'wbs_stages' => ['required', 'array', 'min:1'],
             'wbs_stages.*.name' => ['required', 'string', 'max:255'],
+            'wbs_stages.*.stage_role' => ['nullable', 'string', 'max:30'],
+            'wbs_stages.*.default_tasks' => ['nullable', 'array'],
+            'wbs_stages.*.default_tasks.*' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'estimate_details' => ['nullable', 'array'],
             'estimate_details.task_template_id' => ['nullable', 'integer'],
@@ -228,14 +253,19 @@ class ProjectAiToolsController extends Controller
         $maxOrder = (int) ($project->phases()->max('order') ?? 0);
         $createdStages = [];
         $estimateStageId = null;
+        $createdTasks = 0;
 
         $timing = $validated['estimate_details']['timing'] ?? [];
         $executionDays = max(1, (int) ceil((float) ($timing['execution_hours'] ?? 0) / 8));
         $controlDays = max(1, (int) ceil(
             ((float) ($timing['drying_hours'] ?? 0) + (float) ($timing['curing_hours'] ?? 0)) / 24
         ));
-        $durationsByIndex = [0 => 1, 1 => 1, 2 => $executionDays, 3 => $controlDays, 4 => 1];
+        $executionRoleCount = collect($validated['wbs_stages'])->where('stage_role', 'executie')->count();
+        $executionDaysPerStage = max(1, (int) ceil($executionDays / max(1, $executionRoleCount)));
         $dateCursor = now()->startOfDay();
+
+        $firstExecutionPhase = null;
+        $materialsPhase = null;
 
         foreach ($validated['wbs_stages'] as $index => $stageInput) {
             $name = trim($stageInput['name']);
@@ -243,18 +273,30 @@ class ProjectAiToolsController extends Controller
                 continue;
             }
 
-            $exists = ProjectPhase::query()
+            $role = $stageInput['stage_role'] ?? null;
+
+            $existingPhase = ProjectPhase::query()
                 ->where('project_id', $project->id)
                 ->where('name', $name)
-                ->exists();
+                ->first();
 
-            if ($exists) {
+            if ($existingPhase) {
+                if ($role === 'executie' && !$firstExecutionPhase) {
+                    $firstExecutionPhase = $existingPhase;
+                }
+                if ($role === 'aprovizionare' && !$materialsPhase) {
+                    $materialsPhase = $existingPhase;
+                }
                 continue;
             }
 
             $maxOrder += 1;
 
-            $duration = $durationsByIndex[$index] ?? 1;
+            $duration = match ($role) {
+                'executie' => $executionDaysPerStage,
+                'control_calitate' => $controlDays,
+                default => 1,
+            };
             $stageStart = $dateCursor->copy();
             $stageEnd = $dateCursor->copy()->addDays($duration - 1);
             $dateCursor = $stageEnd->copy()->addDay();
@@ -283,6 +325,27 @@ class ProjectAiToolsController extends Controller
             if ($estimateStageId === null) {
                 $estimateStageId = $stage->id;
             }
+
+            if ($role === 'executie' && !$firstExecutionPhase) {
+                $firstExecutionPhase = $stage;
+            }
+            if ($role === 'aprovizionare' && !$materialsPhase) {
+                $materialsPhase = $stage;
+            }
+
+            foreach ($stageInput['default_tasks'] ?? [] as $taskTitle) {
+                $taskTitle = trim($taskTitle);
+                if ($taskTitle === '') {
+                    continue;
+                }
+
+                StageTask::create([
+                    'stage_id' => $stage->id,
+                    'title' => $taskTitle,
+                    'status' => 'todo',
+                ]);
+                $createdTasks++;
+            }
         }
 
         if ($estimateStageId === null) {
@@ -307,18 +370,6 @@ class ProjectAiToolsController extends Controller
         $planLocked = $project->plan_approved_at !== null;
 
         if (!$planLocked) {
-            $executionPhase = ProjectPhase::query()
-                ->where('project_id', $project->id)
-                ->where('name', 'like', 'Executie%')
-                ->latest('id')
-                ->first();
-
-            $materialsPhase = ProjectPhase::query()
-                ->where('project_id', $project->id)
-                ->where('name', 'Aprovizionare materiale')
-                ->latest('id')
-                ->first();
-
             $materialLines = $validated['estimate_details']['materials'] ?? [];
             foreach ($materialLines as $line) {
                 if (empty($line['material_id'])) {
@@ -348,11 +399,11 @@ class ProjectAiToolsController extends Controller
                 SiteStaffPlan::create([
                     'tenant_id' => $tenantId,
                     'project_id' => $project->id,
-                    'phase_id' => $executionPhase?->id,
+                    'phase_id' => $firstExecutionPhase?->id,
                     'specialty' => $line['role'],
                     'planned_headcount' => 1,
-                    'planned_start' => $executionPhase?->start_date?->toDateString(),
-                    'planned_end' => $executionPhase?->end_date?->toDateString(),
+                    'planned_start' => $firstExecutionPhase?->start_date?->toDateString(),
+                    'planned_end' => $firstExecutionPhase?->end_date?->toDateString(),
                     'risk_level' => 'medium',
                     'notes' => 'Generat automat din reteta la commit deviz AI.',
                 ]);
@@ -368,11 +419,11 @@ class ProjectAiToolsController extends Controller
                 SiteEquipmentPlan::create([
                     'tenant_id' => $tenantId,
                     'project_id' => $project->id,
-                    'phase_id' => $executionPhase?->id,
+                    'phase_id' => $firstExecutionPhase?->id,
                     'equipment_id' => $line['equipment_id'],
                     'quantity' => 1,
-                    'usage_start' => $executionPhase?->start_date?->toDateString(),
-                    'usage_end' => $executionPhase?->end_date?->toDateString(),
+                    'usage_start' => $firstExecutionPhase?->start_date?->toDateString(),
+                    'usage_end' => $firstExecutionPhase?->end_date?->toDateString(),
                     'risk_level' => 'medium',
                     'notes' => 'Generat automat din reteta la commit deviz AI.',
                 ]);
@@ -381,6 +432,9 @@ class ProjectAiToolsController extends Controller
         }
 
         $message = 'Devizul a fost salvat ca oferta draft, document de tip deviz si etapele WBS au fost adaugate in proiect.';
+        if ($createdTasks > 0) {
+            $message .= " S-au generat automat {$createdTasks} task-uri pe etapele de executie.";
+        }
         if ($planLocked) {
             $message .= ' Planul de organizare santier e deja aprobat, deci nu s-au generat automat planuri de personal/utilaje/materiale.';
         } elseif ($createdStaffPlans > 0 || $createdEquipmentPlans > 0 || $createdMaterialPlans > 0) {
@@ -392,6 +446,7 @@ class ProjectAiToolsController extends Controller
             'quote_id' => $quote->id,
             'document_id' => $estimateDocument->id,
             'created_stages' => $createdStages,
+            'created_tasks' => $createdTasks,
             'created_staff_plans' => $createdStaffPlans,
             'created_equipment_plans' => $createdEquipmentPlans,
             'created_material_plans' => $createdMaterialPlans,

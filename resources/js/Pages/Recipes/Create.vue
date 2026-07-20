@@ -118,6 +118,27 @@
                 </div>
 
                 <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Etape proprii de executie (optional)</label>
+                        <button type="button" @click="addWbsStage" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Etapa</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2">Daca definesti etape proprii, devizul automat le foloseste in loc de o singura etapa generica "Executie". Fiecare etapa poate avea task-uri implicite generate automat la commit.</p>
+                    <div v-if="form.wbs_stages.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
+                        Optional - fara etape proprii, devizul foloseste o singura etapa generica de executie.
+                    </div>
+                    <div v-else class="space-y-3">
+                        <div v-for="(stage, index) in form.wbs_stages" :key="index" class="border border-gray-200 rounded-lg p-3 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <input v-model="stage.name" type="text" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Nume etapa (ex: Sapatura)" />
+                                <button type="button" @click="removeWbsStage(index)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50 shrink-0">X</button>
+                            </div>
+                            <textarea v-model="stage.default_tasks_text" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Task-uri implicite, unul pe linie (optional)"></textarea>
+                        </div>
+                    </div>
+                    <p v-if="form.errors.wbs_stages" class="text-red-500 text-xs mt-1">{{ form.errors.wbs_stages }}</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
                     <textarea v-model="form.notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                 </div>
@@ -159,7 +180,19 @@ const form = useForm({
     equipment_items: [],
     drying_hours: '',
     curing_hours: '',
+    wbs_stages: [],
 });
+
+form.transform((data) => ({
+    ...data,
+    wbs_stages: data.wbs_stages.map((stage) => ({
+        name: stage.name,
+        default_tasks: (stage.default_tasks_text || '')
+            .split('\n')
+            .map((task) => task.trim())
+            .filter(Boolean),
+    })),
+}));
 
 const subjectOptions = computed(() => {
     if (form.subject_type === 'material') {
@@ -213,5 +246,14 @@ function addEquipmentItem() {
 
 function removeEquipmentItem(index) {
     form.equipment_items.splice(index, 1);
+}
+
+function addWbsStage() {
+    if (form.wbs_stages.length >= 10) return;
+    form.wbs_stages.push({ name: '', default_tasks_text: '' });
+}
+
+function removeWbsStage(index) {
+    form.wbs_stages.splice(index, 1);
 }
 </script>

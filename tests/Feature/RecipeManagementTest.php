@@ -215,6 +215,83 @@ class RecipeManagementTest extends TestCase
         $this->assertDatabaseMissing('recipe_equipment_items', ['equipment_id' => $mixerOld->id]);
     }
 
+    public function test_user_can_create_a_recipe_with_wbs_stages_and_default_tasks(): void
+    {
+        $user = $this->createOnboardedUser();
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Turnare beton']);
+        $ciment = Material::create(['tenant_id' => 1, 'name' => 'Ciment', 'unit' => 'kg']);
+
+        $response = $this->actingAs($user)->post('/recipes', [
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Turnare beton fundatie',
+            'unit' => 'mc',
+            'items' => [
+                ['material_id' => $ciment->id, 'quantity_per_unit' => 300],
+            ],
+            'wbs_stages' => [
+                ['name' => 'Sapatura', 'default_tasks' => ['Trasare sant', 'Excavare manuala']],
+                ['name' => 'Turnare', 'default_tasks' => ['Pregatire mixer', '']],
+            ],
+        ]);
+
+        $response->assertRedirect('/recipes');
+        $this->assertDatabaseCount('recipe_wbs_stages', 2);
+
+        $recipe = Recipe::first();
+        $this->assertDatabaseHas('recipe_wbs_stages', [
+            'recipe_id' => $recipe->id,
+            'name' => 'Sapatura',
+            'order' => 0,
+        ]);
+        $this->assertDatabaseHas('recipe_wbs_stages', [
+            'recipe_id' => $recipe->id,
+            'name' => 'Turnare',
+            'order' => 1,
+        ]);
+
+        $sapatura = $recipe->wbsStages()->where('name', 'Sapatura')->firstOrFail();
+        $this->assertSame(['Trasare sant', 'Excavare manuala'], $sapatura->default_tasks);
+
+        $turnare = $recipe->wbsStages()->where('name', 'Turnare')->firstOrFail();
+        $this->assertSame(['Pregatire mixer'], $turnare->default_tasks);
+    }
+
+    public function test_updating_a_recipe_replaces_wbs_stages(): void
+    {
+        $user = $this->createOnboardedUser();
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Turnare beton']);
+        $ciment = Material::create(['tenant_id' => 1, 'name' => 'Ciment', 'unit' => 'kg']);
+
+        $recipe = Recipe::create([
+            'tenant_id' => 1,
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Turnare beton',
+            'unit' => 'mc',
+        ]);
+        $recipe->items()->create(['material_id' => $ciment->id, 'quantity_per_unit' => 300]);
+        $recipe->wbsStages()->create(['name' => 'Etapa veche', 'order' => 0, 'default_tasks' => []]);
+
+        $response = $this->actingAs($user)->put("/recipes/{$recipe->id}", [
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Turnare beton',
+            'unit' => 'mc',
+            'items' => [
+                ['material_id' => $ciment->id, 'quantity_per_unit' => 300],
+            ],
+            'wbs_stages' => [
+                ['name' => 'Etapa noua', 'default_tasks' => ['Task nou']],
+            ],
+        ]);
+
+        $response->assertRedirect('/recipes');
+        $this->assertDatabaseCount('recipe_wbs_stages', 1);
+        $this->assertDatabaseHas('recipe_wbs_stages', ['recipe_id' => $recipe->id, 'name' => 'Etapa noua']);
+        $this->assertDatabaseMissing('recipe_wbs_stages', ['name' => 'Etapa veche']);
+    }
+
     public function test_equipment_from_another_tenant_is_rejected_on_recipe_creation(): void
     {
         Tenant::create([

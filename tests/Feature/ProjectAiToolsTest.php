@@ -182,13 +182,19 @@ class ProjectAiToolsTest extends TestCase
         $generateResponse->assertJsonPath('estimate.equipment.lines.0.estimated_cost', 70);
         $generateResponse->assertJsonPath('estimate.timing.execution_hours', 5);
         $generateResponse->assertJsonPath('estimate.timing.total_hours', 197);
-        $generateResponse->assertJsonPath('estimate.wbs_stages', [
-            ['name' => 'Pregatire', 'status' => 'pending'],
-            ['name' => 'Aprovizionare materiale', 'status' => 'pending'],
-            ['name' => 'Executie - Fundatie beton', 'status' => 'pending'],
-            ['name' => 'Control calitate', 'status' => 'pending'],
-            ['name' => 'Predare', 'status' => 'pending'],
-        ]);
+        $generateResponse->assertJsonCount(5, 'estimate.wbs_stages');
+        $expectedStages = [
+            ['name' => 'Pregatire', 'stage_role' => 'pregatire'],
+            ['name' => 'Aprovizionare materiale', 'stage_role' => 'aprovizionare'],
+            ['name' => 'Executie - Fundatie beton', 'stage_role' => 'executie'],
+            ['name' => 'Control calitate', 'stage_role' => 'control_calitate'],
+            ['name' => 'Predare', 'stage_role' => 'predare'],
+        ];
+        foreach ($expectedStages as $i => $expected) {
+            $generateResponse->assertJsonPath("estimate.wbs_stages.{$i}.name", $expected['name']);
+            $generateResponse->assertJsonPath("estimate.wbs_stages.{$i}.stage_role", $expected['stage_role']);
+            $generateResponse->assertJsonPath("estimate.wbs_stages.{$i}.status", 'pending');
+        }
 
         $totalNet = (float) $generateResponse->json('estimate.totals.total_net');
         $wbsStages = $generateResponse->json('estimate.wbs_stages');
@@ -325,6 +331,80 @@ class ProjectAiToolsTest extends TestCase
         $materialPlan = SiteMaterialPlan::where('project_id', $project->id)->firstOrFail();
         $this->assertSame($materialsStage->start_date->toDateString(), $materialPlan->planned_order_date->toDateString());
         $this->assertSame($materialsStage->end_date->toDateString(), $materialPlan->planned_delivery_date->toDateString());
+    }
+
+    public function test_ai_estimate_uses_recipe_wbs_template_and_generates_stage_tasks(): void
+    {
+        $user = $this->createOnboardedUser();
+        [$project] = $this->seedProjectContext($user);
+        [$template] = $this->seedTaskTemplateWithRecipeAndWbsTemplate();
+
+        $generateResponse = $this->actingAs($user)->post(route('projects.ai.estimate.generate', $project), [
+            'task_template_id' => $template->id,
+            'measure_value' => 10,
+            'complexity' => 'medium',
+        ]);
+
+        $generateResponse->assertOk();
+        $generateResponse->assertJsonCount(6, 'estimate.wbs_stages');
+
+        $expectedStages = [
+            ['name' => 'Pregatire', 'stage_role' => 'pregatire'],
+            ['name' => 'Aprovizionare materiale', 'stage_role' => 'aprovizionare'],
+            ['name' => 'Sapatura', 'stage_role' => 'executie'],
+            ['name' => 'Turnare', 'stage_role' => 'executie'],
+            ['name' => 'Control calitate', 'stage_role' => 'control_calitate'],
+            ['name' => 'Predare', 'stage_role' => 'predare'],
+        ];
+        foreach ($expectedStages as $i => $expected) {
+            $generateResponse->assertJsonPath("estimate.wbs_stages.{$i}.name", $expected['name']);
+            $generateResponse->assertJsonPath("estimate.wbs_stages.{$i}.stage_role", $expected['stage_role']);
+        }
+
+        $generateResponse->assertJsonPath('estimate.wbs_stages.2.default_tasks', ['Trasare sant', 'Excavare manuala']);
+        $generateResponse->assertJsonPath('estimate.wbs_stages.3.default_tasks', ['Pregatire mixer']);
+
+        $estimate = $generateResponse->json('estimate');
+
+        $commitResponse = $this->actingAs($user)->post(route('projects.ai.estimate.commit', $project), [
+            'title' => 'Deviz cu etape proprii',
+            'total_net' => $estimate['totals']['total_net'],
+            'wbs_stages' => $estimate['wbs_stages'],
+            'estimate_details' => [
+                'materials' => $estimate['materials'],
+                'labor' => $estimate['labor'],
+                'equipment' => $estimate['equipment'],
+                'timing' => $estimate['timing'],
+                'totals' => $estimate['totals'],
+            ],
+        ]);
+
+        $commitResponse->assertOk();
+        $this->assertCount(6, $commitResponse->json('created_stages'));
+        $this->assertSame(3, $commitResponse->json('created_tasks'));
+
+        $sapaturaStage = ProjectPhase::where('project_id', $project->id)->where('name', 'Sapatura')->firstOrFail();
+        $turnareStage = ProjectPhase::where('project_id', $project->id)->where('name', 'Turnare')->firstOrFail();
+
+        // 20h executie totale / 8h/zi = 3 zile, impartite pe 2 sub-etape -> ceil(3/2) = 2 zile fiecare
+        $this->assertSame(2, $sapaturaStage->duration_days);
+        $this->assertSame(2, $turnareStage->duration_days);
+
+        $this->assertDatabaseCount('stage_tasks', 3);
+        $this->assertDatabaseHas('stage_tasks', ['stage_id' => $sapaturaStage->id, 'title' => 'Trasare sant', 'status' => 'todo']);
+        $this->assertDatabaseHas('stage_tasks', ['stage_id' => $sapaturaStage->id, 'title' => 'Excavare manuala', 'status' => 'todo']);
+        $this->assertDatabaseHas('stage_tasks', ['stage_id' => $turnareStage->id, 'title' => 'Pregatire mixer', 'status' => 'todo']);
+
+        // personalul/utilajele se leaga de PRIMA etapa de executie (Sapatura), nu de a doua (Turnare)
+        $this->assertDatabaseHas('site_staff_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $sapaturaStage->id,
+            'specialty' => 'Zidar',
+        ]);
+        $this->assertDatabaseHas('site_equipment_plans', [
+            'project_id' => $project->id,
+            'phase_id' => $sapaturaStage->id,
+        ]);
     }
 
     public function test_ai_estimate_commit_skips_staff_equipment_plans_when_plan_is_locked(): void
@@ -511,6 +591,44 @@ class ProjectAiToolsTest extends TestCase
         $recipe->equipmentItems()->create(['equipment_id' => $mixer->id, 'hours_per_unit' => 0.2]);
 
         return [$template, $recipe];
+    }
+
+    private function seedTaskTemplateWithRecipeAndWbsTemplate(): array
+    {
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Fundatie cu etape']);
+
+        $ciment = Material::create([
+            'tenant_id' => 1,
+            'code' => 'AI-WBS-CIMENT',
+            'name' => 'Ciment',
+            'unit' => 'kg',
+            'unit_price' => 1.2,
+            'active' => true,
+        ]);
+
+        $mixer = Equipment::create([
+            'tenant_id' => 1,
+            'name' => 'Mixer WBS',
+            'type' => 'concrete_mixer',
+            'cost_per_hour' => 30,
+            'availability_status' => 'available',
+            'active' => true,
+        ]);
+
+        $recipe = Recipe::create([
+            'tenant_id' => 1,
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Fundatie cu etape',
+            'unit' => 'mc',
+        ]);
+        $recipe->items()->create(['material_id' => $ciment->id, 'quantity_per_unit' => 10]);
+        $recipe->laborItems()->create(['role' => 'Zidar', 'hours_per_unit' => 2.0, 'hourly_rate' => 45]);
+        $recipe->equipmentItems()->create(['equipment_id' => $mixer->id, 'hours_per_unit' => 0.5]);
+        $recipe->wbsStages()->create(['name' => 'Sapatura', 'order' => 0, 'default_tasks' => ['Trasare sant', 'Excavare manuala']]);
+        $recipe->wbsStages()->create(['name' => 'Turnare', 'order' => 1, 'default_tasks' => ['Pregatire mixer']]);
+
+        return [$template, $recipe, $mixer, $ciment];
     }
 
     private function seedProjectContext(User $user): array

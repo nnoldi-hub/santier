@@ -34,6 +34,7 @@
                         {{ recipe.subject_name }} · {{ pluralize(recipe.items_count, 'material', 'materiale') }} · unitate {{ recipe.unit }}
                         <template v-if="recipe.labor_items_count > 0"> · {{ pluralize(recipe.labor_items_count, 'manopera', 'manopera') }}</template>
                         <template v-if="recipe.equipment_items_count > 0"> · {{ pluralize(recipe.equipment_items_count, 'utilaj', 'utilaje') }}</template>
+                        <template v-if="recipe.wbs_stages_count > 0"> · {{ pluralize(recipe.wbs_stages_count, 'etapa proprie', 'etape proprii') }}</template>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">

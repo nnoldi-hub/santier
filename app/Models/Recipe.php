@@ -43,4 +43,9 @@ class Recipe extends Model
     {
         return $this->hasMany(RecipeEquipmentItem::class);
     }
+
+    public function wbsStages(): HasMany
+    {
+        return $this->hasMany(RecipeWbsStage::class)->orderBy('order');
+    }
 }

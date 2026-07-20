@@ -65,6 +65,7 @@ deja construit).
 | 11 | Aprobare plan + activare executie | Bara "Aproba planul": campuri noi `plan_approved_at`/`plan_approved_by` pe proiect, istoric `site_plan_approvals`, blocare editare pe toate cele 7 domenii, generare automata de `Task`/`ResourceOrder`/`StageEquipment` + `ProjectPhase.contractor_id` | **Facut** |
 | 12 | Cost & ore manopera | `hourly_rate` pe `site_staff_plans` + `LaborCostEstimator` (oglinda la `EquipmentCostEstimator`) - ore/cost estimat per plan de personal, semnal de suprapunere echipa, integrare in rezumatul de buget si in export | **Facut** |
 | 13 | Deviz -> SiteMaterialPlan | `commitEstimate()` genereaza automat planuri de materiale (nu doar personal/utilaje) din lista de materiale a devizului, legate de etapa "Aprovizionare materiale" | **Facut** |
+| 14 | Sablon WBS + task-uri din reteta | `recipe_wbs_stages` (nume + task-uri implicite) - devizul genereaza sub-etape proprii de executie (nu doar una generica) + `StageTask` automate pe fiecare, `stage_role` inlocuieste potrivirea fragila de nume/pozitie | **Facut** |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
 dupa prioritate de business), dar faza 8 (scorul de pregatire) are nevoie de cel putin
@@ -348,3 +349,43 @@ Acelasi flux stabilit in aceasta sesiune:
 - Teste: `tests/Feature/ProjectAiToolsTest.php` extins (assert pe cele 2
   planuri de materiale generate + datele legate de etapa corecta; testul de
   plan blocat extins sa verifice si `site_material_plans`).
+
+### Faza 14 - Sablon WBS + task-uri din reteta (Facut, 2026-07-20)
+- Ultimul gol din analiza pe 7 arii: reteta nu putea defini propriile
+  sub-etape de executie - devizul genera mereu exact 5 etape fixe, una
+  singura generica "Executie - {sablon}", fara niciun task individual.
+- Tabel nou `recipe_wbs_stages` (`App\Models\RecipeWbsStage`) - nume + ordine
+  + `default_tasks` (json, listă simplă de titluri) - **doar pentru
+  sub-etapele de executie**, Pregatire/Aprovizionare/Control calitate/Predare
+  raman fixe. Compatibilitate totala cu retetele existente: fara sablon WBS
+  definit, devizul genereaza exact ca inainte (o singura etapa "Executie").
+- **Corectie de robustete descoperita la cercetare**: loop-ul din
+  `commitEstimate()` folosea un map pozitional fragil
+  (`$durationsByIndex[$index]`) si cauta etapele de personal/utilaje/
+  materiale prin potrivire de nume hardcodata (`where('name', 'like',
+  'Executie%')`) - ambele s-ar fi rupt cu un numar variabil de sub-etape.
+  Inlocuite cu un tag explicit `stage_role` pe fiecare etapa (calculat la
+  generare, trimis la commit), capturat direct in interiorul loop-ului de
+  creare a etapelor - functioneaza corect indiferent de cate sub-etape de
+  executie exista sau daca unele etape existau deja dintr-un commit anterior.
+- Durata etapelor de executie (una sau mai multe) se imparte cu formula
+  simpla deja folosita peste tot in cod: `max(1, ceil(total / numar_etape))`
+  - acceasi durata pentru fiecare sub-etapa, nu garanteaza suma exacta
+  (poate usor supraestima), acceptabil pentru o estimare.
+- Task-urile implicite (`default_tasks`) devin `StageTask` (status `todo`,
+  nu `Task` - potrivire structurala mai buna: legat direct de `stage_id`,
+  fara `tenant_id`/materiale/checklist, exact ce trebuie pentru un task
+  generat automat) create pe fiecare sub-etapa noua la commit.
+- Planurile de personal/utilaje se leaga acum de **prima** etapa cu
+  `stage_role = 'executie'` (inainte era "singura" etapa de executie).
+- Teste: `tests/Feature/RecipeManagementTest.php` (creare/actualizare reteta
+  cu etape proprii + task-uri implicite), `tests/Feature/ProjectAiToolsTest.php`
+  (test nou cu 2 sub-etape proprii - confirma 6 `ProjectPhase` create in loc
+  de 5, `StageTask` generate cu titlurile corecte, durata impartita corect,
+  planurile de personal/utilaje legate de prima sub-etapa; testul principal
+  actualizat sa verifice `stage_role` pe cele 5 etape fixe, confirmand
+  compatibilitatea cu retetele fara sablon WBS).
+- Ramas explicit in afara scopului: Pregatire/Aprovizionare/Control
+  calitate/Predare nu pot fi suprascrise din reteta; fara UI in modalul de
+  deviz care sa afiseze `default_tasks` inainte de commit (task-urile devin
+  vizibile abia dupa commit, in `stage-tasks.index`/Gantt).

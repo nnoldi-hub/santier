@@ -195,3 +195,21 @@ exista deja in devizul confirmat.
 Nu se genereaza automat si `SiteMaterialPlan` la commit-ul devizului -
 materialele au deja fluxul lor separat, manual, in tab-ul Materiale din
 Organizare Santier (`applyMaterialRecipe`), neschimbat.
+
+**Actualizare (2026-07-20)**: nota de mai sus e depasita - vezi Faza 13 din
+`organizare-santier.md`, `commitEstimate()` genereaza acum automat si
+`SiteMaterialPlan`.
+
+## Extindere: Sablon WBS + task-uri implicite (2026-07-20)
+
+Reteta capata un al 4-lea tip de continut, pe langa materiale/manopera/
+utilaje: un set optional de **sub-etape proprii de executie**, fiecare cu o
+lista de task-uri implicite. Detalii complete in Faza 14 din
+`organizare-santier.md` - pe scurt: tabel nou `recipe_wbs_stages` (nume +
+ordine + `default_tasks` json), editabil din `Recipes/Create.vue`/`Edit.vue`
+(sectiune noua "Etape proprii de executie"), consumat de
+`ProjectAiToolsController::generateEstimate()`/`commitEstimate()` - daca
+reteta are sub-etape proprii, devizul le foloseste in loc de o singura etapa
+generica "Executie", si genereaza automat `StageTask` din task-urile
+implicite la commit. Compatibilitate totala cu retetele existente (fara
+sablon WBS definit, comportamentul ramane neschimbat).
