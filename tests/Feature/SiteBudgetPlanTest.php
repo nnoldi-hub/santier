@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\SiteBudgetPlan;
 use App\Models\SiteMaterialPlan;
 use App\Models\SiteStaffPlan;
+use App\Models\SiteStaffTimeEntry;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -197,6 +198,40 @@ class SiteBudgetPlanTest extends TestCase
             $page->where('budgetSummary.labor_cost', 2400)
                 ->where('budgetSummary.manual_cost', 500)
                 ->where('budgetSummary.total_estimated', 2900);
+        });
+    }
+
+    public function test_budget_summary_reports_actual_labor_cost_without_including_it_in_total(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user, 20000);
+
+        $plan = SiteStaffPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 2,
+            'hourly_rate' => 50,
+            'planned_start' => '2026-01-01',
+            'planned_end' => '2026-01-03',
+            'risk_level' => 'medium',
+        ]);
+
+        SiteStaffTimeEntry::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'staff_plan_id' => $plan->id,
+            'entry_date' => '2026-01-01',
+            'hours_worked' => 10,
+        ]);
+
+        // estimat: 3 zile * 8h * 2 oameni * 50 RON/h = 2400; real: 10h * 50 RON/h = 500
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('budgetSummary.labor_cost', 2400)
+                ->where('budgetSummary.labor_cost_actual', 500)
+                ->where('budgetSummary.total_estimated', 2400);
         });
     }
 

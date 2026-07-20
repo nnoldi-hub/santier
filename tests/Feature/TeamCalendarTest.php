@@ -63,6 +63,47 @@ class TeamCalendarTest extends TestCase
         });
     }
 
+    public function test_overlapping_assignments_are_flagged_with_overlap_count(): void
+    {
+        $user = $this->createOnboardedUser();
+        $team = Team::create([
+            'tenant_id' => 1,
+            'name' => 'Echipa Suprapusa',
+            'specialty' => 'Structura',
+            'leader_id' => $user->id,
+            'active' => true,
+        ]);
+
+        [, $phase] = $this->seedProjectPhase($user);
+
+        PhaseTeamAssignment::create([
+            'phase_id' => $phase->id,
+            'team_id' => $team->id,
+            'workers_needed' => 2,
+            'workers_assigned' => 2,
+            'start_date' => '2026-07-10',
+            'end_date' => '2026-07-14',
+        ]);
+
+        PhaseTeamAssignment::create([
+            'phase_id' => $phase->id,
+            'team_id' => $team->id,
+            'workers_needed' => 2,
+            'workers_assigned' => 2,
+            'start_date' => '2026-07-12',
+            'end_date' => '2026-07-16',
+        ]);
+
+        $response = $this->actingAs($user)->get('/team-calendar?start_date=2026-07-01&end_date=2026-07-31');
+
+        $response->assertOk();
+        $response->assertInertia(function (Assert $page): void {
+            $page->where('assignments.0.overlap_count', 1)
+                ->where('assignments.1.overlap_count', 1)
+                ->where('summary.assignments_with_overlap', 2);
+        });
+    }
+
     private function seedProjectPhase(User $user): array
     {
         $client = Client::create([

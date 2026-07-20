@@ -19,6 +19,7 @@ use App\Models\SiteLogisticsPlan;
 use App\Models\SiteMaterialPlan;
 use App\Models\SitePlanApproval;
 use App\Models\SiteStaffPlan;
+use App\Models\SiteStaffTimeEntry;
 use App\Models\StageEquipment;
 use App\Models\Task;
 use App\Models\Team;
@@ -344,6 +345,40 @@ class SiteOrganizationController extends Controller
         return back()->with('success', 'Planul de personal a fost sters.');
     }
 
+    public function storeTimeEntry(Request $request, Project $project, SiteStaffPlan $staffPlan): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $staffPlan->project_id === $project->id, 404);
+
+        $validated = $request->validate([
+            'entry_date' => ['required', 'date'],
+            'hours_worked' => ['required', 'numeric', 'min:0.1', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        SiteStaffTimeEntry::create([
+            ...$validated,
+            'tenant_id' => $tenantId,
+            'project_id' => $project->id,
+            'staff_plan_id' => $staffPlan->id,
+        ]);
+
+        return back()->with('success', 'Pontajul a fost inregistrat.');
+    }
+
+    public function destroyTimeEntry(Request $request, Project $project, SiteStaffPlan $staffPlan, SiteStaffTimeEntry $timeEntry): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $project->tenant_id === $tenantId, 404);
+        abort_unless((int) $staffPlan->project_id === $project->id, 404);
+        abort_unless((int) $timeEntry->staff_plan_id === $staffPlan->id, 404);
+
+        $timeEntry->delete();
+
+        return back()->with('success', 'Inregistrarea de pontaj a fost stearsa.');
+    }
+
     private function validateStaffPlan(Request $request, Project $project): array
     {
         $tenantId = TenantContext::id($request->user());
@@ -569,7 +604,7 @@ class SiteOrganizationController extends Controller
     private function staffPlansWithEstimates(Project $project): Collection
     {
         $plans = SiteStaffPlan::where('project_id', $project->id)
-            ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
+            ->with(['phase:id,name', 'team:id,name', 'contractor:id,name', 'timeEntries'])
             ->latest('id')
             ->get();
 
@@ -587,6 +622,10 @@ class SiteOrganizationController extends Controller
             }
 
             $plan->setAttribute('team_overlap_count', $teamOverlapCount);
+
+            $actualHours = (float) $plan->timeEntries->sum('hours_worked');
+            $plan->setAttribute('actual_hours', $actualHours);
+            $plan->setAttribute('actual_cost', round($actualHours * (float) $plan->hourly_rate, 2));
 
             return $plan;
         });
@@ -792,6 +831,10 @@ class SiteOrganizationController extends Controller
             return (float) $plan->estimated_cost;
         });
 
+        $laborCostActual = $staffPlans->sum(function (SiteStaffPlan $plan) {
+            return (float) $plan->actual_cost;
+        });
+
         $materialsCost = $materialPlans->sum(function (SiteMaterialPlan $plan) {
             return (float) $plan->planned_quantity * (float) ($plan->material?->unit_price ?? 0);
         });
@@ -812,6 +855,7 @@ class SiteOrganizationController extends Controller
 
         return [
             'labor_cost' => round($laborCost, 2),
+            'labor_cost_actual' => round($laborCostActual, 2),
             'materials_cost' => round($materialsCost, 2),
             'equipment_cost' => round($equipmentCost, 2),
             'manual_cost' => round($manualCost, 2),

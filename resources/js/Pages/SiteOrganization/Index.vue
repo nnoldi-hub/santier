@@ -187,35 +187,82 @@
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Ore estimate</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Cost estimat</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Ore reale</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cost real</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="plan in staffPlans" :key="plan.id">
-                                <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ plan.specialty }}</td>
-                                <td class="px-4 py-3 text-gray-600">{{ plan.planned_headcount }}</td>
-                                <td class="px-4 py-3 text-gray-600">
-                                    {{ plan.team?.name || plan.contractor?.name || '-' }}
-                                    <span v-if="plan.team_overlap_count > 0" class="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                                        {{ plan.team_overlap_count }} suprapuneri echipa
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-gray-600 text-xs">
-                                    {{ formatDate(plan.planned_start) }} → {{ formatDate(plan.planned_end) }}
-                                </td>
-                                <td class="px-4 py-3 text-gray-600">{{ plan.estimated_hours }}</td>
-                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
-                                        {{ riskLevels[plan.risk_level] || plan.risk_level }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteStaffPlan(plan)">Sterge</button>
-                                </td>
-                            </tr>
+                            <template v-for="plan in staffPlans" :key="plan.id">
+                                <tr>
+                                    <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
+                                    <td class="px-4 py-3 font-medium text-gray-800">{{ plan.specialty }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ plan.planned_headcount }}</td>
+                                    <td class="px-4 py-3 text-gray-600">
+                                        {{ plan.team?.name || plan.contractor?.name || '-' }}
+                                        <span v-if="plan.team_overlap_count > 0" class="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                                            {{ plan.team_overlap_count }} suprapuneri echipa
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-600 text-xs">
+                                        {{ formatDate(plan.planned_start) }} → {{ formatDate(plan.planned_end) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-600">{{ plan.estimated_hours }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ plan.actual_hours }}</td>
+                                    <td class="px-4 py-3">
+                                        <span :class="plan.actual_cost > plan.estimated_cost ? 'text-rose-600 font-semibold' : 'text-gray-600'">
+                                            {{ formatCurrency(plan.actual_cost) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
+                                            {{ riskLevels[plan.risk_level] || plan.risk_level }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 space-x-2 whitespace-nowrap">
+                                        <button type="button" class="text-xs text-orange-600 hover:underline" @click="toggleTimeEntries(plan)">
+                                            {{ expandedTimeEntryPlanId === plan.id ? 'Ascunde pontaj' : 'Pontaj' }}
+                                        </button>
+                                        <button v-if="!isLocked" type="button" class="text-xs text-red-600 hover:underline" @click="deleteStaffPlan(plan)">Sterge</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="expandedTimeEntryPlanId === plan.id" class="bg-gray-50">
+                                    <td colspan="11" class="px-4 py-4">
+                                        <form class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end" @submit.prevent="submitTimeEntry(plan)">
+                                            <div>
+                                                <label class="block text-xs text-gray-600 mb-1">Data *</label>
+                                                <input v-model="timeEntryForm.entry_date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-600 mb-1">Ore lucrate *</label>
+                                                <input v-model.number="timeEntryForm.hours_worked" type="number" min="0.1" step="0.1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-600 mb-1">Nota</label>
+                                                <input v-model="timeEntryForm.notes" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                                            </div>
+                                            <div>
+                                                <button :disabled="timeEntryForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60 w-full">
+                                                    {{ timeEntryForm.processing ? 'Se salveaza...' : 'Adauga pontaj' }}
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                        <p v-if="!plan.timeEntries || plan.timeEntries.length === 0" class="text-xs text-gray-500 mt-3">Nicio inregistrare de pontaj inca.</p>
+                                        <ul v-else class="mt-3 divide-y divide-gray-200 border border-gray-200 rounded-lg bg-white">
+                                            <li v-for="entry in plan.timeEntries" :key="entry.id" class="px-3 py-2 flex items-center justify-between text-sm">
+                                                <span class="text-gray-700">
+                                                    {{ formatDate(entry.entry_date) }} · {{ entry.hours_worked }} ore
+                                                    <span v-if="entry.notes" class="text-gray-500">· {{ entry.notes }}</span>
+                                                </span>
+                                                <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteTimeEntry(plan, entry)">Sterge</button>
+                                            </li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -736,6 +783,7 @@
                         <div>
                             <p class="text-xs text-gray-500">Cost manopera (auto)</p>
                             <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.labor_cost) }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Cost manopera real: {{ formatCurrency(budgetSummary.labor_cost_actual) }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Cost materiale (auto)</p>
@@ -1001,6 +1049,32 @@ function submitStaffPlan() {
 
 function deleteStaffPlan(plan) {
     router.delete(route('site-organization.staff-plans.destroy', [props.project.id, plan.id]), {
+        preserveScroll: true,
+    });
+}
+
+const expandedTimeEntryPlanId = ref(null);
+
+const timeEntryForm = useForm({
+    entry_date: '',
+    hours_worked: '',
+    notes: '',
+});
+
+function toggleTimeEntries(plan) {
+    expandedTimeEntryPlanId.value = expandedTimeEntryPlanId.value === plan.id ? null : plan.id;
+    timeEntryForm.reset();
+}
+
+function submitTimeEntry(plan) {
+    timeEntryForm.post(route('site-organization.staff-plans.time-entries.store', [props.project.id, plan.id]), {
+        preserveScroll: true,
+        onSuccess: () => timeEntryForm.reset(),
+    });
+}
+
+function deleteTimeEntry(plan, entry) {
+    router.delete(route('site-organization.staff-plans.time-entries.destroy', [props.project.id, plan.id, entry.id]), {
         preserveScroll: true,
     });
 }

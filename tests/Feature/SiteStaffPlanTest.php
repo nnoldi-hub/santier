@@ -7,6 +7,7 @@ use App\Models\PhaseTeamAssignment;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\SiteStaffPlan;
+use App\Models\SiteStaffTimeEntry;
 use App\Models\Team;
 use App\Models\Tenant;
 use App\Models\User;
@@ -182,6 +183,152 @@ class SiteStaffPlanTest extends TestCase
         $response->assertInertia(function (Assert $page) {
             $page->where('staffPlans.0.team_overlap_count', 1);
         });
+    }
+
+    public function test_time_entry_can_be_logged_and_updates_actual_hours_and_cost(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $plan = SiteStaffPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 2,
+            'hourly_rate' => 50,
+            'risk_level' => 'medium',
+        ]);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/staff-plans/{$plan->id}/time-entries", [
+                'entry_date' => '2026-01-01',
+                'hours_worked' => 8,
+            ])->assertRedirect();
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/staff-plans/{$plan->id}/time-entries", [
+                'entry_date' => '2026-01-02',
+                'hours_worked' => 6,
+                'notes' => 'Ploaie, program redus',
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('site_staff_time_entries', [
+            'staff_plan_id' => $plan->id,
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'notes' => 'Ploaie, program redus',
+        ]);
+
+        // 8h + 6h = 14h; 14h * 50 RON/h = 700
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('staffPlans.0.actual_hours', 14)
+                ->where('staffPlans.0.actual_cost', 700);
+        });
+    }
+
+    public function test_time_entry_can_be_deleted(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $plan = SiteStaffPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 2,
+            'hourly_rate' => 50,
+            'risk_level' => 'medium',
+        ]);
+
+        $entry = SiteStaffTimeEntry::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'staff_plan_id' => $plan->id,
+            'entry_date' => '2026-01-01',
+            'hours_worked' => 8,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->delete("/projects/{$project->id}/organizare/staff-plans/{$plan->id}/time-entries/{$entry->id}");
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('site_staff_time_entries', ['id' => $entry->id]);
+    }
+
+    public function test_time_entry_can_be_logged_even_when_plan_is_approved(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $plan = SiteStaffPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 2,
+            'hourly_rate' => 50,
+            'risk_level' => 'medium',
+        ]);
+
+        $this->actingAs($user)->post("/projects/{$project->id}/organizare/approve");
+
+        $response = $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/staff-plans/{$plan->id}/time-entries", [
+                'entry_date' => '2026-01-01',
+                'hours_worked' => 8,
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('site_staff_time_entries', ['staff_plan_id' => $plan->id]);
+    }
+
+    public function test_user_cannot_manage_time_entries_for_other_tenant_project(): void
+    {
+        Tenant::create([
+            'id' => 2,
+            'name' => 'Tenant intrus',
+            'slug' => 'tenant-intrus',
+            'billing_plan' => 'free',
+            'status' => 'active',
+            'module_flags' => [],
+        ]);
+
+        $user = $this->createOnboardedUser();
+
+        $otherOwner = User::factory()->create(['tenant_id' => 2, 'current_tenant_id' => 2]);
+        $otherClient = Client::create([
+            'tenant_id' => 2,
+            'name' => 'Client Intrus SRL',
+            'type' => 'company',
+            'active' => true,
+        ]);
+        $otherProject = Project::create([
+            'tenant_id' => 2,
+            'client_id' => $otherClient->id,
+            'created_by' => $otherOwner->id,
+            'name' => 'Proiect Intrus',
+            'status' => 'active',
+            'total_budget' => 1000,
+            'start_date' => now()->toDateString(),
+        ]);
+
+        $otherPlan = SiteStaffPlan::create([
+            'tenant_id' => 2,
+            'project_id' => $otherProject->id,
+            'specialty' => 'Instalator',
+            'planned_headcount' => 1,
+            'risk_level' => 'low',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post("/projects/{$otherProject->id}/organizare/staff-plans/{$otherPlan->id}/time-entries", [
+                'entry_date' => '2026-01-01',
+                'hours_worked' => 8,
+            ]);
+
+        $response->assertNotFound();
+        $this->assertDatabaseCount('site_staff_time_entries', 0);
     }
 
     private function createProject(User $user): Project

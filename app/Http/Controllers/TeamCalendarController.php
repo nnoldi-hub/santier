@@ -49,6 +49,20 @@ class TeamCalendarController extends Controller
             ->orderByRaw('COALESCE(start_date, end_date, created_at) ASC')
             ->get();
 
+        $assignments->each(function (PhaseTeamAssignment $assignment) {
+            $overlapCount = 0;
+
+            if ($assignment->start_date && $assignment->end_date) {
+                $overlapCount = PhaseTeamAssignment::where('team_id', $assignment->team_id)
+                    ->where('id', '!=', $assignment->id)
+                    ->where('start_date', '<=', $assignment->end_date)
+                    ->where('end_date', '>=', $assignment->start_date)
+                    ->count();
+            }
+
+            $assignment->setAttribute('overlap_count', $overlapCount);
+        });
+
         return Inertia::render('TeamCalendar/Index', [
             'assignments' => $assignments,
             'teams' => Team::where('tenant_id', $tenantId)
@@ -65,6 +79,7 @@ class TeamCalendarController extends Controller
                 'teams_involved' => $assignments->pluck('team_id')->unique()->count(),
                 'workers_needed' => (int) $assignments->sum('workers_needed'),
                 'workers_assigned' => (int) $assignments->sum('workers_assigned'),
+                'assignments_with_overlap' => $assignments->filter(fn (PhaseTeamAssignment $assignment) => $assignment->overlap_count > 0)->count(),
             ],
         ]);
     }

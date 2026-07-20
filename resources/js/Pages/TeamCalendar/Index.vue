@@ -8,7 +8,7 @@
             <Link :href="route('teams.index')" class="text-sm text-gray-500 hover:text-gray-700">Vezi echipe</Link>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div class="bg-white border border-gray-200 rounded-xl p-4">
                 <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Alocari</div>
                 <div class="text-xl font-semibold text-gray-800">{{ summary.total_assignments }}</div>
@@ -24,6 +24,10 @@
             <div class="bg-white border border-gray-200 rounded-xl p-4">
                 <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Alocati total</div>
                 <div class="text-xl font-semibold text-gray-800">{{ summary.workers_assigned }}</div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Cu suprapuneri</div>
+                <div class="text-xl font-semibold" :class="summary.assignments_with_overlap > 0 ? 'text-rose-600' : 'text-gray-800'">{{ summary.assignments_with_overlap }}</div>
             </div>
         </div>
 
@@ -64,6 +68,9 @@
                         <h3 class="font-semibold text-gray-800 text-sm">{{ assignment.team?.name || 'Echipa' }}</h3>
                         <span class="text-xs px-2 py-0.5 rounded-full" :class="assignment.team?.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'">
                             {{ assignment.team?.active ? 'activa' : 'inactiva' }}
+                        </span>
+                        <span v-if="assignment.overlap_count > 0" class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold">
+                            {{ assignment.overlap_count }} suprapuneri
                         </span>
                     </div>
                     <div class="text-xs text-gray-500 mb-1">

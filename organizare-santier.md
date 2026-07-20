@@ -389,3 +389,41 @@ Acelasi flux stabilit in aceasta sesiune:
   calitate/Predare nu pot fi suprascrise din reteta; fara UI in modalul de
   deviz care sa afiseze `default_tasks` inainte de commit (task-urile devin
   vizibile abia dupa commit, in `stage-tasks.index`/Gantt).
+
+### Faza 15 - Pontaj (ore reale) + cost real vs estimat + suprapuneri calendar (Facut, 2026-07-20)
+- Din propunerea "Manopera avansata" (5 subteme), utilizatorul a ales sa
+  scopam sesiunea la pontaj + cost real, plus o extindere mica a
+  suprapunerilor in `TeamCalendar`. Disponibilitate/concediu echipa
+  (necesita model nou de absenta) si productivitate echipa (fara unitate de
+  masura clara in acest model de date) raman explicit pentru o faza
+  viitoare.
+- Tabel nou `site_staff_time_entries` (`App\Models\SiteStaffTimeEntry`) -
+  jurnal de pontaj per `SiteStaffPlan`: data + ore lucrate totale
+  (persoana-ore, comparabile direct cu `estimated_hours`) + nota optionala.
+  Doar adaugare/stergere, fara editare - jurnal, nu formular editabil.
+- **Pontajul nu e blocat de `abortIfPlanLocked()`**, spre deosebire de toate
+  celelalte operatii din `SiteOrganizationController` - planul se aproba
+  *inainte* de executie, iar pontajul se completeaza *in timpul* executiei,
+  deci trebuie sa functioneze si dupa aprobare. Verificat explicit printr-un
+  test dedicat.
+- `actual_hours`/`actual_cost` calculate la citire in
+  `staffPlansWithEstimates()` (nu stocate), acelasi tipar ca
+  `estimated_hours`/`estimated_cost`/`team_overlap_count`; cost real =
+  `sum(hours_worked) * hourly_rate` (acelasi tarif ca la cel estimat, fara
+  tarif separat per intrare).
+- `buildBudgetSummary()` capata `labor_cost_actual`, afisat separat in
+  cardul de buget, **fara** sa intre in `total_estimated` (ar amesteca o
+  cifra reala cu estimari pentru materiale/utilaje).
+- `TeamCalendarController`: `overlap_count` per `PhaseTeamAssignment`
+  (aceeasi echipa, interval de date suprapus, exclude propriul id) - acelasi
+  tipar de query ca `team_overlap_count`, afisat ca badge in
+  `TeamCalendar/Index.vue` + tile nou in sumar
+  (`summary.assignments_with_overlap`).
+- Teste: `tests/Feature/SiteStaffPlanTest.php` (pontaj adaugat/sters,
+  calculul orelor/costului real, pontaj functional pe plan aprobat, izolare
+  tenant), `tests/Feature/SiteBudgetPlanTest.php` (`labor_cost_actual` in
+  sumar, exclus din total), `tests/Feature/TeamCalendarTest.php` (2 asignari
+  suprapuse → `overlap_count` corect pe fiecare).
+- Ramas explicit in afara scopului: disponibilitate/concediu echipa,
+  productivitate echipa, editare de intrari de pontaj, cost real pentru
+  materiale/utilaje.

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SiteStaffPlan extends Model
 {
@@ -52,5 +53,10 @@ class SiteStaffPlan extends Model
     public function contractor(): BelongsTo
     {
         return $this->belongsTo(Contractor::class);
+    }
+
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(SiteStaffTimeEntry::class, 'staff_plan_id')->latest('entry_date');
     }
 }
