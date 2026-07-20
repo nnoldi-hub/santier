@@ -6,6 +6,7 @@ use App\Exports\SitePlanningWorkbookExport;
 use App\Models\Contractor;
 use App\Models\Equipment;
 use App\Models\Material;
+use App\Models\PhaseTeamAssignment;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\Recipe;
@@ -24,6 +25,7 @@ use App\Models\Team;
 use App\Support\DocumentBranding;
 use App\Support\EquipmentCostEstimator;
 use App\Support\ExportAudit;
+use App\Support\LaborCostEstimator;
 use App\Support\SitePlanningAIAdvisor;
 use App\Support\SitePlanningExporter;
 use App\Support\SiteReadinessCalculator;
@@ -246,10 +248,7 @@ class SiteOrganizationController extends Controller
 
     private function gatherPlanningData(Project $project): array
     {
-        $staffPlans = SiteStaffPlan::where('project_id', $project->id)
-            ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
-            ->latest('id')
-            ->get();
+        $staffPlans = $this->staffPlansWithEstimates($project);
 
         $contractorPlans = $this->contractorPlansWithOverlap($project);
 
@@ -275,7 +274,7 @@ class SiteOrganizationController extends Controller
             ->latest('id')
             ->get();
 
-        $budgetSummary = $this->buildBudgetSummary($project, $materialPlans, $equipmentPlans);
+        $budgetSummary = $this->buildBudgetSummary($project, $staffPlans, $materialPlans, $equipmentPlans);
 
         $phases = $project->phases()->orderBy('order')->get(['id', 'name', 'order', 'type', 'duration_days']);
 
@@ -355,6 +354,7 @@ class SiteOrganizationController extends Controller
             'contractor_id' => ['nullable', 'integer', Rule::exists('contractors', 'id')->where('tenant_id', $tenantId)],
             'specialty' => ['required', 'string', 'max:120'],
             'planned_headcount' => ['required', 'integer', 'min:1'],
+            'hourly_rate' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'planned_start' => ['nullable', 'date'],
             'planned_end' => ['nullable', 'date'],
             'risk_level' => ['required', 'in:' . implode(',', array_keys(SiteStaffPlan::$riskLabels))],
@@ -566,6 +566,32 @@ class SiteOrganizationController extends Controller
         ]);
     }
 
+    private function staffPlansWithEstimates(Project $project): Collection
+    {
+        $plans = SiteStaffPlan::where('project_id', $project->id)
+            ->with(['phase:id,name', 'team:id,name', 'contractor:id,name'])
+            ->latest('id')
+            ->get();
+
+        return $plans->map(function (SiteStaffPlan $plan) {
+            $plan->setAttribute('estimated_hours', LaborCostEstimator::estimatedHours($plan));
+            $plan->setAttribute('estimated_cost', LaborCostEstimator::estimate($plan));
+
+            $teamOverlapCount = 0;
+
+            if ($plan->team_id && $plan->planned_start && $plan->planned_end) {
+                $teamOverlapCount = PhaseTeamAssignment::where('team_id', $plan->team_id)
+                    ->where('start_date', '<=', $plan->planned_end)
+                    ->where('end_date', '>=', $plan->planned_start)
+                    ->count();
+            }
+
+            $plan->setAttribute('team_overlap_count', $teamOverlapCount);
+
+            return $plan;
+        });
+    }
+
     private function equipmentPlansWithEstimates(Project $project): Collection
     {
         $plans = SiteEquipmentPlan::where('project_id', $project->id)
@@ -760,8 +786,12 @@ class SiteOrganizationController extends Controller
         ]);
     }
 
-    private function buildBudgetSummary(Project $project, Collection $materialPlans, Collection $equipmentPlans): array
+    private function buildBudgetSummary(Project $project, Collection $staffPlans, Collection $materialPlans, Collection $equipmentPlans): array
     {
+        $laborCost = $staffPlans->sum(function (SiteStaffPlan $plan) {
+            return (float) $plan->estimated_cost;
+        });
+
         $materialsCost = $materialPlans->sum(function (SiteMaterialPlan $plan) {
             return (float) $plan->planned_quantity * (float) ($plan->material?->unit_price ?? 0);
         });
@@ -770,12 +800,18 @@ class SiteOrganizationController extends Controller
             return (float) $plan->estimated_cost;
         });
 
-        $manualCost = (float) SiteBudgetPlan::where('project_id', $project->id)->sum('estimated_cost');
+        // 'labor' is excluded here: once LaborCostEstimator can compute it automatically
+        // from SiteStaffPlan, a manual "Manopera" line would double-count it in the total -
+        // same reasoning materials/equipment were never offered as manual categories.
+        $manualCost = (float) SiteBudgetPlan::where('project_id', $project->id)
+            ->where('category', '!=', 'labor')
+            ->sum('estimated_cost');
 
-        $totalEstimated = $materialsCost + $equipmentCost + $manualCost;
+        $totalEstimated = $laborCost + $materialsCost + $equipmentCost + $manualCost;
         $projectBudget = (float) $project->total_budget;
 
         return [
+            'labor_cost' => round($laborCost, 2),
             'materials_cost' => round($materialsCost, 2),
             'equipment_cost' => round($equipmentCost, 2),
             'manual_cost' => round($manualCost, 2),

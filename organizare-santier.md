@@ -63,6 +63,7 @@ deja construit).
 | 9 | AI Tools organizare | `SitePlanningAIAdvisor` - 3 euristici (necesar oameni, necesar materiale, timeline realist), calculat live in `SiteOrganizationController` | **Facut** |
 | 10 | Export plan organizare | `SitePlanningExporter` - PDF + XLSX, refoloseste sablonul PDF si `CollectionSheetExport` existente | **Facut** |
 | 11 | Aprobare plan + activare executie | Bara "Aproba planul": campuri noi `plan_approved_at`/`plan_approved_by` pe proiect, istoric `site_plan_approvals`, blocare editare pe toate cele 7 domenii, generare automata de `Task`/`ResourceOrder`/`StageEquipment` + `ProjectPhase.contractor_id` | **Facut** |
+| 12 | Cost & ore manopera | `hourly_rate` pe `site_staff_plans` + `LaborCostEstimator` (oglinda la `EquipmentCostEstimator`) - ore/cost estimat per plan de personal, semnal de suprapunere echipa, integrare in rezumatul de buget si in export | **Facut** |
 
 **Ordinea nu e arbitrara**: fazele 2-7 sunt independente intre ele (pot fi reordonate
 dupa prioritate de business), dar faza 8 (scorul de pregatire) are nevoie de cel putin
@@ -289,3 +290,37 @@ Acelasi flux stabilit in aceasta sesiune:
 - Test `tests/Feature/SitePlanApprovalTest.php` (generare artefacte, plan de
   utilaj fara etapa sarit corect, blocare editare dupa aprobare, anulare aprobare,
   imposibilitatea de a aproba de doua ori, izolare tenant).
+
+### Faza 12 - Cost & ore manopera (Facut, 2026-07-20)
+- Continuare directa a unei analize pe 7 arii cerute de utilizator ("Resurse
+  necesare pe proiect" - materiale/manopera/utilaje/calitate/defecte), verificate
+  cu agenti de explorare inainte de plan. "Necesar de manopera" era cel mai mare
+  gol real: `SiteStaffPlan` nu avea niciun camp de ore/cost.
+- **Decizie de design**: `hourly_rate` e un camp propriu, manual, pe
+  `SiteStaffPlan` (coloana noua) - NU derivat din `TeamMember.hourly_rate`
+  (per-persoana, nu per-plan pe headcount, si echipa e adesea neasignata inca
+  in faza de planificare) - exact limitarea deja documentata la Faza 7. Acelasi
+  tipar ca `RecipeLaborItem.hourly_rate` din modulul Retetar (sesiunea anterioara).
+- `App\Support\LaborCostEstimator` (nou) - oglinda exacta la
+  `EquipmentCostEstimator`: ore estimate = zile planificate × 8h/zi × necesar
+  oameni; cost = ore × tarif orar.
+- `SiteOrganizationController::staffPlansWithEstimates()` (nou, oglinda la
+  `equipmentPlansWithEstimates()`) - adauga `estimated_hours`/`estimated_cost`
+  pe fiecare plan, plus `team_overlap_count` (doar cand planul are `team_id` -
+  numara `PhaseTeamAssignment` reale suprapuse pentru aceeasi echipa, afisat ca
+  badge informativ, la fel ca `reserved_elsewhere_count` la utilaje - fara
+  blocare la salvare).
+- Cost manopera auto integrat in rezumatul de buget (`labor_cost`, inclus in
+  `total_estimated`) si in exportul PDF/XLSX.
+- **Efect colateral rezolvat**: `SiteBudgetPlan` avea deja o categorie manuala
+  `'labor'` (din Faza 7, inainte sa existe calcul automat) - ar fi dublat costul
+  in rezumat. Nu s-a sters categoria (ar fi stricat validarea pe randuri
+  existente) - liniile cu `category=labor` sunt acum excluse explicit din suma
+  `manual_cost`, cu o nota vizibila in UI.
+- Ramas explicit in afara scopului: productivitate echipa, disponibilitate
+  echipa calculata (spre deosebire de utilaje, `Team` tot nu are un
+  `availability_status`) - candidati pentru o faza viitoare separata.
+- Teste: `tests/Feature/SiteStaffPlanTest.php` (2 teste noi - calcul
+  ore/cost, `team_overlap_count`), `tests/Feature/SiteBudgetPlanTest.php`
+  (test existent actualizat sa reflecte excluderea categoriei `labor` + test
+  nou pentru `labor_cost` automat).

@@ -126,6 +126,10 @@
                             <input v-model.number="staffPlanForm.planned_headcount" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-600 mb-1">Tarif orar (RON/ora)</label>
+                            <input v-model.number="staffPlanForm.hourly_rate" type="number" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: 45" />
+                        </div>
+                        <div>
                             <label class="block text-xs text-gray-600 mb-1">Echipa (optional)</label>
                             <select v-model="staffPlanForm.team_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                                 <option value="">— Neselectat —</option>
@@ -181,6 +185,8 @@
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Necesar</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Responsabil</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Perioada</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Ore estimate</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500">Cost estimat</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Risc</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-500">Actiuni</th>
                             </tr>
@@ -190,10 +196,17 @@
                                 <td class="px-4 py-3 text-gray-700">{{ plan.phase?.name || 'Fara etapa' }}</td>
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ plan.specialty }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ plan.planned_headcount }}</td>
-                                <td class="px-4 py-3 text-gray-600">{{ plan.team?.name || plan.contractor?.name || '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600">
+                                    {{ plan.team?.name || plan.contractor?.name || '-' }}
+                                    <span v-if="plan.team_overlap_count > 0" class="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                                        {{ plan.team_overlap_count }} suprapuneri echipa
+                                    </span>
+                                </td>
                                 <td class="px-4 py-3 text-gray-600 text-xs">
                                     {{ formatDate(plan.planned_start) }} → {{ formatDate(plan.planned_end) }}
                                 </td>
+                                <td class="px-4 py-3 text-gray-600">{{ plan.estimated_hours }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ formatCurrency(plan.estimated_cost) }}</td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold" :class="riskTone(plan.risk_level)">
                                         {{ riskLevels[plan.risk_level] || plan.risk_level }}
@@ -719,7 +732,11 @@
             <div v-else-if="activeTab === 'budget'" class="space-y-6">
                 <div class="bg-white border border-gray-200 rounded-xl p-5">
                     <h3 class="font-semibold text-gray-800 mb-3">Rezumat buget estimat</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Cost manopera (auto)</p>
+                            <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.labor_cost) }}</p>
+                        </div>
                         <div>
                             <p class="text-xs text-gray-500">Cost materiale (auto)</p>
                             <p class="text-sm font-semibold text-gray-800">{{ formatCurrency(budgetSummary.materials_cost) }}</p>
@@ -747,6 +764,7 @@
                             </p>
                         </div>
                     </div>
+                    <p class="mt-3 text-xs text-gray-500">Liniile manuale de tip "Manopera" din tabelul de mai jos nu mai sunt incluse in total - costul se calculeaza acum automat din planul de personal.</p>
                 </div>
 
                 <div class="bg-white border border-gray-200 rounded-xl p-5">
@@ -961,6 +979,7 @@ const staffPlanForm = useForm({
     phase_id: '',
     specialty: '',
     planned_headcount: 1,
+    hourly_rate: '',
     team_id: '',
     contractor_id: '',
     risk_level: 'medium',

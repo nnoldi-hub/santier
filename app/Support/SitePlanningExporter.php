@@ -31,7 +31,7 @@ class SitePlanningExporter
 
     private static function staffSection(Collection $plans): array
     {
-        $headings = ['Etapa', 'Specialitate', 'Necesar', 'Responsabil', 'Inceput', 'Sfarsit', 'Risc', 'Note'];
+        $headings = ['Etapa', 'Specialitate', 'Necesar', 'Responsabil', 'Inceput', 'Sfarsit', 'Ore estimate', 'Cost estimat', 'Suprapuneri echipa', 'Risc', 'Note'];
 
         $rows = $plans->map(fn (SiteStaffPlan $plan) => [
             'Etapa' => $plan->phase?->name ?? 'Fara etapa',
@@ -40,6 +40,9 @@ class SitePlanningExporter
             'Responsabil' => $plan->team?->name ?? $plan->contractor?->name ?? '-',
             'Inceput' => self::formatDate($plan->planned_start),
             'Sfarsit' => self::formatDate($plan->planned_end),
+            'Ore estimate' => $plan->estimated_hours ?? '-',
+            'Cost estimat' => number_format((float) ($plan->estimated_cost ?? 0), 2) . ' lei',
+            'Suprapuneri echipa' => $plan->team_overlap_count ?? 0,
             'Risc' => SiteStaffPlan::$riskLabels[$plan->risk_level] ?? $plan->risk_level,
             'Note' => $plan->notes ?? '',
         ])->all();
@@ -158,6 +161,7 @@ class SitePlanningExporter
         $headings = ['Indicator', 'Valoare'];
 
         $rows = [
+            ['Indicator' => 'Cost manopera (auto)', 'Valoare' => number_format($summary['labor_cost'] ?? 0, 2) . ' lei'],
             ['Indicator' => 'Cost materiale (auto)', 'Valoare' => number_format($summary['materials_cost'] ?? 0, 2) . ' lei'],
             ['Indicator' => 'Cost utilaje (auto)', 'Valoare' => number_format($summary['equipment_cost'] ?? 0, 2) . ' lei'],
             ['Indicator' => 'Cost manual adaugat', 'Valoare' => number_format($summary['manual_cost'] ?? 0, 2) . ' lei'],

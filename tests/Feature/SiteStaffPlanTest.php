@@ -3,11 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\PhaseTeamAssignment;
 use App\Models\Project;
+use App\Models\ProjectPhase;
 use App\Models\SiteStaffPlan;
+use App\Models\Team;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class SiteStaffPlanTest extends TestCase
@@ -112,6 +116,72 @@ class SiteStaffPlanTest extends TestCase
 
         $response->assertNotFound();
         $this->assertDatabaseCount('site_staff_plans', 0);
+    }
+
+    public function test_staff_plan_returns_estimated_hours_and_cost(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/staff-plans", [
+                'specialty' => 'Zidar',
+                'planned_headcount' => 2,
+                'hourly_rate' => 50,
+                'planned_start' => '2026-01-01',
+                'planned_end' => '2026-01-03',
+                'risk_level' => 'medium',
+            ]);
+
+        // 3 zile (1-3 ian inclusiv) * 8h * 2 oameni = 48h; 48h * 50 RON/h = 2400
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('staffPlans.0.estimated_hours', 48)
+                ->where('staffPlans.0.estimated_cost', 2400);
+        });
+    }
+
+    public function test_staff_plan_reports_team_overlap_with_real_assignments(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user);
+
+        $team = Team::create(['tenant_id' => 1, 'name' => 'Echipa Zidari', 'active' => true]);
+
+        $otherPhase = ProjectPhase::create([
+            'project_id' => $project->id,
+            'name' => 'Etapa existenta',
+            'type' => 'custom',
+            'status' => 'in_progress',
+            'progress_pct' => 0,
+            'order' => 1,
+        ]);
+
+        PhaseTeamAssignment::create([
+            'phase_id' => $otherPhase->id,
+            'team_id' => $team->id,
+            'workers_needed' => 2,
+            'workers_assigned' => 2,
+            'start_date' => '2026-01-02',
+            'end_date' => '2026-01-05',
+        ]);
+
+        $this->actingAs($user)
+            ->post("/projects/{$project->id}/organizare/staff-plans", [
+                'specialty' => 'Zidar',
+                'planned_headcount' => 2,
+                'team_id' => $team->id,
+                'planned_start' => '2026-01-01',
+                'planned_end' => '2026-01-03',
+                'risk_level' => 'medium',
+            ]);
+
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('staffPlans.0.team_overlap_count', 1);
+        });
     }
 
     private function createProject(User $user): Project

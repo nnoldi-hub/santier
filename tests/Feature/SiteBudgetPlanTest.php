@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Models\Project;
 use App\Models\SiteBudgetPlan;
 use App\Models\SiteMaterialPlan;
+use App\Models\SiteStaffPlan;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -139,20 +140,63 @@ class SiteBudgetPlanTest extends TestCase
         SiteBudgetPlan::create([
             'tenant_id' => 1,
             'project_id' => $project->id,
-            'category' => 'labor',
-            'description' => 'Manopera',
+            'category' => 'contingency',
+            'description' => 'Rezerva',
             'estimated_cost' => 3000,
         ]);
 
         $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
 
         $response->assertInertia(function (Assert $page) {
-            $page->where('budgetSummary.materials_cost', 250)
+            $page->where('budgetSummary.labor_cost', 0)
+                ->where('budgetSummary.materials_cost', 250)
                 ->where('budgetSummary.equipment_cost', 0)
                 ->where('budgetSummary.manual_cost', 3000)
                 ->where('budgetSummary.total_estimated', 3250)
                 ->where('budgetSummary.project_budget', 20000)
                 ->where('budgetSummary.difference', 16750);
+        });
+    }
+
+    public function test_budget_summary_includes_automatic_labor_cost_and_excludes_manual_labor_lines(): void
+    {
+        $user = $this->createOnboardedUser();
+        $project = $this->createProject($user, 20000);
+
+        SiteStaffPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'specialty' => 'Zidar',
+            'planned_headcount' => 2,
+            'hourly_rate' => 50,
+            'planned_start' => '2026-01-01',
+            'planned_end' => '2026-01-03',
+            'risk_level' => 'medium',
+        ]);
+
+        SiteBudgetPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'category' => 'labor',
+            'description' => 'Manopera introdusa manual (nu ar trebui numarata)',
+            'estimated_cost' => 9999,
+        ]);
+
+        SiteBudgetPlan::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'category' => 'contingency',
+            'description' => 'Rezerva',
+            'estimated_cost' => 500,
+        ]);
+
+        // 3 zile * 8h * 2 oameni * 50 RON/h = 2400
+        $response = $this->actingAs($user)->get("/projects/{$project->id}/organizare");
+
+        $response->assertInertia(function (Assert $page) {
+            $page->where('budgetSummary.labor_cost', 2400)
+                ->where('budgetSummary.manual_cost', 500)
+                ->where('budgetSummary.total_estimated', 2900);
         });
     }
 

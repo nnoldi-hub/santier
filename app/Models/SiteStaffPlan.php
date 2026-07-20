@@ -21,6 +21,7 @@ class SiteStaffPlan extends Model
         'contractor_id',
         'specialty',
         'planned_headcount',
+        'hourly_rate',
         'planned_start',
         'planned_end',
         'risk_level',
@@ -28,6 +29,7 @@ class SiteStaffPlan extends Model
     ];
 
     protected $casts = [
+        'hourly_rate' => 'decimal:2',
         'planned_start' => 'date',
         'planned_end' => 'date',
     ];
