@@ -1096,9 +1096,9 @@ Route::middleware('auth')->get('/help', function () {
             ],
             [
                 'name' => 'Organizare Santier',
-                'summary' => 'Pregatirea santierului inainte de executie: echipe, subcontractori, materiale, utilaje, logistica, documente, buget si scor de pregatire pe 8 domenii.',
+                'summary' => 'Pregatirea si executia santierului: echipe, subcontractori, materiale, utilaje, logistica, documente, buget si scor de pregatire pe 8 domenii. Personalul are tarif orar si pontaj (ore reale vs estimate), materialele au furnizor din catalog si data de comanda calculata automat din lead-time, iar etapele pot primi un buffer de zile pentru neprevazute.',
                 'route' => route('projects.index'),
-                'example' => 'Deschizi un proiect, apesi butonul "Organizare Santier" si completezi domeniile pana scorul de pregatire arata verde, apoi aprobi planul.',
+                'example' => 'Deschizi un proiect, apesi butonul "Organizare Santier" si completezi domeniile pana scorul de pregatire arata verde, apoi aprobi planul. Dupa aprobare, inregistrezi pontaj pe planurile de personal ca sa urmaresti costul real fata de cel estimat.',
             ],
             [
                 'name' => 'Planificare',
@@ -1108,9 +1108,15 @@ Route::middleware('auth')->get('/help', function () {
             ],
             [
                 'name' => 'Resurse',
-                'summary' => 'Echipe interne, subcontractori, utilaje, materiale si Retetar - normele de consum care alimenteaza devizele automate.',
+                'summary' => 'Echipe interne, subcontractori, utilaje, materiale, furnizori si Retetar - normele de consum care alimenteaza devizele automate.',
                 'route' => route('teams.index'),
                 'example' => 'Verifici cine este alocat pe mai multe proiecte si unde apar supraincarcari.',
+            ],
+            [
+                'name' => 'Furnizori materiale',
+                'summary' => 'Catalog de furnizori (nume, contact, telefon, email), legat de materiale, utilaje, facturi de materiale si comenzi de resurse.',
+                'route' => route('suppliers.index'),
+                'example' => 'Adaugi un furnizor o singura data - dupa aceea il alegi dintr-un dropdown la crearea unui material, utilaj, factura sau comanda, iar numele lui se completeaza automat.',
             ],
             [
                 'name' => 'Retetar',
@@ -1220,13 +1226,26 @@ Route::middleware('auth')->get('/help', function () {
                 'title' => 'Exemplu: pregatesti santierul inainte de executie',
                 'steps' => [
                     'Deschizi proiectul si apesi butonul "Organizare Santier".',
-                    'Completezi echipele, subcontractorii, materialele, utilajele, logistica, documentele si bugetul initial.',
+                    'Completezi echipele, subcontractorii, materialele, utilajele, logistica, documentele si bugetul initial - la materiale alegi furnizorul din catalog, iar daca completezi si lead-time-ul, data de comanda se calculeaza automat din data de livrare.',
                     'Verifici in tab-ul Rezumat scorul de pregatire si rezolvi blocajele semnalate.',
                     'Cand totul e pregatit, aprobi planul - se genereaza automat sarcini, comenzi si rezervari pentru executie.',
                 ],
                 'links' => [
                     ['label' => 'Proiectele mele', 'href' => route('projects.index')],
                     ['label' => 'WBS', 'href' => route('wbs.index')],
+                ],
+            ],
+            [
+                'title' => 'Exemplu: urmaresti costul real de manopera pe o etapa',
+                'steps' => [
+                    'Dupa aprobarea planului, deschizi Organizare Santier, tab-ul de personal.',
+                    'Apesi "Pontaj" pe planul echipei care lucreaza si adaugi cate o inregistrare pentru fiecare zi (data + ore lucrate).',
+                    'Coloanele "Ore reale" si "Cost real" se actualizeaza automat si compari cu "Ore estimate" / "Cost estimat".',
+                    'Daca costul real depaseste estimarea, apare evidentiat cu rosu in tabel si in cardul de buget.',
+                ],
+                'links' => [
+                    ['label' => 'Proiectele mele', 'href' => route('projects.index')],
+                    ['label' => 'Calendar echipe', 'href' => route('team-calendar.index')],
                 ],
             ],
         ],
@@ -1274,6 +1293,17 @@ Route::middleware('auth')->get('/help', function () {
                 ],
                 'href' => route('recipes.create'),
                 'cta' => 'Creeaza reteta',
+            ],
+            [
+                'title' => 'Organizare Santier: personal - tarif si pontaj',
+                'items' => [
+                    'Adaugi un plan de personal cu tarif orar - costul estimat se calculeaza automat din perioada planificata.',
+                    'Dupa ce echipa incepe lucrul (chiar si dupa aprobarea planului), apesi "Pontaj" pe rand si inregistrezi orele lucrate zi de zi.',
+                    'Coloanele "Ore reale" si "Cost real" se actualizeaza automat si le compari cu estimarea initiala.',
+                    'Un badge rosu iti arata cand echipa e suprapusa cu o alta alocare in acelasi interval.',
+                ],
+                'href' => route('projects.index'),
+                'cta' => 'Deschide un proiect',
             ],
         ],
         'faqs' => [
@@ -1328,6 +1358,26 @@ Route::middleware('auth')->get('/help', function () {
             [
                 'question' => 'Pot exporta planul de organizare pentru echipa sau client?',
                 'answer' => 'Da - din pagina Organizare Santier ai butoanele Export PDF si Export XLSX, cu toate cele 8 domenii, scorul de pregatire si sugestiile AI intr-un singur document.',
+            ],
+            [
+                'question' => 'Ce este pontajul si cum il folosesc?',
+                'answer' => 'Pontajul e jurnalul de ore reale lucrate pe un plan de personal - apesi "Pontaj" pe rand si adaugi cate o inregistrare (data + ore) pentru fiecare zi. Spre deosebire de restul planului, pontajul ramane deschis si dupa aprobarea planului, pentru ca se completeaza in timpul executiei.',
+            ],
+            [
+                'question' => 'Cum aleg un furnizor pentru un material, utilaj, factura sau comanda?',
+                'answer' => 'Din catalogul de Furnizori materiale (Resurse > Furnizori materiale). Odata adaugat acolo, apare intr-un dropdown "Furnizor (catalog)" la crearea/editarea materialului, utilajului, facturii sau comenzii - alegerea lui completeaza automat numele afisat, pe care il poti suprascrie manual daca e un furnizor ocazional.',
+            ],
+            [
+                'question' => 'De ce nu se schimba costul unui plan mai vechi cand modific pretul unui material in catalog?',
+                'answer' => 'Pretul (si tariful de furnizor/utilaj) se "inghata" pe planul proiectului chiar in momentul in care il adaugi, nu se recalculeaza live din catalog. Asta inseamna ca o schimbare de pret facuta azi in catalog nu modifica retroactiv bugetul unor proiecte deja planificate sau finalizate.',
+            ],
+            [
+                'question' => 'Ce este bufferul de neprevazute pe o etapa?',
+                'answer' => 'Un numar de zile de rezerva, adaugat manual pe o etapa (la editare, langa Data sfarsit), pentru riscuri anticipate. Se vede ca badge "+N zile buffer" in pagina proiectului si in WBS, si ca segment suplimentar pe bara etapei in Gantt - fara sa modifice automat datele altor etape.',
+            ],
+            [
+                'question' => 'Cum se calculeaza automat data de comanda a unui material?',
+                'answer' => 'Daca la un plan de material completezi data de livrare planificata si lead-time-ul (zile), data de comanda se calculeaza automat (livrare minus lead-time) atat timp cat nu o completezi tu manual - in caz contrar, valoarea introdusa manual are prioritate.',
             ],
         ],
     ]);
