@@ -5,9 +5,20 @@
                 <h2 class="text-xl font-semibold text-gray-800">Defecte (Snag)</h2>
                 <p class="text-sm text-gray-500 mt-1">{{ pluralize(defects.total, 'defect in total', 'defecte in total') }}</p>
             </div>
-            <Link :href="route('defects.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
-                + Defect nou
-            </Link>
+            <div class="flex items-center gap-2">
+                <a
+                    v-if="filterForm.project_id"
+                    :href="route('defects.report', { project_id: filterForm.project_id })"
+                    target="_blank"
+                    rel="noopener"
+                    class="border border-indigo-300 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
+                >
+                    Export raport agregat
+                </a>
+                <Link :href="route('defects.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
+                    + Defect nou
+                </Link>
+            </div>
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4">
@@ -72,7 +83,11 @@
                     <p v-if="defect.location" class="text-xs text-gray-500 mt-1">Locatie: {{ defect.location }}</p>
                     <p v-if="defect.description" class="text-sm text-gray-600 mt-2 line-clamp-2">{{ defect.description }}</p>
                     <p v-if="defect.due_date" class="text-xs text-gray-500 mt-2">Deadline remediere: {{ formatDate(defect.due_date) }}</p>
-                    <img v-if="defect.photo_url" :src="defect.photo_url" alt="Foto defect" class="mt-2 rounded-lg border border-gray-200 max-h-32 object-cover" />
+                    <div v-if="defect.photos?.length" class="flex items-center gap-2 mt-2">
+                        <img :src="defect.photos[0].url" alt="Foto defect" class="rounded-lg border border-gray-200 max-h-32 object-cover" />
+                        <span v-if="defect.photos.length > 1" class="text-xs text-gray-500">+{{ defect.photos.length - 1 }} poze</span>
+                    </div>
+                    <img v-else-if="defect.photo_url" :src="defect.photo_url" alt="Foto defect" class="mt-2 rounded-lg border border-gray-200 max-h-32 object-cover" />
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
@@ -82,6 +97,7 @@
                         <option value="resolved">Rezolvat</option>
                         <option value="rejected">Respins</option>
                     </select>
+                    <a :href="route('defects.pdf', defect.id)" target="_blank" rel="noopener" class="text-xs border border-indigo-300 rounded px-2 py-1 text-indigo-700 hover:bg-indigo-50">PDF</a>
                     <Link :href="route('defects.edit', defect.id)" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">Editeaza</Link>
                     <button @click="remove(defect)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50">Sterge</button>
                 </div>

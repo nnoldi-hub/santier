@@ -241,6 +241,10 @@ class QualityCheckController extends Controller
             'status' => ['required', 'in:pending,in_progress,passed,failed'],
         ]);
 
+        if (in_array($validated['status'], ['passed', 'failed'], true) && $quality_check->photos()->doesntExist()) {
+            return back()->with('error', 'Este necesara cel putin o poza pentru a finaliza verificarea. Editeaza verificarea si adauga o poza.');
+        }
+
         $quality_check->update([
             'status' => $validated['status'],
             'completed_at' => $validated['status'] === 'passed' ? ($quality_check->completed_at ?? now()) : null,

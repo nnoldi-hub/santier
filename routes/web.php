@@ -1475,6 +1475,9 @@ Route::middleware('auth')->group(function () {
         Route::get('cost-tracking', [CostTrackingController::class, 'index'])->name('cost-tracking.index');
         Route::get('stage-progress', [StageProgressController::class, 'index'])->name('stage-progress.index');
         Route::resource('defects', DefectController::class)->except('show');
+        Route::get('defects/report', [DefectController::class, 'projectReport'])->name('defects.report');
+        Route::get('defects/{defect}/pdf', [DefectController::class, 'pdf'])->name('defects.pdf');
+        Route::delete('defects/{defect}/photos/{defect_photo}', [DefectController::class, 'destroyPhoto'])->name('defects.photos.destroy');
         Route::resource('quality-checks', QualityCheckController::class)->except('show');
         Route::get('quality-checks/{quality_check}/pdf', [QualityCheckController::class, 'pdf'])->name('quality-checks.pdf');
         Route::get('quality-checks/report', [QualityCheckController::class, 'projectReport'])->name('quality-checks.report');

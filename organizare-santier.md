@@ -637,3 +637,55 @@ Acelasi flux stabilit in aceasta sesiune:
   deja salvate (doar inlocuire completa), compresie/optimizare imagini la
   upload, raport agregat filtrat pe etapa (doar pe proiect, in aceasta
   faza).
+
+### Faza 21 - Defecte 2.0: poze multiple, dovada rezolvarii, semnatura, raport agregat + PDF individual (Facut, 2026-07-21)
+- A doua (si ultima) arie mare din propunerea initiala pe 7 arii ramasa
+  neatinsa, alaturi de Calitate 2.0 (Faza 20). Modulul de Defecte avea o
+  singura poza per defect, fara dovada de rezolvare, fara semnatura, fara
+  export PDF (doar CSV) - exact tiparul pe care `QualityCheck` il avea
+  inainte de Faza 20.
+- **Poze multiple**: tabel nou `defect_photos` (mirror pe
+  `quality_check_photos`) + model `DefectPhoto`, upload multiplu
+  (`photos[]`, max 6). Coloanele vechi `photo_path`/`photo_name` raman
+  neatinse (fara backfill) - poza veche ramane vizibila needitabila pe
+  `Edit.vue`, langa galeria noua.
+- **Poza obligatorie doar la "Rezolvat"** (nu si la "Respins" - decizie
+  explicita: respingerea unui defect nu are ce sa fotografieze nou),
+  aplicata atat in `StoreDefectRequest::after()` cat si manual in
+  `DefectController::updateStatus()` (schimbarea rapida de status din
+  Index.vue nu are upload de fisier posibil, verifica doar poze deja
+  existente).
+- **Dovada rezolvarii**: `resolution_notes` (text liber) si `resolved_by`
+  (FK catre users, setat automat la utilizatorul curent cand statusul
+  devine "Rezolvat").
+- **Semnatura digitala optionala**: refoloseste `SignaturePad.vue` deja
+  construit la Faza 20 (zero cod nou de canvas) si acelasi tipar de
+  decodare base64 -> PNG.
+- **PDF individual** (`defects/{defect}/pdf`) - Defect nu avea deloc PDF
+  pana acum (doar CSV) - mirror pe `quality_checks/pdf.blade.php`.
+- **Raport agregat pe proiect** (`GET defects/report?project_id=`), cu
+  sumar deschise/in progres/rezolvate/respinse - mirror pe
+  `QualityCheckController::projectReport()`.
+- **Bug adiacent descoperit si reparat**: schimbarea rapida de status din
+  dropdown-ul de pe `Index.vue` (`updateStatus()`) ocolea complet regula de
+  poza obligatorie, atat la Defecte (nou) cat si retroactiv la
+  `QualityCheckController::updateStatus()` din Faza 20 (acolo regula era
+  aplicata doar pe formularul complet, nu si pe schimbarea rapida de
+  status) - reparat in ambele controllere in acelasi commit. Mesajele de
+  eroare de la aceste doua metode folosesc acum `flash.error` (bannerul
+  global din `AppLayout.vue`), nu `session()->errors` (acolo unde nu
+  exista un formular Inertia care sa le citeasca).
+- Teste: `tests/Feature/DefectManagementTest.php` (nou - 6 teste: poze
+  multiple, rezolvare fara poza respinsa, rezolvare cu poza seteaza
+  `resolved_by`, respingere fara poza acceptata, stergere poza, semnatura),
+  `tests/Feature/DefectReportPdfTest.php` (nou - PDF individual + raport
+  agregat + izolare tenant), `tests/Feature/DefectsFilterTest.php`
+  (actualizat sa creeze o poza inainte de a marca "Rezolvat" prin
+  schimbarea rapida de status), `tests/Feature/QualityChecksTest.php`
+  (+2 - bonus-fix pe `updateStatus`),
+  `tests/Feature/QualityCheckAutomationTest.php` (actualizat - trecea prin
+  campul vechi `photo`, migrat la `photos[]`).
+- Ramas explicit in afara scopului: camp "severity" separat de `priority`
+  (deja acopera acelasi sens), istoric de comentarii/rezolutii multiple
+  (un singur `resolution_notes`, suprascris), legatura `Defect` <->
+  `QualityCheck`/`Recipe` (nicio dovada ca a fost intentionata).

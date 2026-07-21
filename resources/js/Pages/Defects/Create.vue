@@ -75,10 +75,23 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Foto defect (telefon)</label>
-                    <input type="file" accept="image/*" capture="environment" @change="onPhotoSelected" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    <p v-if="form.errors.photo" class="text-red-500 text-xs mt-1">{{ form.errors.photo }}</p>
-                    <img v-if="photoPreview" :src="photoPreview" alt="Preview defect" class="mt-2 rounded-lg border border-gray-200 max-h-52 object-cover" />
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Poze defect {{ requiresPhoto ? '(obligatorii pentru Rezolvat)' : '(telefon, optional)' }}</label>
+                    <input type="file" accept="image/*" capture="environment" multiple @change="onPhotosSelected" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <p v-if="form.errors.photos" class="text-red-500 text-xs mt-1">{{ form.errors.photos }}</p>
+                    <div v-if="photoNames.length" class="flex flex-wrap gap-2 mt-2">
+                        <span v-for="(name, index) in photoNames" :key="`photo-${index}`" class="text-xs bg-gray-100 rounded px-2 py-1 text-gray-600">{{ name }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Note rezolvare (optional)</label>
+                    <textarea v-model="form.resolution_notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Cum a fost/va fi rezolvat defectul..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Semnatura digitala (optional)</label>
+                    <SignaturePad v-model="form.signature_data_url" />
+                    <input v-model="form.signed_by_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-2" placeholder="Semnat de (nume)" />
                 </div>
 
                 <div class="flex gap-3 pt-2">
@@ -98,6 +111,7 @@
 import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SignaturePad from '@/Components/SignaturePad.vue';
 
 const props = defineProps({
     projects: Array,
@@ -116,15 +130,20 @@ const form = useForm({
     status: 'open',
     priority: 'medium',
     due_date: '',
-    photo: null,
+    resolution_notes: '',
+    photos: [],
+    signature_data_url: '',
+    signed_by_name: '',
 });
 
-const photoPreview = ref(null);
+const photoNames = ref([]);
 
 const selectedPhases = computed(() => {
     if (!form.project_id) return [];
     return props.phasesByProject[form.project_id] || props.phasesByProject[Number(form.project_id)] || [];
 });
+
+const requiresPhoto = computed(() => form.status === 'resolved');
 
 function onProjectChange() {
     form.phase_id = '';
@@ -134,9 +153,9 @@ function submit() {
     form.post(route('defects.store'), { forceFormData: true });
 }
 
-function onPhotoSelected(event) {
-    const file = event.target.files?.[0] || null;
-    form.photo = file;
-    photoPreview.value = file ? URL.createObjectURL(file) : null;
+function onPhotosSelected(event) {
+    const files = Array.from(event.target.files || []);
+    form.photos = files;
+    photoNames.value = files.map((file) => file.name);
 }
 </script>

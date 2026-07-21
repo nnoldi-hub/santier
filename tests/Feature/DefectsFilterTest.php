@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Defect;
+use App\Models\DefectPhoto;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\User;
@@ -53,6 +54,12 @@ class DefectsFilterTest extends TestCase
         $user = $this->createTenantUser('defects.status@santier.local');
         $project = $this->createProject($user, 'Proiect Status');
         $defect = $this->createDefect($user, $project, 'Defect de status', 'open', 'high');
+        DefectPhoto::create([
+            'tenant_id' => 1,
+            'defect_id' => $defect->id,
+            'path' => 'defects/photos/existing.jpg',
+            'name' => 'existing.jpg',
+        ]);
 
         $this->actingAs($user)
             ->patch(route('defects.status', $defect), [

@@ -218,6 +218,61 @@ class QualityChecksTest extends TestCase
         Storage::disk('public')->assertExists($qualityCheck->signature_path);
     }
 
+    public function test_quick_status_update_to_passed_without_photo_is_rejected(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $qualityCheck = QualityCheck::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare fara poza',
+            'check_type' => 'execution',
+            'reception_type' => 'partial',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('quality-checks.status', $qualityCheck), [
+            'status' => 'passed',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame('pending', $qualityCheck->fresh()->status);
+    }
+
+    public function test_quick_status_update_to_passed_with_existing_photo_is_accepted(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $qualityCheck = QualityCheck::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare cu poza',
+            'check_type' => 'execution',
+            'reception_type' => 'partial',
+            'status' => 'pending',
+        ]);
+
+        QualityCheckPhoto::create([
+            'tenant_id' => 1,
+            'quality_check_id' => $qualityCheck->id,
+            'path' => 'quality-checks/photos/existing.jpg',
+            'name' => 'existing.jpg',
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('quality-checks.status', $qualityCheck), [
+            'status' => 'passed',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame('passed', $qualityCheck->fresh()->status);
+    }
+
     private function seedProjectContext(User $user): array
     {
         $client = Client::create([

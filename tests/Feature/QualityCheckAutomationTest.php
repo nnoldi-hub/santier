@@ -92,15 +92,15 @@ class QualityCheckAutomationTest extends TestCase
                 'status' => 'open',
                 'priority' => 'high',
                 'due_date' => now()->addDays(2)->toDateString(),
-                'photo' => $photo,
+                'photos' => [$photo],
             ])
             ->assertRedirect(route('defects.index'));
 
         $defect = Defect::query()->where('title', 'Fisura perete')->first();
 
         $this->assertNotNull($defect);
-        $this->assertNotNull($defect->photo_path);
-        Storage::disk('public')->assertExists($defect->photo_path);
+        $this->assertCount(1, $defect->photos);
+        Storage::disk('public')->assertExists($defect->photos->first()->path);
     }
 
     private function createTenantUser(string $email): User
