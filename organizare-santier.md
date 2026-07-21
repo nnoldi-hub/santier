@@ -578,3 +578,62 @@ Acelasi flux stabilit in aceasta sesiune:
   listare, istoric de preturi per furnizor, redenumirea coloanei
   `Material.supplier` la `supplier_name` (ar sparge exporturile fara
   beneficiu real).
+
+### Faza 20 - Calitate 2.0: checklist din reteta, poze obligatorii, semnatura, raport agregat (Facut, 2026-07-21)
+- Singura arie mare ramasa complet neatinsa din propunerea initiala pe 7
+  arii a utilizatorului (restul erau deja construite in 19 faze +
+  rafinari). 4 capabilitati distincte cerute explicit.
+- **Checklist implicit din reteta**: `recipes.default_checklist` (json
+  nullable) - acelasi tipar ca `RecipeWbsStage.default_tasks` (Faza 14),
+  dar coloana direct pe `Recipe` (o singura lista plata, fara sub-etape).
+  Sectiune noua in `Recipes/Create.vue`/`Edit.vue` (textarea, un item pe
+  linie). In `QualityChecks/Create.vue`/`Edit.vue`: dropdown "Reteta
+  (optional)" + buton "Aplica checklist" - client-side, adauga randuri
+  `{text, done:false}` in `form.checklist` (deja o coloana JSON
+  functionala), editabile dupa - fara endpoint nou, mirror pe integrarea
+  retetei din `Tasks/Create.vue`.
+- **Poze obligatorii**: tabel nou `quality_check_photos` (FK cascade catre
+  `quality_checks`) + model `QualityCheckPhoto`. Upload multiplu
+  (`photos[]`, max 6, `image|mimes:jpg,jpeg,png,webp|max:8192`), mirror pe
+  bucla din `ResourceOrderController::persistLinkedDocuments()`. Regula de
+  "obligatoriu" e in `StoreQualityCheckRequest::after()`: respinge cu
+  eroare pe `photos` daca `status` e `passed`/`failed` si nu exista nicio
+  poza (nici incarcata acum, nici deja existenta pe rand la update) -
+  doar la starile finale, nu la `pending`/`in_progress`.
+- **Semnatura digitala** (optionala - doar pozele au fost cerute explicit
+  ca obligatorii): 3 coloane noi pe `quality_checks` (`signature_path`,
+  `signed_by_name`, `signed_at`). Componenta noua
+  `resources/js/Components/SignaturePad.vue` - canvas simplu cu pointer
+  events (~90 linii), fara librarie noua de desen, consecvent cu
+  principiul de a nu adauga dependente cand nu e nevoie. La submit,
+  canvas-ul devine `data:image/png;base64,...`, decodat si salvat
+  server-side ca fisier PNG (`QualityCheckController::persistSignature()`).
+- **Raport agregat**: ruta noua `GET quality-checks/report?project_id=`,
+  metoda noua `QualityCheckController::projectReport()` - toate
+  verificarile unui proiect intr-un PDF nou
+  (`quality_checks/project-report.blade.php`), cu sumar (total/conform/
+  neconform/in asteptare) in antet - reutilizeaza `DocumentBranding::
+  resolve()` si `ExportAudit::log()` ca restul exporturilor. Buton "Export
+  raport agregat" pe `QualityChecks/Index.vue`, activ cand filtrul de
+  proiect e selectat. Raportul PDF individual existent
+  (`quality_checks/pdf.blade.php`) a fost extins cu sectiuni de poze si
+  semnatura (bonus mic, acelasi loc).
+- **Bug pre-existent descoperit si reparat pe aceeasi linie**: testul
+  `QualityChecksTest::test_quality_check_can_be_created` nu trimitea
+  `reception_type`, camp obligatoriu de la introducerea receptiilor
+  partiale/finale - testul trecea din intamplare pana acum printr-un bug
+  secundar in mesajul de eroare al PHPUnit/Laravel care masca eroarea
+  reala de redirect; corectat prin adaugarea campului in payload-ul de
+  test (nu are legatura cu Calitate 2.0, dar era in acelasi fisier).
+- Teste: `tests/Feature/RecipeManagementTest.php` (+2 - creare/actualizare
+  reteta cu `default_checklist`), `tests/Feature/QualityChecksTest.php`
+  (+4 - poza obligatorie la Conform/Neconform respinsa fara poza si
+  acceptata cu poza, stergere poza, decodare+salvare semnatura),
+  `tests/Feature/QualityReportPdfTest.php` (nou - raportul agregat
+  raspunde 200 cu PDF pentru un proiect, izolare tenant pe 404).
+- Ramas explicit in afara scopului: legatura automata `ProjectPhase` ->
+  `Recipe` (ar necesita `recipe_id` stocat pe etapa la commit-ul devizului
+  AI - schimbare separata, mai mare), editare/redesenare a unei semnaturi
+  deja salvate (doar inlocuire completa), compresie/optimizare imagini la
+  upload, raport agregat filtrat pe etapa (doar pe proiect, in aceasta
+  faza).

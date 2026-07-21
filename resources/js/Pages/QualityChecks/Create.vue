@@ -72,7 +72,14 @@
                     <div class="md:col-span-2">
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs text-gray-600">Checklist verificare</label>
-                            <button type="button" @click="addChecklistItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Item</button>
+                            <div class="flex items-center gap-2">
+                                <select v-model="selectedRecipeId" class="text-xs border border-gray-300 rounded-lg px-2 py-1">
+                                    <option value="">Reteta (optional)</option>
+                                    <option v-for="recipe in recipes" :key="recipe.id" :value="recipe.id">{{ recipe.name }}</option>
+                                </select>
+                                <button type="button" @click="applyChecklistFromRecipe" :disabled="!selectedRecipeId" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-50">Aplica checklist</button>
+                                <button type="button" @click="addChecklistItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Item</button>
+                            </div>
                         </div>
                         <div v-if="form.checklist.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
                             Pentru verificari complexe adauga itemi de checklist.
@@ -84,6 +91,19 @@
                                 <button type="button" @click="removeChecklistItem(index)">Sterge</button>
                             </div>
                         </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Poze {{ requiresPhoto ? '(obligatorii pentru Conform/Neconform)' : '(optional)' }}</label>
+                        <input type="file" accept="image/*" multiple @change="onPhotosSelected" class="text-sm" />
+                        <div v-if="photoNames.length" class="flex flex-wrap gap-2 mt-2">
+                            <span v-for="(name, index) in photoNames" :key="`photo-${index}`" class="text-xs bg-gray-100 rounded px-2 py-1 text-gray-600">{{ name }}</span>
+                        </div>
+                        <p v-if="form.errors.photos" class="text-xs text-red-600 mt-1">{{ form.errors.photos }}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Semnatura digitala (optional)</label>
+                        <SignaturePad v-model="form.signature_data_url" />
+                        <input v-model="form.signed_by_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-2" placeholder="Semnat de (nume)" />
                     </div>
                 </div>
 
@@ -99,9 +119,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SignaturePad from '@/Components/SignaturePad.vue';
 
 const props = defineProps({
     projects: Array,
@@ -111,6 +132,7 @@ const props = defineProps({
     statuses: Object,
     types: Object,
     receptionTypes: Object,
+    recipes: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -125,12 +147,20 @@ const form = useForm({
     status: 'pending',
     planned_at: '',
     notes: '',
+    photos: [],
+    signature_data_url: '',
+    signed_by_name: '',
 });
+
+const selectedRecipeId = ref('');
+const photoNames = ref([]);
 
 const availablePhases = computed(() => {
     if (!form.project_id) return [];
     return props.phasesByProject?.[form.project_id] || props.phasesByProject?.[String(form.project_id)] || [];
 });
+
+const requiresPhoto = computed(() => ['passed', 'failed'].includes(form.status));
 
 function submit() {
     form.post(route('quality-checks.store'));
@@ -143,5 +173,21 @@ function addChecklistItem() {
 
 function removeChecklistItem(index) {
     form.checklist.splice(index, 1);
+}
+
+function applyChecklistFromRecipe() {
+    const recipe = props.recipes.find((r) => String(r.id) === String(selectedRecipeId.value));
+    if (!recipe) return;
+
+    for (const text of recipe.default_checklist || []) {
+        if (form.checklist.length >= 40) break;
+        form.checklist.push({ text, done: false });
+    }
+}
+
+function onPhotosSelected(event) {
+    const files = Array.from(event.target.files || []);
+    form.photos = files;
+    photoNames.value = files.map((file) => file.name);
 }
 </script>

@@ -6,8 +6,11 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\ProjectPhase;
 use App\Models\QualityCheck;
+use App\Models\QualityCheckPhoto;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -26,6 +29,7 @@ class QualityChecksTest extends TestCase
             'title' => 'Verificare finisaj pereti',
             'description' => 'Control planeitate pe toate camerele.',
             'check_type' => 'execution',
+            'reception_type' => 'partial',
             'status' => 'pending',
             'planned_at' => now()->addDay()->format('Y-m-d H:i:s'),
         ]);
@@ -110,6 +114,108 @@ class QualityChecksTest extends TestCase
         $this->assertDatabaseMissing('quality_checks', [
             'title' => 'Verificare invalida',
         ]);
+    }
+
+    public function test_marking_check_as_passed_without_photo_is_rejected(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $response = $this->actingAs($user)->post('/quality-checks', [
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare fara poza',
+            'check_type' => 'execution',
+            'status' => 'passed',
+        ]);
+
+        $response->assertSessionHasErrors('photos');
+        $this->assertDatabaseMissing('quality_checks', ['title' => 'Verificare fara poza']);
+    }
+
+    public function test_marking_check_as_passed_with_photo_is_accepted(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $response = $this->actingAs($user)->post('/quality-checks', [
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare cu poza',
+            'check_type' => 'execution',
+            'reception_type' => 'partial',
+            'status' => 'passed',
+            'photos' => [UploadedFile::fake()->image('finisaj.jpg')],
+        ]);
+
+        $response->assertRedirect('/quality-checks');
+        $qualityCheck = QualityCheck::where('title', 'Verificare cu poza')->firstOrFail();
+        $this->assertDatabaseHas('quality_check_photos', [
+            'quality_check_id' => $qualityCheck->id,
+            'name' => 'finisaj.jpg',
+        ]);
+        Storage::disk('public')->assertExists($qualityCheck->photos->first()->path);
+    }
+
+    public function test_photo_can_be_deleted(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $qualityCheck = QualityCheck::create([
+            'tenant_id' => 1,
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare cu poza',
+            'check_type' => 'execution',
+            'status' => 'pending',
+        ]);
+
+        $photo = QualityCheckPhoto::create([
+            'tenant_id' => 1,
+            'quality_check_id' => $qualityCheck->id,
+            'path' => 'quality-checks/photos/existing.jpg',
+            'name' => 'existing.jpg',
+        ]);
+        Storage::disk('public')->put($photo->path, 'fake-content');
+
+        $response = $this->actingAs($user)->delete("/quality-checks/{$qualityCheck->id}/photos/{$photo->id}");
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('quality_check_photos', ['id' => $photo->id]);
+        Storage::disk('public')->assertMissing($photo->path);
+    }
+
+    public function test_signature_data_url_is_decoded_and_stored(): void
+    {
+        Storage::fake('public');
+        $user = $this->createOnboardedUser();
+        [$project, $phase] = $this->seedProjectContext($user);
+
+        $pngDataUrl = 'data:image/png;base64,' . base64_encode(base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+        ));
+
+        $response = $this->actingAs($user)->post('/quality-checks', [
+            'project_id' => $project->id,
+            'phase_id' => $phase->id,
+            'title' => 'Verificare semnata',
+            'check_type' => 'execution',
+            'reception_type' => 'partial',
+            'status' => 'pending',
+            'signature_data_url' => $pngDataUrl,
+            'signed_by_name' => 'Ion Popescu',
+        ]);
+
+        $response->assertRedirect('/quality-checks');
+        $qualityCheck = QualityCheck::where('title', 'Verificare semnata')->firstOrFail();
+        $this->assertNotNull($qualityCheck->signature_path);
+        $this->assertSame('Ion Popescu', $qualityCheck->signed_by_name);
+        $this->assertNotNull($qualityCheck->signed_at);
+        Storage::disk('public')->assertExists($qualityCheck->signature_path);
     }
 
     private function seedProjectContext(User $user): array

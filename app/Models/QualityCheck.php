@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class QualityCheck extends Model
@@ -43,12 +44,16 @@ class QualityCheck extends Model
         'planned_at',
         'completed_at',
         'notes',
+        'signature_path',
+        'signed_by_name',
+        'signed_at',
     ];
 
     protected $casts = [
         'checklist' => 'array',
         'planned_at' => 'datetime',
         'completed_at' => 'datetime',
+        'signed_at' => 'datetime',
     ];
 
     public function project(): BelongsTo
@@ -64,5 +69,10 @@ class QualityCheck extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(QualityCheckPhoto::class);
     }
 }

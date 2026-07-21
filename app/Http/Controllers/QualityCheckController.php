@@ -5,14 +5,20 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreQualityCheckRequest;
 use App\Models\Project;
 use App\Models\QualityCheck;
+use App\Models\QualityCheckPhoto;
+use App\Models\Recipe;
 use App\Models\StageTask;
 use App\Models\User;
+use App\Support\DocumentBranding;
+use App\Support\ExportAudit;
 use App\Support\QualityCheckAutoStatus;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,6 +90,7 @@ class QualityCheckController extends Controller
             'statuses' => QualityCheck::$statusLabels,
             'types' => QualityCheck::$typeLabels,
             'receptionTypes' => QualityCheck::$receptionTypeLabels,
+            'recipes' => $this->recipesWithChecklist($tenantId),
         ]);
     }
 
@@ -95,8 +102,11 @@ class QualityCheckController extends Controller
         $data = $this->applyAutoCompletionFromStageTasks($data, null);
         $data['tenant_id'] = $tenantId;
         $data['completed_at'] = $data['status'] === 'passed' ? now() : null;
+        $data = $this->persistSignature($data, null);
+        unset($data['photos']);
 
         $qualityCheck = QualityCheck::create($data);
+        $this->persistPhotos($qualityCheck, $request, $tenantId);
         QualityCheckAutoStatus::applyForPhase((int) ($qualityCheck->phase_id ?? 0));
 
         return redirect()->route('quality-checks.index')->with('success', 'Verificarea a fost creata.');
@@ -110,6 +120,8 @@ class QualityCheckController extends Controller
             ->with(['phases:id,project_id,name'])
             ->orderBy('name')
             ->get(['id', 'name']);
+
+        $quality_check->load('photos');
 
         return Inertia::render('QualityChecks/Edit', [
             'qualityCheck' => $quality_check,
@@ -127,19 +139,29 @@ class QualityCheckController extends Controller
             'statuses' => QualityCheck::$statusLabels,
             'types' => QualityCheck::$typeLabels,
             'receptionTypes' => QualityCheck::$receptionTypeLabels,
+            'recipes' => $this->recipesWithChecklist($tenantId),
+            'photos' => $quality_check->photos->map(fn (QualityCheckPhoto $photo) => [
+                'id' => $photo->id,
+                'name' => $photo->name,
+                'url' => Storage::url($photo->path),
+            ]),
         ]);
     }
 
     public function update(StoreQualityCheckRequest $request, QualityCheck $quality_check): RedirectResponse
     {
+        $tenantId = TenantContext::id($request->user());
         $data = $request->validated();
         $data['checklist'] = $this->normalizeChecklist($data['checklist'] ?? []);
         $data = $this->applyAutoCompletionFromStageTasks($data, $quality_check);
         $data['completed_at'] = $data['status'] === 'passed'
             ? ($quality_check->completed_at ?? now())
             : null;
+        $data = $this->persistSignature($data, $quality_check);
+        unset($data['photos']);
 
         $quality_check->update($data);
+        $this->persistPhotos($quality_check, $request, $tenantId);
         QualityCheckAutoStatus::applyForPhase((int) ($quality_check->phase_id ?? 0));
 
         return redirect()->route('quality-checks.index')->with('success', 'Verificarea a fost actualizata.');
@@ -147,9 +169,68 @@ class QualityCheckController extends Controller
 
     public function destroy(QualityCheck $quality_check): RedirectResponse
     {
+        foreach ($quality_check->photos as $photo) {
+            Storage::disk('public')->delete($photo->path);
+        }
+
+        if ($quality_check->signature_path) {
+            Storage::disk('public')->delete($quality_check->signature_path);
+        }
+
         $quality_check->delete();
 
         return redirect()->route('quality-checks.index')->with('success', 'Verificarea a fost stearsa.');
+    }
+
+    public function destroyPhoto(QualityCheck $quality_check, QualityCheckPhoto $quality_check_photo): RedirectResponse
+    {
+        $this->authorize('update', $quality_check);
+        abort_unless((int) $quality_check_photo->quality_check_id === $quality_check->id, 404);
+
+        Storage::disk('public')->delete($quality_check_photo->path);
+        $quality_check_photo->delete();
+
+        return back()->with('success', 'Poza a fost stearsa.');
+    }
+
+    public function projectReport(Request $request): HttpResponse
+    {
+        $this->authorize('viewAny', QualityCheck::class);
+
+        $tenantId = TenantContext::id($request->user());
+        $project = Project::where('tenant_id', $tenantId)->findOrFail($request->integer('project_id'));
+
+        $checks = QualityCheck::query()
+            ->with(['phase:id,name', 'assignee:id,name', 'photos'])
+            ->where('tenant_id', $tenantId)
+            ->where('project_id', $project->id)
+            ->orderBy('planned_at')
+            ->get();
+
+        $summary = [
+            'total' => $checks->count(),
+            'passed' => $checks->where('status', 'passed')->count(),
+            'failed' => $checks->where('status', 'failed')->count(),
+            'pending' => $checks->whereIn('status', ['pending', 'in_progress'])->count(),
+        ];
+
+        $branding = DocumentBranding::resolve($tenantId);
+        $fileName = sprintf('raport-calitate-%s.pdf', Str::slug($project->name));
+
+        ExportAudit::log('quality-report-pdf', 'pdf', ['project_id' => $project->id], [
+            'file_name' => $fileName,
+        ]);
+
+        $pdf = Pdf::loadView('quality_checks.project-report', [
+            'project' => $project,
+            'checks' => $checks,
+            'summary' => $summary,
+            'statusLabels' => QualityCheck::$statusLabels,
+            'branding' => $branding,
+            'generatedAt' => now()->toDateTimeString(),
+        ])->setPaper('a4');
+
+        return $pdf->stream($fileName);
     }
 
     public function updateStatus(Request $request, QualityCheck $quality_check): RedirectResponse
@@ -178,6 +259,7 @@ class QualityCheckController extends Controller
             'project:id,name',
             'phase:id,name',
             'assignee:id,name',
+            'photos',
         ]);
 
         $unfinishedChecks = QualityCheck::query()
@@ -245,6 +327,67 @@ class QualityCheckController extends Controller
         }
 
         return $data;
+    }
+
+    private function persistSignature(array $data, ?QualityCheck $existing): array
+    {
+        $dataUrl = $data['signature_data_url'] ?? null;
+        unset($data['signature_data_url']);
+
+        if (empty($dataUrl) || !preg_match('/^data:image\/(png|jpe?g);base64,(.+)$/', $dataUrl, $matches)) {
+            return $data;
+        }
+
+        $binary = base64_decode($matches[2], true);
+
+        if ($binary === false) {
+            return $data;
+        }
+
+        if ($existing?->signature_path) {
+            Storage::disk('public')->delete($existing->signature_path);
+        }
+
+        $extension = $matches[1] === 'jpg' ? 'jpeg' : $matches[1];
+        $path = 'quality-checks/signatures/' . Str::uuid() . '.' . $extension;
+        Storage::disk('public')->put($path, $binary);
+
+        $data['signature_path'] = $path;
+        $data['signed_at'] = now();
+
+        return $data;
+    }
+
+    private function persistPhotos(QualityCheck $qualityCheck, Request $request, int $tenantId): void
+    {
+        foreach ($request->file('photos', []) as $file) {
+            if ($file === null) {
+                continue;
+            }
+
+            QualityCheckPhoto::create([
+                'tenant_id' => $tenantId,
+                'quality_check_id' => $qualityCheck->id,
+                'path' => $file->store('quality-checks/photos', 'public'),
+                'name' => $file->getClientOriginalName(),
+            ]);
+        }
+    }
+
+    private function recipesWithChecklist(int $tenantId): array
+    {
+        return Recipe::where('tenant_id', $tenantId)
+            ->whereNotNull('default_checklist')
+            ->orderBy('name')
+            ->get(['id', 'name', 'default_checklist'])
+            ->filter(fn (Recipe $recipe) => !empty($recipe->default_checklist))
+            ->map(fn (Recipe $recipe) => [
+                'id' => $recipe->id,
+                'name' => $recipe->name,
+                'default_checklist' => $recipe->default_checklist,
+            ])
+            ->values()
+            ->all();
     }
 
     private function buildAiInsights(int $tenantId): array

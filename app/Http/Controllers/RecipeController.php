@@ -71,6 +71,7 @@ class RecipeController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'drying_hours' => $validated['drying_hours'] ?? null,
                 'curing_hours' => $validated['curing_hours'] ?? null,
+                'default_checklist' => $this->normalizeDefaultTasks($validated['default_checklist'] ?? []),
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -131,6 +132,7 @@ class RecipeController extends Controller
                     'name' => $stage->name,
                     'default_tasks' => $stage->default_tasks ?? [],
                 ]),
+                'default_checklist' => $recipe->default_checklist ?? [],
             ],
             'taskTemplates' => TaskTemplate::where('tenant_id', $tenantId)->orderBy('title')->get(['id', 'title']),
             'materials' => Material::where('tenant_id', $tenantId)->where('active', true)->orderBy('name')->get(['id', 'name', 'unit']),
@@ -154,6 +156,7 @@ class RecipeController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'drying_hours' => $validated['drying_hours'] ?? null,
                 'curing_hours' => $validated['curing_hours'] ?? null,
+                'default_checklist' => $this->normalizeDefaultTasks($validated['default_checklist'] ?? []),
             ]);
 
             $recipe->items()->delete();
@@ -282,6 +285,8 @@ class RecipeController extends Controller
             'wbs_stages.*.name' => ['required_with:wbs_stages', 'string', 'max:255'],
             'wbs_stages.*.default_tasks' => ['nullable', 'array', 'max:10'],
             'wbs_stages.*.default_tasks.*' => ['nullable', 'string', 'max:255'],
+            'default_checklist' => ['nullable', 'array', 'max:20'],
+            'default_checklist.*' => ['nullable', 'string', 'max:255'],
         ]);
     }
 

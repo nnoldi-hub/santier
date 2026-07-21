@@ -292,6 +292,60 @@ class RecipeManagementTest extends TestCase
         $this->assertDatabaseMissing('recipe_wbs_stages', ['name' => 'Etapa veche']);
     }
 
+    public function test_user_can_create_a_recipe_with_default_checklist(): void
+    {
+        $user = $this->createOnboardedUser();
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Zugravit']);
+        $vopsea = Material::create(['tenant_id' => 1, 'name' => 'Vopsea', 'unit' => 'L']);
+
+        $response = $this->actingAs($user)->post('/recipes', [
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Zugravit lavabil',
+            'unit' => 'mp',
+            'items' => [
+                ['material_id' => $vopsea->id, 'quantity_per_unit' => 0.15],
+            ],
+            'default_checklist' => ['Suprafata curata', 'Fara fisuri', ''],
+        ]);
+
+        $response->assertRedirect('/recipes');
+
+        $recipe = Recipe::first();
+        $this->assertSame(['Suprafata curata', 'Fara fisuri'], $recipe->default_checklist);
+    }
+
+    public function test_updating_a_recipe_replaces_default_checklist(): void
+    {
+        $user = $this->createOnboardedUser();
+        $template = TaskTemplate::create(['tenant_id' => 1, 'title' => 'Zugravit']);
+        $vopsea = Material::create(['tenant_id' => 1, 'name' => 'Vopsea', 'unit' => 'L']);
+
+        $recipe = Recipe::create([
+            'tenant_id' => 1,
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Zugravit',
+            'unit' => 'mp',
+            'default_checklist' => ['Item vechi'],
+        ]);
+        $recipe->items()->create(['material_id' => $vopsea->id, 'quantity_per_unit' => 0.15]);
+
+        $response = $this->actingAs($user)->put("/recipes/{$recipe->id}", [
+            'subject_type' => 'task_template',
+            'subject_id' => $template->id,
+            'name' => 'Zugravit',
+            'unit' => 'mp',
+            'items' => [
+                ['material_id' => $vopsea->id, 'quantity_per_unit' => 0.15],
+            ],
+            'default_checklist' => ['Item nou'],
+        ]);
+
+        $response->assertRedirect('/recipes');
+        $this->assertSame(['Item nou'], $recipe->fresh()->default_checklist);
+    }
+
     public function test_equipment_from_another_tenant_is_rejected_on_recipe_creation(): void
     {
         Tenant::create([

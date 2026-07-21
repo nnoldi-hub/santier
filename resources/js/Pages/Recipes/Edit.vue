@@ -139,6 +139,13 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Checklist implicit de calitate (optional)</label>
+                    <p class="text-xs text-gray-500 mb-2">Se poate aplica automat pe o verificare de calitate care foloseste aceasta reteta.</p>
+                    <textarea v-model="form.default_checklist_text" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Puncte de verificare, unul pe linie (optional)"></textarea>
+                    <p v-if="form.errors.default_checklist" class="text-red-500 text-xs mt-1">{{ form.errors.default_checklist }}</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
                     <textarea v-model="form.notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
                 </div>
@@ -198,6 +205,7 @@ const form = useForm({
         name: stage.name,
         default_tasks_text: (stage.default_tasks || []).join('\n'),
     })),
+    default_checklist_text: (props.recipe.default_checklist || []).join('\n'),
 });
 
 form.transform((data) => ({
@@ -209,6 +217,10 @@ form.transform((data) => ({
             .map((task) => task.trim())
             .filter(Boolean),
     })),
+    default_checklist: (data.default_checklist_text || '')
+        .split('\n')
+        .map((task) => task.trim())
+        .filter(Boolean),
 }));
 
 const subjectOptions = computed(() => {

@@ -17,11 +17,13 @@ class Recipe extends Model
         'notes',
         'drying_hours',
         'curing_hours',
+        'default_checklist',
     ];
 
     protected $casts = [
         'drying_hours' => 'decimal:2',
         'curing_hours' => 'decimal:2',
+        'default_checklist' => 'array',
     ];
 
     public function subject(): MorphTo

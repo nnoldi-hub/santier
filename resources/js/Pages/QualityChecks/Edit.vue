@@ -69,7 +69,14 @@
                     <div class="md:col-span-2">
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs text-gray-600">Checklist verificare</label>
-                            <button type="button" @click="addChecklistItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Item</button>
+                            <div class="flex items-center gap-2">
+                                <select v-model="selectedRecipeId" class="text-xs border border-gray-300 rounded-lg px-2 py-1">
+                                    <option value="">Reteta (optional)</option>
+                                    <option v-for="recipe in recipes" :key="recipe.id" :value="recipe.id">{{ recipe.name }}</option>
+                                </select>
+                                <button type="button" @click="applyChecklistFromRecipe" :disabled="!selectedRecipeId" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-50">Aplica checklist</button>
+                                <button type="button" @click="addChecklistItem" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 hover:bg-gray-50">+ Item</button>
+                            </div>
                         </div>
                         <div v-if="form.checklist.length === 0" class="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">
                             Pentru verificari complexe adauga itemi de checklist.
@@ -81,6 +88,28 @@
                                 <button type="button" @click="removeChecklistItem(index)">Sterge</button>
                             </div>
                         </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Poze {{ requiresPhoto ? '(obligatorii pentru Conform/Neconform)' : '(optional)' }}</label>
+                        <div v-if="photos.length" class="flex flex-wrap gap-2 mb-2">
+                            <div v-for="photo in photos" :key="photo.id" class="flex items-center gap-1 text-xs bg-gray-100 rounded px-2 py-1 text-gray-600">
+                                <a :href="photo.url" target="_blank" rel="noopener" class="hover:underline">{{ photo.name }}</a>
+                                <button type="button" @click="removePhoto(photo.id)" class="text-red-500 hover:text-red-700">×</button>
+                            </div>
+                        </div>
+                        <input type="file" accept="image/*" multiple @change="onPhotosSelected" class="text-sm" />
+                        <div v-if="newPhotoNames.length" class="flex flex-wrap gap-2 mt-2">
+                            <span v-for="(name, index) in newPhotoNames" :key="`new-photo-${index}`" class="text-xs bg-orange-50 rounded px-2 py-1 text-orange-700">{{ name }}</span>
+                        </div>
+                        <p v-if="form.errors.photos" class="text-xs text-red-600 mt-1">{{ form.errors.photos }}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Semnatura digitala (optional)</label>
+                        <p v-if="qualityCheck.signature_path" class="text-xs text-gray-500 mb-2">
+                            Semnata deja de {{ qualityCheck.signed_by_name || '-' }} la {{ qualityCheck.signed_at ? new Date(qualityCheck.signed_at).toLocaleString('ro-RO') : '-' }}. Deseneaza mai jos pentru a inlocui.
+                        </p>
+                        <SignaturePad v-model="form.signature_data_url" />
+                        <input v-model="form.signed_by_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-2" placeholder="Semnat de (nume)" />
                     </div>
                 </div>
 
@@ -96,9 +125,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SignaturePad from '@/Components/SignaturePad.vue';
 
 const props = defineProps({
     qualityCheck: Object,
@@ -108,6 +138,8 @@ const props = defineProps({
     statuses: Object,
     types: Object,
     receptionTypes: Object,
+    recipes: { type: Array, default: () => [] },
+    photos: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -122,12 +154,21 @@ const form = useForm({
     status: props.qualityCheck.status,
     planned_at: props.qualityCheck.planned_at ? props.qualityCheck.planned_at.slice(0, 16) : '',
     notes: props.qualityCheck.notes || '',
+    photos: [],
+    signature_data_url: '',
+    signed_by_name: props.qualityCheck.signed_by_name || '',
 });
+
+const selectedRecipeId = ref('');
+const newPhotoNames = ref([]);
+const photos = ref(props.photos);
 
 const availablePhases = computed(() => {
     if (!form.project_id) return [];
     return props.phasesByProject?.[form.project_id] || props.phasesByProject?.[String(form.project_id)] || [];
 });
+
+const requiresPhoto = computed(() => ['passed', 'failed'].includes(form.status));
 
 function submit() {
     form.transform((data) => ({
@@ -143,5 +184,31 @@ function addChecklistItem() {
 
 function removeChecklistItem(index) {
     form.checklist.splice(index, 1);
+}
+
+function applyChecklistFromRecipe() {
+    const recipe = props.recipes.find((r) => String(r.id) === String(selectedRecipeId.value));
+    if (!recipe) return;
+
+    for (const text of recipe.default_checklist || []) {
+        if (form.checklist.length >= 40) break;
+        form.checklist.push({ text, done: false });
+    }
+}
+
+function onPhotosSelected(event) {
+    const files = Array.from(event.target.files || []);
+    form.photos = files;
+    newPhotoNames.value = files.map((file) => file.name);
+}
+
+function removePhoto(photoId) {
+    if (!confirm('Stergi aceasta poza?')) return;
+    router.delete(route('quality-checks.photos.destroy', [props.qualityCheck.id, photoId]), {
+        preserveScroll: true,
+        onSuccess: () => {
+            photos.value = photos.value.filter((photo) => photo.id !== photoId);
+        },
+    });
 }
 </script>

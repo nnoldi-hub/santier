@@ -30,6 +30,10 @@ class StoreQualityCheckRequest extends FormRequest
             'status' => ['required', Rule::in(array_keys(QualityCheck::$statusLabels))],
             'planned_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:4000'],
+            'photos' => ['nullable', 'array', 'max:6'],
+            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'signature_data_url' => ['nullable', 'string'],
+            'signed_by_name' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -47,6 +51,17 @@ class StoreQualityCheckRequest extends FormRequest
 
                 if (!$belongs) {
                     $validator->errors()->add('phase_id', 'Etapa selectata nu apartine proiectului ales.');
+                }
+            }
+
+            $status = $this->input('status');
+
+            if (in_array($status, ['passed', 'failed'], true)) {
+                $hasNewPhotos = collect($this->file('photos') ?? [])->filter()->isNotEmpty();
+                $hasExistingPhotos = $this->route('quality_check')?->photos()->exists() ?? false;
+
+                if (!$hasNewPhotos && !$hasExistingPhotos) {
+                    $validator->errors()->add('photos', 'Este necesara cel putin o poza pentru a finaliza verificarea (Conform/Neconform).');
                 }
             }
         }];

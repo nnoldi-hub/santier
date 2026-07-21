@@ -95,5 +95,20 @@
         <h2>Observatii</h2>
         <div class="small">{!! nl2br(e($qualityCheck->notes)) !!}</div>
     @endif
+
+    @if($qualityCheck->photos->isNotEmpty())
+        <h2>Poze ({{ $qualityCheck->photos->count() }})</h2>
+        <div class="small">
+            @foreach($qualityCheck->photos as $photo)
+                {{ $photo->name }}@if(!$loop->last), @endif
+            @endforeach
+        </div>
+    @endif
+
+    @if($qualityCheck->signature_path)
+        <h2>Semnatura</h2>
+        <img src="{{ storage_path('app/public/' . $qualityCheck->signature_path) }}" style="max-width: 240px; max-height: 100px;">
+        <div class="small muted">Semnat de {{ $qualityCheck->signed_by_name ?? '-' }} la {{ optional($qualityCheck->signed_at)->format('d.m.Y H:i') ?? '-' }}</div>
+    @endif
 </body>
 </html>

@@ -5,9 +5,20 @@
                 <h2 class="text-xl font-semibold text-gray-800">Verificari calitate</h2>
                 <p class="text-sm text-gray-500 mt-1">{{ pluralize(checks.total, 'verificare in total', 'verificari in total') }}</p>
             </div>
-            <Link :href="route('quality-checks.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
-                + Verificare noua
-            </Link>
+            <div class="flex items-center gap-2">
+                <a
+                    v-if="filterForm.project_id"
+                    :href="route('quality-checks.report', { project_id: filterForm.project_id })"
+                    target="_blank"
+                    rel="noopener"
+                    class="border border-indigo-300 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
+                >
+                    Export raport agregat
+                </a>
+                <Link :href="route('quality-checks.create')" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition">
+                    + Verificare noua
+                </Link>
+            </div>
         </div>
 
         <div v-if="aiInsights?.length" class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">

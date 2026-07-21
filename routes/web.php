@@ -1477,6 +1477,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('defects', DefectController::class)->except('show');
         Route::resource('quality-checks', QualityCheckController::class)->except('show');
         Route::get('quality-checks/{quality_check}/pdf', [QualityCheckController::class, 'pdf'])->name('quality-checks.pdf');
+        Route::get('quality-checks/report', [QualityCheckController::class, 'projectReport'])->name('quality-checks.report');
+        Route::delete('quality-checks/{quality_check}/photos/{quality_check_photo}', [QualityCheckController::class, 'destroyPhoto'])->name('quality-checks.photos.destroy');
         Route::get('rapoarte-calitate', [QualityCheckController::class, 'index'])->name('rapoarte-calitate.index');
         Route::resource('materials', MaterialController::class)->except('show');
         Route::post('materials/quick-create', [MaterialController::class, 'quickCreate'])->name('materials.quick-create');
