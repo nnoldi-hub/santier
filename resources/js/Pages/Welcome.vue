@@ -161,7 +161,7 @@
                         </ul>
                         <div class="mt-6 flex flex-wrap gap-3">
                             <a href="#solicita-demo" @click="trackCtaClick('video_section', 'programeaza_demo_live')" class="px-5 py-3 rounded-xl bg-[var(--brand-blue)] text-white font-semibold hover:brightness-95 transition">Programeaza demo live</a>
-                            <a :href="`mailto:${salesEmail || supportEmail || 'contact@modulia.ro'}?subject=Solicitare%20brosura%20Modulia`" @click="trackCtaClick('video_section', 'solicita_brosura_pdf')" class="px-5 py-3 rounded-xl border border-slate-300 bg-white font-semibold hover:bg-slate-50 transition">Solicita brosura PDF</a>
+                            <button type="button" @click="openBrochureModal('video_section')" class="px-5 py-3 rounded-xl border border-slate-300 bg-white font-semibold hover:bg-slate-50 transition">Solicita brosura PDF</button>
                         </div>
                     </div>
                 </div>
@@ -316,7 +316,7 @@
                         <h3 class="font-bold text-slate-900">Brosura comerciala Modulia</h3>
                         <p class="text-sm text-slate-600">Trimite solicitarea si primesti PDF-ul de prezentare cu pachete, onboarding si beneficii.</p>
                     </div>
-                    <a :href="`mailto:${salesEmail || supportEmail || 'contact@modulia.ro'}?subject=Solicitare%20brosura%20comerciala%20Modulia`" @click="trackCtaClick('why_modulia', 'solicita_brosura')" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">Solicita brosura</a>
+                    <button type="button" @click="openBrochureModal('why_modulia')" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">Solicita brosura</button>
                 </div>
             </section>
 
@@ -509,6 +509,39 @@
             </section>
         </main>
 
+        <Modal :show="showBrochureModal" @close="closeBrochureModal">
+            <div class="p-6 sm:p-8">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">Broșura Modulia</div>
+                        <h3 class="mt-2 text-xl font-black text-slate-900">Primesti PDF-ul direct pe email</h3>
+                    </div>
+                    <button type="button" @click="closeBrochureModal" class="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+                </div>
+
+                <form class="mt-6 space-y-3" @submit.prevent="submitBrochureRequest">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nume</label>
+                        <input v-model="brochureForm.name" type="text" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Nume si prenume" required />
+                        <p v-if="brochureForm.errors.name" class="text-xs text-red-600 mt-1">{{ brochureForm.errors.name }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+                        <input v-model="brochureForm.email" type="email" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="email@firma.ro" required />
+                        <p v-if="brochureForm.errors.email" class="text-xs text-red-600 mt-1">{{ brochureForm.errors.email }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Companie (optional)</label>
+                        <input v-model="brochureForm.company" type="text" class="mt-1 w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Nume companie" />
+                    </div>
+                    <button :disabled="brochureForm.processing" class="w-full rounded-xl bg-[var(--brand-orange)] px-4 py-3 text-white font-semibold hover:brightness-95 disabled:opacity-60 transition">
+                        {{ brochureForm.processing ? 'Se trimite...' : 'Trimite-mi broșura' }}
+                    </button>
+                    <p v-if="brochureForm.recentlySuccessful" class="text-sm font-medium text-emerald-700">Broșura a fost trimisă pe email. Verifica si folderul de spam.</p>
+                </form>
+            </div>
+        </Modal>
+
         <footer class="relative z-10 border-t border-slate-200 bg-white/70">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm text-slate-600">
                 <div>
@@ -559,6 +592,7 @@ import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import Icon from '@/Components/Icon.vue';
+import Modal from '@/Components/Modal.vue';
 import {
     PuzzlePieceIcon,
     ClockIcon,
@@ -689,6 +723,37 @@ const demoForm = useForm({
     customization_scope: '',
     notes: '',
 });
+
+const showBrochureModal = ref(false);
+const brochureForm = useForm({
+    name: '',
+    email: '',
+    company: '',
+});
+
+function openBrochureModal(section) {
+    trackCtaClick(section, 'solicita_brosura_pdf');
+    showBrochureModal.value = true;
+}
+
+function closeBrochureModal() {
+    showBrochureModal.value = false;
+}
+
+function submitBrochureRequest() {
+    trackEvent('brochure_form_submit_attempt', {});
+
+    brochureForm.post(route('brochure-request.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            trackEvent('brochure_form_submit_success', {});
+            brochureForm.reset('name', 'email', 'company');
+        },
+        onError: () => {
+            trackEvent('brochure_form_submit_error', {});
+        },
+    });
+}
 
 function submitDemoRequest() {
     trackEvent('demo_form_submit_attempt', {

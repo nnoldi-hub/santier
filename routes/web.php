@@ -27,6 +27,7 @@ use App\Http\Controllers\PublicQuoteController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\BrochureRequestController;
 use App\Http\Controllers\PilotInviteController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\WbsController;
@@ -50,6 +51,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Notifications\OperationalReminderNotification;
 use App\Models\AppSetting;
+use App\Support\MarketingPricing;
 use App\Http\Middleware\EnsureOnboardingCompleted;
 use App\Support\AnalyticsTracker;
 use App\Support\DailyBriefingBuilder;
@@ -99,37 +101,7 @@ Route::get('/', function (Request $request) {
             'tiktok' => $platformSettings['social_tiktok_url'] ?? null,
             'youtube' => $platformSettings['social_youtube_url'] ?? null,
         ],
-        'plans' => collect(config('pricing.plans', []))->map(function (array $plan, string $key) {
-            return [
-                'key' => $key,
-                'name' => $plan['label'] ?? $key,
-                'price' => (int) ($plan['price'] ?? 0),
-                'price_yearly' => (int) ($plan['price_yearly'] ?? 0),
-                'period' => $plan['billing_period'] ?? 'luna',
-                'highlight' => $key === 'pro',
-                'badge' => match ($key) {
-                    'free' => 'Start rapid',
-                    'starter' => 'Brand de baza',
-                    'pro' => 'Recomandat',
-                    'enterprise' => 'White-label',
-                    default => 'Plan',
-                },
-                'cta_label' => match ($key) {
-                    'free' => 'Incearca demo',
-                    'starter' => 'Alege branding de baza',
-                    'pro' => 'Alege brand complet',
-                    'enterprise' => 'Cere oferta enterprise',
-                    default => 'Alege planul',
-                },
-                'items' => match ($key) {
-                    'free' => ['Brand standard', 'Acces demo', '1 proiect', 'Evaluare rapida'],
-                    'starter' => ['Logo si date firma', 'Branding de baza', '5 proiecte', '3 utilizatori'],
-                    'pro' => ['Logo + culori', 'Antet si footer', 'Template documente', '10 utilizatori'],
-                    'enterprise' => ['Mai multe sabloane', 'Aprobari', 'White-label', 'Domeniu propriu'],
-                    default => [],
-                },
-            ];
-        })->values(),
+        'plans' => MarketingPricing::plans(),
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register') && (bool) ($platformSettings['public_signup_enabled'] ?? true),
         'laravelVersion' => Application::VERSION,
@@ -143,6 +115,10 @@ Route::get('/confidentialitate', fn () => Inertia::render('Legal/Privacy'))->nam
 Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
     ->middleware('throttle:6,1')
     ->name('demo-request.store');
+
+Route::post('/brochure-request', [BrochureRequestController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('brochure-request.store');
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 

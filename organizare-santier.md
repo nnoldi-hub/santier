@@ -689,3 +689,44 @@ Acelasi flux stabilit in aceasta sesiune:
   (deja acopera acelasi sens), istoric de comentarii/rezolutii multiple
   (un singur `resolution_notes`, suprascris), legatura `Defect` <->
   `QualityCheck`/`Recipe` (nicio dovada ca a fost intentionata).
+
+### Faza 22 - Broșura PDF automata pe pagina publica (Facut, 2026-07-27)
+- Cele doua CTA "Solicita brosura PDF" de pe pagina publica erau doar
+  linkuri `mailto:` (fara PDF real, fara colectare de lead). Inlocuite cu
+  un sistem real: formular -> PDF generat pe server -> trimis automat pe
+  emailul solicitantului, cu BCC catre echipa de vanzari (decizie
+  confirmata - fara ecran nou de administrare in aceasta faza).
+- **Model nou dedicat** `BrochureRequest` (nu s-a reutilizat `PilotInvite`,
+  care are campuri obligatorii nepotrivite - `estimated_users`,
+  `customization_scope` - pentru un formular minim de descarcare, unde
+  friction-ul redus conteaza pentru conversie). Formular minim: nume,
+  email, companie optionala.
+- **PDF atasat la email**: mirror exact pe tiparul deja folosit de
+  `QuoteController`/`QuoteSentMail` - binarul PDF generat direct
+  (`Pdf::loadView(...)->output()`), pasat in constructorul unui `Mailable`
+  nou (`BrochureRequestMail`), atasat cu `Attachment::fromData()`.
+- **Branding fara tenant**: spre deosebire de restul PDF-urilor din
+  aplicatie (care folosesc `DocumentBranding::resolve($tenantId)`), broșura
+  e material de marketing Modulia, nu al unui client - foloseste direct
+  `AppSetting::allWithDefaults(config('platform.defaults'))`, acelasi tipar
+  ca ruta `/`, plus fallback-ul de logo deja stabilit in
+  `exports/managerial-pdf.blade.php` (`public_path('brand/logo_modulia.png')`).
+- **Extragere helper `MarketingPricing`**: logica de transformare a
+  planurilor din `config('pricing.php')` (nume, pret, bullet-uri, badge) -
+  ~30 de linii inline in closure-ul rutei `/` - mutata intr-un helper
+  static (`App\Support\MarketingPricing::plans()`), folosit acum atat de
+  ruta `/` (comportament identic) cat si de broșura, care afiseaza astfel
+  preturi mereu sincrone cu cele reale.
+- **Formular pe pagina publica**: modal (`resources/js/Components/
+  Modal.vue`, existent in cod dar nefolosit pana acum), declansat de
+  ambele butoane, cu `useForm({ name, email, company })` si mesaj de succes
+  inline (`recentlySuccessful`) - acelasi stil ca formularul de demo
+  existent (`#solicita-demo`).
+- Teste: `tests/Feature/BrochureRequestTest.php` (nou - creare rand +
+  trimitere email cu PDF atasat si BCC catre vanzari, validare nume/email
+  obligatorii, email invalid respins).
+- Ramas explicit in afara scopului: pagina noua de administrare pentru
+  solicitari (BCC e suficient pentru vizibilitate, per decizia confirmata),
+  captcha/protectie anti-spam suplimentara fata de `throttle:6,1` (fara alt
+  precedent in aplicatie), legarea unei solicitari de `PilotInvite`
+  existent, broșura multi-limba sau personalizata pe segment.
