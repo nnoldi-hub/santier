@@ -719,12 +719,23 @@ Acelasi flux stabilit in aceasta sesiune:
   preturi mereu sincrone cu cele reale.
 - **Formular pe pagina publica**: modal (`resources/js/Components/
   Modal.vue`, existent in cod dar nefolosit pana acum), declansat de
-  ambele butoane, cu `useForm({ name, email, company })` si mesaj de succes
-  inline (`recentlySuccessful`) - acelasi stil ca formularul de demo
-  existent (`#solicita-demo`).
+  ambele butoane, cu `useForm({ name, email, company })` - acelasi stil ca
+  formularul de demo existent (`#solicita-demo`).
+- **Incident depistat la primul test live si reparat pe aceeasi linie**:
+  `vanzari@modulia.ro` nu exista ca si cutie postala reala pe server -
+  `Mail::to($email)->bcc($salesEmail)->send(...)` trimite To+Bcc intr-o
+  singura tranzactie SMTP, iar un destinatar respins (550 No Such User
+  Here) a blocat *intreg* mesajul, inclusiv catre solicitant. Reparat prin
+  separarea in doua trimiteri independente (`Mail::to($email)->send()`
+  urmat de `Mail::to($salesEmail)->send()` intr-un try/catch separat care
+  doar logheaza esecul, fara sa blocheze livrarea catre lead). Bonus fix
+  UX: pagina publica nu afisa niciodata `flash.error` de la server -
+  mesajul de succes din modal era legat de `recentlySuccessful` (orice
+  raspuns HTTP reusit, indiferent de continut), nu de reusita reala -
+  inlocuit cu afisarea explicita a `$page.props.flash.success`/`.error`.
 - Teste: `tests/Feature/BrochureRequestTest.php` (nou - creare rand +
-  trimitere email cu PDF atasat si BCC catre vanzari, validare nume/email
-  obligatorii, email invalid respins).
+  2 trimiteri email independente (solicitant + vanzari) cu PDF atasat,
+  validare nume/email obligatorii, email invalid respins).
 - Ramas explicit in afara scopului: pagina noua de administrare pentru
   solicitari (BCC e suficient pentru vizibilitate, per decizia confirmata),
   captcha/protectie anti-spam suplimentara fata de `throttle:6,1` (fara alt

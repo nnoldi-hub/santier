@@ -537,7 +537,8 @@
                     <button :disabled="brochureForm.processing" class="w-full rounded-xl bg-[var(--brand-orange)] px-4 py-3 text-white font-semibold hover:brightness-95 disabled:opacity-60 transition">
                         {{ brochureForm.processing ? 'Se trimite...' : 'Trimite-mi broșura' }}
                     </button>
-                    <p v-if="brochureForm.recentlySuccessful" class="text-sm font-medium text-emerald-700">Broșura a fost trimisă pe email. Verifica si folderul de spam.</p>
+                    <p v-if="brochureForm.recentlySuccessful && $page.props.flash?.success" class="text-sm font-medium text-emerald-700">{{ $page.props.flash.success }} Verifica si folderul de spam.</p>
+                    <p v-if="brochureForm.recentlySuccessful && $page.props.flash?.error" class="text-sm font-medium text-red-600">{{ $page.props.flash.error }}</p>
                 </form>
             </div>
         </Modal>

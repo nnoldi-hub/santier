@@ -34,10 +34,12 @@ class BrochureRequestTest extends TestCase
         $this->assertNotNull($brochureRequest->sent_at);
 
         Mail::assertSent(BrochureRequestMail::class, function (BrochureRequestMail $mail) {
-            return $mail->hasTo('andrei@firma.ro')
-                && $mail->hasBcc('vanzari@modulia.ro')
-                && $mail->fileName === 'brosura-modulia.pdf';
+            return $mail->hasTo('andrei@firma.ro') && $mail->fileName === 'brosura-modulia.pdf';
         });
+        Mail::assertSent(BrochureRequestMail::class, function (BrochureRequestMail $mail) {
+            return $mail->hasTo('vanzari@modulia.ro') && $mail->fileName === 'brosura-modulia.pdf';
+        });
+        Mail::assertSent(BrochureRequestMail::class, 2);
     }
 
     public function test_brochure_request_requires_name_and_email(): void

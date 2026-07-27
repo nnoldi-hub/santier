@@ -9,6 +9,7 @@ use App\Models\BrochureRequest;
 use App\Support\MarketingPricing;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -39,7 +40,6 @@ class BrochureRequestController extends Controller
 
         try {
             Mail::to($validated['email'])
-                ->bcc($salesEmail)
                 ->send(new BrochureRequestMail(
                     recipientName: $validated['name'],
                     pdfBinary: $pdfBinary,
@@ -50,6 +50,25 @@ class BrochureRequestController extends Controller
         }
 
         $brochureRequest->update(['sent_at' => now()]);
+
+        // Vizibilitate pentru vanzari - best-effort, separat de trimiterea catre
+        // solicitant, ca o adresa de vanzari gresit configurata sa nu mai poata
+        // bloca livrarea brosurii catre lead (a blocat-o inainte, cand era bcc()
+        // pe acelasi mesaj: SMTP respinge intreg mesajul daca orice destinatar e invalid).
+        try {
+            Mail::to($salesEmail)
+                ->send(new BrochureRequestMail(
+                    recipientName: $validated['name'],
+                    pdfBinary: $pdfBinary,
+                    fileName: $fileName,
+                ));
+        } catch (Throwable $e) {
+            Log::warning('Notificarea de vanzari pentru solicitarea de brosura a esuat.', [
+                'brochure_request_id' => $brochureRequest->id,
+                'sales_email' => $salesEmail,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return back()->with('success', 'Brosura a fost trimisa la ' . $validated['email'] . '.');
     }
