@@ -335,7 +335,7 @@ class PilotInviteController extends Controller
             'from_name' => $message->from_name,
             'from_email' => $message->from_email,
             'actor_name' => $message->actor?->name,
-            'occurred_at' => optional($message->occurred_at)->toDateTimeString(),
+            'occurred_at' => $message->occurred_at,
         ]);
 
         $actions = $invite->commercialActions->map(fn (CommercialAction $action) => [
@@ -344,7 +344,7 @@ class PilotInviteController extends Controller
             'action_type' => $action->action_type,
             'notes' => $action->notes,
             'actor_name' => $action->actor?->name,
-            'occurred_at' => optional($action->created_at)->toDateTimeString(),
+            'occurred_at' => $action->created_at,
         ]);
 
         return $messages->concat($actions)
