@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePilotInviteRequest;
 use App\Mail\PilotInvitationMail;
+use App\Mail\PilotInviteThreadReplyMail;
+use App\Models\AppSetting;
 use App\Models\CommercialAction;
 use App\Models\CommercialTask;
 use App\Models\PilotInvite;
+use App\Models\PilotInviteMessage;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
 use App\Support\TenantContext;
@@ -14,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -209,11 +213,11 @@ class PilotInviteController extends Controller
         $sender = $request->user();
         $owner = $pilotInvite->owner;
         $senderName = $sender?->name ?? $owner?->name ?? 'Echipa Modulia';
-        $replyToEmail = $owner?->email ?? $sender?->email;
-        $replyToName = $owner?->name ?? $senderName;
+        $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $replyToEmail = $platformSettings['sales_email'] ?? 'vanzari@modulia.ro';
 
         Mail::to($pilotInvite->contact_email)
-            ->send(new PilotInvitationMail($pilotInvite, $senderName, $replyToEmail, $replyToName));
+            ->send(new PilotInvitationMail($pilotInvite, $senderName, $replyToEmail, 'Modulia'));
 
         CommercialAction::create([
             'tenant_id' => $tenantId,
@@ -228,6 +232,86 @@ class PilotInviteController extends Controller
         return back()->with('success', 'Invitatia a fost trimisa catre ' . $pilotInvite->contact_email . '.');
     }
 
+    public function show(Request $request, PilotInvite $pilotInvite): Response
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $pilotInvite->tenant_id === $tenantId, 404);
+
+        $pilotInvite->load(['owner:id,name,email', 'messages.actor:id,name', 'commercialActions.actor:id,name']);
+
+        return Inertia::render('PilotInvites/Show', [
+            'invite' => [
+                'id' => $pilotInvite->id,
+                'company_name' => $pilotInvite->company_name,
+                'contact_name' => $pilotInvite->contact_name,
+                'contact_email' => $pilotInvite->contact_email,
+                'contact_phone' => $pilotInvite->contact_phone,
+                'status' => $pilotInvite->status,
+                'commercial_stage' => $this->resolveCommercialStage($pilotInvite),
+                'owner' => $pilotInvite->owner,
+            ],
+            'timeline' => $this->buildTimeline($pilotInvite),
+        ]);
+    }
+
+    public function sendMessage(Request $request, PilotInvite $pilotInvite): RedirectResponse
+    {
+        $tenantId = TenantContext::id($request->user());
+        abort_unless((int) $pilotInvite->tenant_id === $tenantId, 404);
+        abort_if(trim((string) $pilotInvite->contact_email) === '', 422, 'Invitatia nu are un email de contact.');
+
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $body = trim($validated['body']);
+        $sender = $request->user();
+        $senderName = $sender?->name ?? 'Echipa Modulia';
+        $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
+        $fromEmail = $platformSettings['sales_email'] ?? 'vanzari@modulia.ro';
+        $messageId = 'pi-' . $pilotInvite->id . '-' . (string) Str::uuid() . '@modulia.ro';
+
+        $lastInboundMessageId = $pilotInvite->messages()
+            ->where('direction', 'inbound')
+            ->latest('occurred_at')
+            ->value('message_id');
+
+        Mail::to($pilotInvite->contact_email)->send(new PilotInviteThreadReplyMail(
+            $pilotInvite,
+            $body,
+            $senderName,
+            $fromEmail,
+            $messageId,
+            $lastInboundMessageId,
+        ));
+
+        PilotInviteMessage::create([
+            'tenant_id' => $tenantId,
+            'pilot_invite_id' => $pilotInvite->id,
+            'actor_id' => $sender?->id,
+            'direction' => 'outbound',
+            'from_email' => $fromEmail,
+            'from_name' => $senderName,
+            'subject' => 'Re: Modulia - ' . $pilotInvite->company_name,
+            'body' => $body,
+            'message_id' => $messageId,
+            'in_reply_to_message_id' => $lastInboundMessageId,
+            'occurred_at' => now(),
+        ]);
+
+        CommercialAction::create([
+            'tenant_id' => $tenantId,
+            'pilot_invite_id' => $pilotInvite->id,
+            'actor_id' => $sender?->id,
+            'action_type' => 'email',
+            'notes' => 'Raspuns trimis pe email catre ' . $pilotInvite->contact_email,
+        ]);
+
+        $pilotInvite->update(['last_contacted_at' => now()]);
+
+        return back()->with('success', 'Mesajul a fost trimis.');
+    }
+
     public function markHandoff(Request $request, PilotInvite $pilotInvite): RedirectResponse
     {
         $tenantId = TenantContext::id($request->user());
@@ -238,6 +322,35 @@ class PilotInviteController extends Controller
         $pilotInvite->update(['onboarding_handoff_at' => now()]);
 
         return back()->with('success', 'Handoff catre onboarding marcat.');
+    }
+
+    private function buildTimeline(PilotInvite $invite): array
+    {
+        $messages = $invite->messages->map(fn (PilotInviteMessage $message) => [
+            'kind' => 'message',
+            'id' => 'message-' . $message->id,
+            'direction' => $message->direction,
+            'subject' => $message->subject,
+            'body' => $message->body,
+            'from_name' => $message->from_name,
+            'from_email' => $message->from_email,
+            'actor_name' => $message->actor?->name,
+            'occurred_at' => optional($message->occurred_at)->toDateTimeString(),
+        ]);
+
+        $actions = $invite->commercialActions->map(fn (CommercialAction $action) => [
+            'kind' => 'action',
+            'id' => 'action-' . $action->id,
+            'action_type' => $action->action_type,
+            'notes' => $action->notes,
+            'actor_name' => $action->actor?->name,
+            'occurred_at' => optional($action->created_at)->toDateTimeString(),
+        ]);
+
+        return $messages->concat($actions)
+            ->sortBy('occurred_at')
+            ->values()
+            ->all();
     }
 
     private function resolveCommercialTaskSummary(Collection $tasks): ?array

@@ -51,4 +51,9 @@ class PilotInvite extends Model
     {
         return $this->hasMany(CommercialAction::class)->latest();
     }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(PilotInviteMessage::class)->orderBy('occurred_at');
+    }
 }

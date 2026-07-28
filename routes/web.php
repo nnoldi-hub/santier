@@ -1375,10 +1375,12 @@ Route::middleware('auth')->group(function () {
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('pilot-invites', [PilotInviteController::class, 'index'])->name('pilot-invites.index');
         Route::post('pilot-invites', [PilotInviteController::class, 'store'])->name('pilot-invites.store');
+        Route::get('pilot-invites/{pilotInvite}', [PilotInviteController::class, 'show'])->name('pilot-invites.show');
         Route::patch('pilot-invites/{pilotInvite}/status', [PilotInviteController::class, 'updateStatus'])->name('pilot-invites.status');
         Route::post('pilot-invites/{pilotInvite}/actions', [PilotInviteController::class, 'storeAction'])->name('pilot-invites.actions.store');
         Route::patch('pilot-invites/{pilotInvite}/handoff', [PilotInviteController::class, 'markHandoff'])->name('pilot-invites.handoff.update');
         Route::post('pilot-invites/{pilotInvite}/send-invitation', [PilotInviteController::class, 'sendInvitation'])->name('pilot-invites.send-invitation');
+        Route::post('pilot-invites/{pilotInvite}/messages', [PilotInviteController::class, 'sendMessage'])->name('pilot-invites.messages.store');
 
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
         Route::get('billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('billing.checkout');

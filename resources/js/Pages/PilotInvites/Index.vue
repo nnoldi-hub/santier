@@ -158,7 +158,7 @@
                     <tbody class="divide-y divide-gray-100">
                         <tr v-for="invite in displayedInvites" :key="invite.id">
                             <td class="px-4 py-3">
-                                <div class="font-medium text-gray-800">{{ invite.company_name }}</div>
+                                <Link :href="route('pilot-invites.show', invite.id)" class="font-medium text-[#1A237E] hover:underline">{{ invite.company_name }}</Link>
                                 <div class="text-xs text-gray-500">Invitat: {{ formatDate(invite.invited_at) }}</div>
                             </td>
                             <td class="px-4 py-3 text-gray-600">
@@ -276,7 +276,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import { RocketLaunchIcon } from '@heroicons/vue/24/outline';
