@@ -84,20 +84,28 @@ class InboundEmailMapper
         return $messageId === '' ? null : $messageId;
     }
 
+    /**
+     * Always normalized to UTC before returning, regardless of what timezone
+     * the source carried (the email's own Date header, or whatever timezone
+     * the IMAP client parsed it into) - storage/serialization elsewhere in
+     * the app assumes UTC, so any un-normalized instant would round-trip
+     * with a wrong offset (confirmed live: replies showing hours "in the
+     * future" because the offset was applied twice).
+     */
     private static function normalizeDate(mixed $date): Carbon
     {
-        if ($date instanceof Carbon) {
-            return $date;
+        if ($date instanceof \DateTimeInterface) {
+            return Carbon::instance($date)->utc();
         }
 
         if ($date) {
             try {
-                return Carbon::parse((string) $date);
+                return Carbon::parse((string) $date)->utc();
             } catch (\Throwable) {
                 // fall through to now()
             }
         }
 
-        return Carbon::now();
+        return Carbon::now('UTC');
     }
 }

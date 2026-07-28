@@ -91,6 +91,43 @@ class InboundEmailMapperTest extends TestCase
         $this->assertSame('2026-07-20 12:30:00', $mapped['occurred_at']->toDateTimeString());
     }
 
+    public function test_converts_a_date_with_explicit_offset_to_utc(): void
+    {
+        // Confirmed live: an email's Date header with a +03:00 offset (Romania
+        // summer time) was stored without converting to UTC, making replies
+        // appear hours "in the future" relative to the import timestamp.
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => 'text',
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => 'Tue, 28 Jul 2026 18:41:44 +0300',
+        ]);
+
+        $this->assertTrue($mapped['occurred_at']->isUtc());
+        $this->assertSame('2026-07-28 15:41:44', $mapped['occurred_at']->toDateTimeString());
+    }
+
+    public function test_converts_a_datetime_object_with_offset_to_utc(): void
+    {
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => 'text',
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => new \DateTimeImmutable('2026-07-28 18:41:44', new \DateTimeZone('+03:00')),
+        ]);
+
+        $this->assertTrue($mapped['occurred_at']->isUtc());
+        $this->assertSame('2026-07-28 15:41:44', $mapped['occurred_at']->toDateTimeString());
+    }
+
     public function test_falls_back_to_now_when_date_is_unparseable(): void
     {
         $mapped = InboundEmailMapper::map([
