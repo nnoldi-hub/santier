@@ -52,17 +52,17 @@ class PricingPlanLimitsTest extends TestCase
             ->assertRedirect('/dashboard');
     }
 
-    public function test_starter_plan_can_access_gantt_and_csv_exports(): void
+    public function test_pro_plan_can_access_gantt_and_csv_exports(): void
     {
-        $user = $this->createOnboardedUser('starter');
+        $user = $this->createOnboardedUser('pro');
 
         $this->actingAs($user)->get('/gantt')->assertStatus(200);
         $this->actingAs($user)->get('/exports/projects')->assertStatus(200);
     }
 
-    public function test_starter_plan_cannot_access_enterprise_exports(): void
+    public function test_free_plan_cannot_access_enterprise_exports(): void
     {
-        $user = $this->createOnboardedUser('starter');
+        $user = $this->createOnboardedUser('free');
 
         $this->actingAs($user)
             ->get('/exports/workbook')
@@ -94,34 +94,32 @@ class PricingPlanLimitsTest extends TestCase
         $this->assertDatabaseCount('tenant_users', 1);
     }
 
-    public function test_starter_plan_allows_invites_up_to_the_seat_limit(): void
+    public function test_pro_plan_allows_invites_up_to_the_seat_limit(): void
     {
-        $owner = $this->createOnboardedUser('starter');
+        $owner = $this->createOnboardedUser('pro');
         $role = Role::where('name', 'data_entry')->firstOrFail();
 
-        $this->actingAs($owner)->post('/account/users/invite', [
-            'email' => 'membru1@test.ro',
-            'role_id' => $role->id,
-        ])->assertSessionMissing('error');
+        // Owner already occupies 1 seat - pro's users_limit is 10, so 9 more invites fit.
+        for ($i = 1; $i <= 9; $i++) {
+            $this->actingAs($owner)->post('/account/users/invite', [
+                'email' => "membru{$i}@test.ro",
+                'role_id' => $role->id,
+            ])->assertSessionMissing('error');
+        }
 
-        $this->actingAs($owner)->post('/account/users/invite', [
-            'email' => 'membru2@test.ro',
-            'role_id' => $role->id,
-        ])->assertSessionMissing('error');
-
-        $this->assertDatabaseCount('tenant_users', 3);
+        $this->assertDatabaseCount('tenant_users', 10);
 
         $response = $this->actingAs($owner)
             ->from('/account/users')
             ->post('/account/users/invite', [
-                'email' => 'membru3@test.ro',
+                'email' => 'membru10@test.ro',
                 'role_id' => $role->id,
             ]);
 
         $response->assertRedirect('/account/users');
         $response->assertSessionHas('error');
-        $this->assertDatabaseMissing('users', ['email' => 'membru3@test.ro']);
-        $this->assertDatabaseCount('tenant_users', 3);
+        $this->assertDatabaseMissing('users', ['email' => 'membru10@test.ro']);
+        $this->assertDatabaseCount('tenant_users', 10);
     }
 
     public function test_reinviting_an_existing_member_is_not_blocked_by_the_limit(): void

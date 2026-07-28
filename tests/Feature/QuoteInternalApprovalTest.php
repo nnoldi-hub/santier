@@ -85,10 +85,10 @@ class QuoteInternalApprovalTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_starter_tenant_sends_without_approval_and_approval_routes_are_plan_gated(): void
+    public function test_free_tenant_sends_without_approval_and_approval_routes_are_plan_gated(): void
     {
         Mail::fake();
-        $user = $this->createOnboardedUser('starter');
+        $user = $this->createOnboardedUser('free');
         $quote = $this->createQuote($user);
 
         $this->actingAs($user)->patch("/quotes/{$quote->id}/send")->assertRedirect();

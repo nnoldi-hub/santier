@@ -407,7 +407,7 @@ function markHandoff(item) {
 
 const kpiCards = computed(() => [
     { key: 'current_mrr', label: 'MRR total', value: formatMoney(props.kpis.current_mrr || 0), note: 'Venit recurent lunar estimat acum' },
-    { key: 'tenants_paid', label: 'Firme platitoare', value: props.kpis.tenants_paid || 0, note: 'Starter, Pro sau Enterprise' },
+    { key: 'tenants_paid', label: 'Firme platitoare', value: props.kpis.tenants_paid || 0, note: 'Brand complet sau Enterprise' },
     { key: 'tenants_trial', label: 'Firme trial', value: props.kpis.tenants_trial || 0, note: 'Trial activ si conversie potentiala' },
     { key: 'tenants_at_risk', label: 'Trial la risc', value: props.kpis.tenants_at_risk || 0, note: 'Expira in urmatoarele 7 zile' },
 ]);

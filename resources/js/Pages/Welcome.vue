@@ -363,17 +363,20 @@
                         </button>
                     </div>
                     <span v-if="pricingInterval === 'yearly'" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">
-                        2 luni gratis
+                        6 luni gratis
                     </span>
                 </div>
-                <div class="mt-6 grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div class="mt-6 grid md:grid-cols-2 gap-4 max-w-2xl">
                     <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
                         <div class="flex items-center justify-between">
                             <h3 class="font-bold text-lg">{{ plan.name }}</h3>
                             <span class="text-xs px-2 py-1 rounded" :class="plan.highlight ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'">{{ plan.badge }}</span>
                         </div>
-                        <div class="mt-2 text-3xl font-black text-slate-900">{{ formatPrice(planPrice(plan)) }}</div>
-                        <div class="text-xs text-slate-500">{{ pricingInterval === 'yearly' && plan.price_yearly ? 'an' : plan.period }}</div>
+                        <div v-if="plan.key === 'enterprise'" class="mt-2 text-3xl font-black text-slate-900">Personalizat</div>
+                        <template v-else>
+                            <div class="mt-2 text-3xl font-black text-slate-900">{{ formatPrice(planPrice(plan)) }}</div>
+                            <div class="text-xs text-slate-500">{{ pricingInterval === 'yearly' && plan.price_yearly ? 'an' : plan.period }}</div>
+                        </template>
                         <ul class="mt-4 space-y-2 text-sm text-slate-600">
                             <li v-for="item in plan.items" :key="item">• {{ item }}</li>
                         </ul>

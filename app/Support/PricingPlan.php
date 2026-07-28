@@ -115,9 +115,9 @@ class PricingPlan
     public static function featureMessage(string $feature): string
     {
         return match ($feature) {
-            'gantt' => 'Gantt este disponibil incepand cu planul Starter.',
-            'exports_csv' => 'Exporturile sunt disponibile incepand cu planul Starter.',
-            'exports_enterprise' => 'Exporturile enterprise (XLSX/PDF/subscriptions) sunt disponibile incepand cu planul Pro.',
+            'gantt' => 'Gantt este disponibil incepand cu planul Brand complet.',
+            'exports_csv' => 'Exporturile sunt disponibile incepand cu planul Brand complet.',
+            'exports_enterprise' => 'Exporturile enterprise (XLSX/PDF/subscriptions) sunt disponibile incepand cu planul Brand complet.',
             'document_branding' => 'Configurarea documentelor este disponibila pentru conturile cu abonament platit.',
             default => 'Functionalitatea nu este disponibila pe planul curent.',
         };

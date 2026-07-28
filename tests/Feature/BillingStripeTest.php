@@ -17,22 +17,22 @@ class BillingStripeTest extends TestCase
 
     public function test_plan_for_stripe_price_resolves_configured_plan(): void
     {
-        Config::set('pricing.plans.starter.stripe_price_id', 'price_test_starter');
+        Config::set('pricing.plans.enterprise.stripe_price_id', 'price_test_enterprise');
         Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
 
-        $this->assertSame('starter', PricingPlan::planForStripePrice('price_test_starter'));
+        $this->assertSame('enterprise', PricingPlan::planForStripePrice('price_test_enterprise'));
         $this->assertSame('pro', PricingPlan::planForStripePrice('price_test_pro'));
         $this->assertNull(PricingPlan::planForStripePrice('price_unknown'));
     }
 
     public function test_price_id_for_plan_resolves_monthly_and_yearly(): void
     {
-        Config::set('pricing.plans.starter.stripe_price_id', 'price_test_starter');
-        Config::set('pricing.plans.starter.stripe_price_id_yearly', 'price_test_starter_yearly');
+        Config::set('pricing.plans.enterprise.stripe_price_id', 'price_test_enterprise');
+        Config::set('pricing.plans.enterprise.stripe_price_id_yearly', 'price_test_enterprise_yearly');
 
-        $this->assertSame('price_test_starter', PricingPlan::priceIdForPlan('starter'));
-        $this->assertSame('price_test_starter', PricingPlan::priceIdForPlan('starter', 'monthly'));
-        $this->assertSame('price_test_starter_yearly', PricingPlan::priceIdForPlan('starter', 'yearly'));
+        $this->assertSame('price_test_enterprise', PricingPlan::priceIdForPlan('enterprise'));
+        $this->assertSame('price_test_enterprise', PricingPlan::priceIdForPlan('enterprise', 'monthly'));
+        $this->assertSame('price_test_enterprise_yearly', PricingPlan::priceIdForPlan('enterprise', 'yearly'));
     }
 
     public function test_plan_for_stripe_price_resolves_yearly_price(): void
@@ -65,17 +65,17 @@ class BillingStripeTest extends TestCase
     public function test_subscription_updated_webhook_ignores_inactive_status(): void
     {
         Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
-        $tenant = $this->createTenantWithStripeId('starter');
+        $tenant = $this->createTenantWithStripeId('enterprise');
 
         StripeSubscriptionSync::applyUpdated($this->subscriptionPayload('incomplete', 'price_test_pro'));
 
-        $this->assertSame('starter', $tenant->fresh()->billing_plan);
+        $this->assertSame('enterprise', $tenant->fresh()->billing_plan);
     }
 
     public function test_subscription_updated_webhook_ignores_unknown_customer(): void
     {
         Config::set('pricing.plans.pro.stripe_price_id', 'price_test_pro');
-        $this->createTenantWithStripeId('starter');
+        $this->createTenantWithStripeId('enterprise');
 
         // No exception, no matching tenant - should just be a no-op.
         StripeSubscriptionSync::applyUpdated([
@@ -86,7 +86,7 @@ class BillingStripeTest extends TestCase
             ]],
         ]);
 
-        $this->assertDatabaseHas('tenants', ['stripe_id' => 'cus_test123', 'billing_plan' => 'starter']);
+        $this->assertDatabaseHas('tenants', ['stripe_id' => 'cus_test123', 'billing_plan' => 'enterprise']);
     }
 
     public function test_subscription_deleted_webhook_resets_tenant_to_free(): void
@@ -111,7 +111,14 @@ class BillingStripeTest extends TestCase
     {
         $user = $this->createOnboardedUser('free');
 
-        $this->actingAs($user)->get('/billing/checkout/starter?interval=biweekly')->assertStatus(422);
+        $this->actingAs($user)->get('/billing/checkout/pro?interval=biweekly')->assertStatus(422);
+    }
+
+    public function test_checkout_rejects_removed_plan(): void
+    {
+        $user = $this->createOnboardedUser('free');
+
+        $this->actingAs($user)->get('/billing/checkout/starter')->assertStatus(404);
     }
 
     public function test_swap_requires_existing_subscription(): void

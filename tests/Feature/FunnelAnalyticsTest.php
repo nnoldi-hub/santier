@@ -81,7 +81,7 @@ class FunnelAnalyticsTest extends TestCase
         ]);
 
         $this->actingAs($user)->patch('/billing', [
-            'plan' => 'starter',
+            'plan' => 'pro',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('analytics_events', [

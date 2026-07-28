@@ -494,10 +494,6 @@ function planTone(plan) {
         return 'bg-orange-100 text-orange-700';
     }
 
-    if (plan === 'starter') {
-        return 'bg-emerald-100 text-emerald-700';
-    }
-
     return 'bg-gray-100 text-gray-600';
 }
 

@@ -336,7 +336,7 @@ const editForm = useForm({
 
 const metricCards = computed(() => [
     { key: 'tenants_total', label: 'Firme totale', value: props.metrics.tenants_total || 0, note: 'Toate firmele create in platforma' },
-    { key: 'tenants_paid', label: 'Firme platitoare', value: props.metrics.tenants_paid || 0, note: 'Starter, Pro sau Enterprise' },
+    { key: 'tenants_paid', label: 'Firme platitoare', value: props.metrics.tenants_paid || 0, note: 'Brand complet sau Enterprise' },
     { key: 'tenants_trial', label: 'Firme in trial', value: props.metrics.tenants_trial || 0, note: 'Trial activ neconvertit' },
     { key: 'monthly_mrr_estimate', label: 'MRR estimat', value: formatMoney(props.metrics.monthly_mrr_estimate || 0), note: 'Estimare bazata pe planurile active' },
 ]);
@@ -353,7 +353,7 @@ const requiresTrialDate = computed(() => {
         return false;
     }
 
-    return !['starter', 'pro', 'enterprise'].includes(editForm.billing_plan);
+    return !['pro', 'enterprise'].includes(editForm.billing_plan);
 });
 
 const localValidationMessage = computed(() => {
@@ -460,10 +460,6 @@ function planTone(plan) {
 
     if (plan === 'pro') {
         return 'bg-orange-100 text-orange-700';
-    }
-
-    if (plan === 'starter') {
-        return 'bg-emerald-100 text-emerald-700';
     }
 
     return 'bg-slate-100 text-slate-600';

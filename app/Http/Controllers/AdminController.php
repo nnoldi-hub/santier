@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
-    private const PAID_PLANS = ['starter', 'pro', 'enterprise'];
+    private const PAID_PLANS = ['pro', 'enterprise'];
 
     public function index(Request $request): Response
     {
@@ -604,7 +604,7 @@ class AdminController extends Controller
         $this->ensureAdmin($request);
 
         $validated = $request->validate([
-            'billing_plan' => ['required', 'in:free,starter,pro,enterprise'],
+            'billing_plan' => ['required', Rule::in(array_keys(config('pricing.plans', [])))],
             'billing_trial_ends_at' => ['nullable', 'date'],
             'onboarding_completed' => ['nullable', 'boolean'],
         ]);
@@ -897,17 +897,12 @@ class AdminController extends Controller
     private function resolveRecommendedPlanForInvite(?int $estimatedUsers, ?string $customizationScopeLabel): string
     {
         $scope = strtolower((string) $customizationScopeLabel);
-        $users = (int) ($estimatedUsers ?? 0);
 
         if (str_contains($scope, 'enterprise') || str_contains($scope, 'white-label') || str_contains($scope, 'domeniu')) {
             return 'enterprise';
         }
 
-        if ($users >= 10 || str_contains($scope, 'template') || str_contains($scope, 'flux')) {
-            return 'pro';
-        }
-
-        return 'starter';
+        return 'pro';
     }
 
     private function resolveTenantCommercialStatus(Tenant $tenant, ?Carbon $trialEndsAt, Carbon $today): string

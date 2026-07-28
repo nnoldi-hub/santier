@@ -18,9 +18,9 @@ class DocumentTemplateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_starter_tenant_is_forced_to_classic_even_if_modern_was_saved(): void
+    public function test_free_tenant_is_forced_to_classic_even_if_modern_was_saved(): void
     {
-        $this->createTenant('starter');
+        $this->createTenant('free');
         AppSetting::setValues(['document_template' => 'modern'], 1);
 
         $branding = DocumentBranding::resolve(1);

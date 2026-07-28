@@ -39,11 +39,11 @@
                     </button>
                 </div>
                 <span v-if="selectedInterval === 'yearly'" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">
-                    2 luni gratis
+                    6 luni gratis
                 </span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
                 <div
                     v-for="(plan, key) in plans"
                     :key="key"

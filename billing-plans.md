@@ -332,3 +332,56 @@ Acelasi flux stabilit deja in acest repo (vezi `organizare-santier.md`/`nou.md`)
 - **In afara scopului**: migrarea automata a unui abonament existent intre
   lunar/anual la reinnoire (ramane actiune manuala prin "Schimba planul"), alte
   monede sau perioade de facturare.
+
+### Faza 8 - Un singur abonament (Facut, 2026-07-27)
+- Cerere: colapsarea celor 4 niveluri (Demo/Brand de baza/Brand complet/
+  Enterprise) la un singur abonament platit, 250 RON/luna sau 1500 RON/an
+  (6 luni gratis, nu 2 ca la vechiul raport 10x), cu exact featurile de azi
+  ale "Brand complet". Enterprise ramane, la cererea utilizatorului, ca
+  optiune "Contact vanzari" (fara plata self-service).
+- **Zero risc pentru clienti reali** - niciun `STRIPE_*` configurat inca
+  (pasul manual din Faza 5 tot netacut), deci nicio migrare de date.
+- `config/pricing.php`: cheia `pro` isi pastreaza toate featurile/limitele,
+  doar pret schimbat (349->250, 3490->1500). Cheia `starter` stearsa
+  complet din config - niciun nivel intermediar ramas.
+- `free` ramane in config (stare interna "fara abonament activ" - fallback
+  `PricingPlan`, valoarea la anulare din `StripeSubscriptionSync`), dar nu
+  mai apare pe pagina publica de preturi. `enterprise` ramane neschimbat,
+  dar exclus din elegibilitatea de checkout self-service.
+- `App\Support\MarketingPricing::plans()`: filtreaza explicit doar
+  `['pro', 'enterprise']` pentru afisare publica.
+- **Doua constante `PAID_PLANS`, doua scopuri**: `BillingController::
+  PAID_PLANS = ['pro']` (elegibilitate checkout/swap - Enterprise nu mai e
+  cumparabil direct); `AdminController::PAID_PLANS = ['pro', 'enterprise']`
+  (numarare "client platitor" pentru MRR/metrici - un Enterprise asignat
+  manual tot conteaza). `BillingController::index()` trimite catre Vue doar
+  `['free', 'pro']` (pastreaza cardul `free` pentru butonul de anulare,
+  exclude `enterprise` de pe pagina de Billing - ramane strict admin-
+  asignabil).
+- `AdminController::updateSubscription()`: regula hardcodata `in:free,
+  starter,pro,enterprise` inlocuita cu `Rule::in(array_keys(config(
+  'pricing.plans')))`, acelasi tipar ca `updateTenantCommercial()`.
+- **Bug de continut gasit si reparat pe aceeasi linie**: eticheta "2 luni
+  gratis" de langa toggle-ul Lunar/Anual (`Welcome.vue`, `Billing/
+  Index.vue`) ar fi ramas gresita cu noul raport de pret (6 luni gratis,
+  nu 2) - corectata in ambele locuri.
+- **Descoperire in timpul implementarii**: `AdminController::
+  resolveRecommendedPlanForInvite()` (recomandare de plan pentru lead-uri
+  comerciale, in Dashboard-ul Comercial) avea `'starter'` ca fallback -
+  simplificat la `'pro'` (singurul plan self-service ramas), ramura
+  intermediara devenita moarta eliminata. Mesajele `PricingPlan::
+  featureMessage()` ("Gantt este disponibil incepand cu planul Starter")
+  actualizate la "planul Brand complet".
+- Teste actualizate: `PricingPlanLimitsTest.php` (cele 3 teste care foloseau
+  `starter` mutate pe `pro`/`free`, limita de locuri testata cu 10 - limita
+  reala a lui `pro` - nu 3), `BillingStripeTest.php` (rezolutia Price ID
+  testata cu `enterprise` in loc de `starter`, test nou care confirma ca
+  checkout pe `starter` da 404), `DocumentTemplateTest.php`/
+  `WhiteLabelBrandingTest.php`/`QuoteInternalApprovalTest.php` (tenantul
+  "fara acest feature" mutat de pe `starter` pe `free`).
+- **In afara scopului**: UI dedicat pentru un tenant Enterprise care
+  viziteaza Billing (nu vede un card special pentru planul lui curent -
+  volum asteptat zero, deal-uri custom gestionate direct de vanzari).
+  Migrarea automata a tenantilor de test/dev ramasi cu `billing_plan =
+  'starter'` in baza de date (cad deja pe fallback `free`, comportament
+  acceptabil).

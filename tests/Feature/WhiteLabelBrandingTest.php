@@ -65,10 +65,10 @@ class WhiteLabelBrandingTest extends TestCase
         Mail::assertSent(QuoteSentMail::class, fn (QuoteSentMail $mail) => $mail->whiteLabel === true);
     }
 
-    public function test_quote_sent_email_keeps_modulia_for_starter_tenant(): void
+    public function test_quote_sent_email_keeps_modulia_for_free_tenant(): void
     {
         Mail::fake();
-        $user = $this->createOnboardedUser('starter');
+        $user = $this->createOnboardedUser('free');
         $quote = $this->createQuote($user);
 
         $this->actingAs($user)->patch("/quotes/{$quote->id}/send");

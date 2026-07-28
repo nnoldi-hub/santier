@@ -431,7 +431,7 @@ const routeMissing = (name) => !hasRoute(name);
 
 const platformAppName = computed(() => page.props.platform?.appName || 'Modulia');
 const isPlatformAdmin = computed(() => Boolean(page.props.platform?.isAdmin));
-const canManageDocumentBranding = computed(() => ['starter', 'pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
+const canManageDocumentBranding = computed(() => ['pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
 
 const userInitials = computed(() => {
     const name = page.props.auth?.user?.name || '';
