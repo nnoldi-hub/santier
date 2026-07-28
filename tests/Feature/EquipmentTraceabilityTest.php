@@ -56,8 +56,8 @@ class EquipmentTraceabilityTest extends TestCase
                 ->where('equipment.data.0.reservations_count', 2)
                 ->where('equipment.data.0.total_reserved_days', 4)
                 // 100 cost/h * 2 qty * 3 days * 8h + 100 cost/h * 1 qty * 1 day * 8h
-                ->where('equipment.data.0.total_estimated_cost', 5600.0)
-                ->where('summary.total_estimated_cost', 5600.0);
+                ->where('equipment.data.0.total_estimated_cost', 5600)
+                ->where('summary.total_estimated_cost', 5600);
         });
     }
 

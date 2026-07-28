@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
-use App\Support\AnalyticsTracker;
 use App\Support\PricingPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,10 +64,12 @@ class BillingController extends Controller
 
     public function swap(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'plan' => ['required', 'in:' . implode(',', self::PAID_PLANS)],
             'interval' => ['nullable', 'in:monthly,yearly'],
         ]);
+        abort_if($validator->fails(), 422, $validator->errors()->first());
+        $validated = $validator->validated();
 
         $tenant = $this->resolveTenant($request);
         abort_unless($tenant->subscribed('default'), 422, 'Nu exista niciun abonament activ de schimbat.');
@@ -75,17 +77,8 @@ class BillingController extends Controller
         $priceId = PricingPlan::priceIdForPlan($validated['plan'], $validated['interval'] ?? 'monthly');
         abort_if(!$priceId, 500, 'Planul nu are un Price Stripe configurat.');
 
-        $previousPlan = PricingPlan::current($request->user());
-
         $tenant->subscription('default')->swap($priceId);
         $tenant->update(['billing_plan' => $validated['plan']]);
-
-        if ($previousPlan !== $validated['plan']) {
-            AnalyticsTracker::track($request, 'trial_upgraded', [
-                'from' => $previousPlan,
-                'to' => $validated['plan'],
-            ], oncePerUser: true);
-        }
 
         return back()->with('success', 'Planul a fost schimbat.');
     }

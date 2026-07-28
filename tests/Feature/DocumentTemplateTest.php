@@ -73,14 +73,18 @@ class DocumentTemplateTest extends TestCase
 
     private function createTenant(string $plan): Tenant
     {
-        return Tenant::create([
+        $tenant = Tenant::find(1) ?? new Tenant();
+
+        $tenant->forceFill([
             'id' => 1,
             'name' => 'Tenant Test',
             'slug' => 'tenant-test',
             'billing_plan' => $plan,
             'status' => 'active',
             'module_flags' => [],
-        ]);
+        ])->save();
+
+        return $tenant->fresh();
     }
 
     private function createOnboardedUser(string $plan): User

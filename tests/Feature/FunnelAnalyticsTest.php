@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Support\StripeSubscriptionSync;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -80,9 +82,15 @@ class FunnelAnalyticsTest extends TestCase
             'event_name' => 'first_project_created',
         ]);
 
-        $this->actingAs($user)->patch('/billing', [
-            'plan' => 'pro',
-        ])->assertRedirect();
+        // trial_upgraded is tracked off the Stripe webhook (not the checkout
+        // request itself), since Stripe confirming the subscription exists is
+        // the only reliable signal that a trial really converted to paid -
+        // simulated here the same way StripeSubscriptionSync is tested.
+        Tenant::find($user->currentTenant->id)?->forceFill(['stripe_id' => 'cus_funnel_test'])->save();
+
+        StripeSubscriptionSync::trackTrialUpgraded([
+            'data' => ['object' => ['customer' => 'cus_funnel_test']],
+        ]);
 
         $this->assertDatabaseHas('analytics_events', [
             'user_id' => $user->id,

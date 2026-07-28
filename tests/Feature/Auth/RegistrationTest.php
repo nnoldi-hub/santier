@@ -28,7 +28,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('onboarding.show', absolute: false));
     }
 
     public function test_new_users_are_assigned_tenant_admin_role(): void

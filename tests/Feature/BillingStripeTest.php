@@ -169,7 +169,9 @@ class BillingStripeTest extends TestCase
 
     private function createTenantWithStripeId(string $plan): Tenant
     {
-        return Tenant::create([
+        $tenant = Tenant::find(1) ?? new Tenant();
+
+        $tenant->forceFill([
             'id' => 1,
             'name' => 'Tenant Test',
             'slug' => 'tenant-test',
@@ -177,7 +179,9 @@ class BillingStripeTest extends TestCase
             'status' => 'active',
             'module_flags' => [],
             'stripe_id' => 'cus_test123',
-        ]);
+        ])->save();
+
+        return $tenant->fresh();
     }
 
     private function createOnboardedUser(string $plan): User

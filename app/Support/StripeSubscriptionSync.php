@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\TenantUser;
 use Laravel\Cashier\Cashier;
 
 class StripeSubscriptionSync
@@ -38,5 +39,29 @@ class StripeSubscriptionSync
     {
         $tenant = Cashier::findBillable($payload['data']['object']['customer'] ?? null);
         $tenant?->update(['billing_plan' => 'free']);
+    }
+
+    /**
+     * Records "trial_upgraded" off a `customer.subscription.created` payload -
+     * Stripe confirming the subscription exists is the only reliable signal
+     * that a trial really converted to a paying one (unlike the checkout/swap
+     * request, which only asks Stripe to start that process).
+     */
+    public static function trackTrialUpgraded(array $payload): void
+    {
+        $tenant = Cashier::findBillable($payload['data']['object']['customer'] ?? null);
+
+        if (!$tenant) {
+            return;
+        }
+
+        $owner = TenantUser::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereNull('invited_by')
+            ->first()?->user;
+
+        AnalyticsTracker::trackForUser($owner?->id, 'trial_upgraded', [
+            'to' => $tenant->billing_plan,
+        ], oncePerUser: true);
     }
 }

@@ -36,6 +36,12 @@ class DocumentsTest extends TestCase
             'issued_at' => '2026-07-01',
             'payment_status' => 'unpaid',
             'notes' => 'Scadenta 15 zile',
+            'invoice_number' => 'F-2026-001',
+            'type_data' => [
+                'produse_servicii' => 'Manopera si materiale etapa 1',
+                'tva_pct' => 19,
+                'scadenta' => '2026-07-16',
+            ],
             'attachment' => UploadedFile::fake()->create('factura.pdf', 120, 'application/pdf'),
         ]);
 

@@ -50,7 +50,9 @@ class PilotInviteController extends Controller
             ->when($stagnant, fn ($query) => $query
                 ->whereIn('status', PilotInvite::ACTIVE_STATUSES)
                 ->where(fn ($inner) => $inner
-                    ->whereNull('last_contacted_at')
+                    ->where(fn ($never) => $never
+                        ->whereNull('last_contacted_at')
+                        ->where('invited_at', '<', $stagnantThreshold))
                     ->orWhere('last_contacted_at', '<', $stagnantThreshold)))
             ->latest('id')
             ->paginate(20)

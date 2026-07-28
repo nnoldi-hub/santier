@@ -70,11 +70,11 @@ class MaterialTraceabilityTest extends TestCase
             $page->component('MaterialTraceability/Index')
                 ->where('summary.materials_tracked', 1)
                 ->where('materials.data.0.orders_count', 2)
-                ->where('materials.data.0.total_ordered', 15.0)
-                ->where('materials.data.0.total_ordered_value', 7500.0)
+                ->where('materials.data.0.total_ordered', 15)
+                ->where('materials.data.0.total_ordered_value', 7500)
                 ->where('materials.data.0.status', 'ok')
-                ->where('materials.data.0.invoices.total', 7497.0)
-                ->where('materials.data.0.invoices.unpaid_total', 7497.0);
+                ->where('materials.data.0.invoices.total', 7497)
+                ->where('materials.data.0.invoices.unpaid_total', 7497);
         });
     }
 

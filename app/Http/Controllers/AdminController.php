@@ -487,7 +487,9 @@ class AdminController extends Controller
         $stagnantBase = PilotInvite::query()
             ->whereIn('status', PilotInvite::ACTIVE_STATUSES)
             ->where(fn ($query) => $query
-                ->whereNull('last_contacted_at')
+                ->where(fn ($never) => $never
+                    ->whereNull('last_contacted_at')
+                    ->where('invited_at', '<', $stagnantThreshold))
                 ->orWhere('last_contacted_at', '<', $stagnantThreshold));
         $stagnantOpportunities = [
             'count' => (clone $stagnantBase)->count(),

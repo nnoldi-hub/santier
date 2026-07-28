@@ -34,6 +34,11 @@ class ResourceTraceabilityFoundationTest extends TestCase
             'issued_at' => '2026-07-09',
             'payment_status' => 'unpaid',
             'notes' => 'Aviz pentru turnare placa.',
+            'type_data' => [
+                'furnizor' => 'Statie beton',
+                'materiale' => 'Beton B250',
+                'transportator' => 'Transport Auto SRL',
+            ],
         ]);
 
         $response->assertRedirect('/documents');

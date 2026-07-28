@@ -95,7 +95,7 @@ class ExportPreviewChartsTest extends TestCase
             'active' => false,
         ]);
 
-        $response = $this->actingAs($user)->get('/exports/preview?export_type=materials');
+        $response = $this->actingAs($user)->get('/exports/preview?export_type=materials&include_inactive=1');
 
         $response->assertOk();
         $charts = $response->json('charts');
