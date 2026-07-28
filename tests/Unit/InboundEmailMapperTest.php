@@ -123,4 +123,64 @@ class InboundEmailMapperTest extends TestCase
 
         $this->assertSame('inbound', $mapped['direction']);
     }
+
+    public function test_strips_outlook_style_quoted_reply(): void
+    {
+        $bodyText = "Buna. Multumesc\n"
+            . "________________________________\n"
+            . "From: Modulia <vanzari@modulia.ro>\n"
+            . "Sent: Tuesday, July 28, 2026 3:27 PM\n"
+            . "To: Noldi NYIKORA <noldi.nyikora@nks-cables.ro>\n"
+            . "Subject: Re: Modulia - Nk Smart Cables SRL\n\n"
+            . "Buna\n\nCu stima,\n\nSuper Admin\nEchipa Modulia";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame('Buna. Multumesc', $mapped['body']);
+    }
+
+    public function test_strips_gmail_style_quoted_reply(): void
+    {
+        $bodyText = "Suna bine, va rog trimiteti detalii.\n\n"
+            . "On Tue, Jul 28, 2026 at 3:27 PM Modulia <vanzari@modulia.ro> wrote:\n"
+            . "> Buna\n> Cu stima,\n> Super Admin";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame('Suna bine, va rog trimiteti detalii.', $mapped['body']);
+    }
+
+    public function test_leaves_a_reply_without_any_quote_markers_untouched(): void
+    {
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => "Buna ziua,\nMultumesc pentru informatii, revin cu detalii saptamana viitoare.",
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame("Buna ziua,\nMultumesc pentru informatii, revin cu detalii saptamana viitoare.", $mapped['body']);
+    }
 }

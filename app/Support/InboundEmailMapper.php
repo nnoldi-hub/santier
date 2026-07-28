@@ -28,17 +28,53 @@ class InboundEmailMapper
         ];
     }
 
+    /**
+     * Patterns marking where a quoted previous message begins in a plain-text
+     * body, so replies show only what the prospect actually typed. Covers the
+     * separators/headers used by Outlook and Gmail, in Romanian and English.
+     */
+    private const QUOTE_MARKERS = [
+        '/^[_-]{8,}\s*$/m',                                   // Outlook's horizontal rule separator
+        '/^From:\s*\S.*\n(?:Sent|Date):\s*\S.*/mi',           // Outlook header block (EN)
+        '/^De la:\s*\S.*\n(?:Trimis|Data):\s*\S.*/mi',        // Outlook header block (RO)
+        '/^On .{0,120}wrote:\s*$/mi',                         // Gmail-style (EN)
+        '/^(?:În|In|Pe) .{0,120}a scris:\s*$/mi',             // Gmail-style (RO)
+        '/^>.*$/m',                                           // classic ">" quote prefix
+    ];
+
     private static function extractBody(?string $text, ?string $html): string
     {
         $text = trim((string) $text);
 
-        if ($text !== '') {
+        if ($text === '') {
+            $stripped = trim(strip_tags((string) $html));
+            $text = preg_replace('/\n{3,}/', "\n\n", $stripped) ?? $stripped;
+        }
+
+        return self::stripQuotedReply($text);
+    }
+
+    private static function stripQuotedReply(string $text): string
+    {
+        $earliestOffset = null;
+
+        foreach (self::QUOTE_MARKERS as $pattern) {
+            if (preg_match($pattern, $text, $match, PREG_OFFSET_CAPTURE) === 1) {
+                $offset = $match[0][1];
+
+                if ($earliestOffset === null || $offset < $earliestOffset) {
+                    $earliestOffset = $offset;
+                }
+            }
+        }
+
+        if ($earliestOffset === null) {
             return $text;
         }
 
-        $stripped = trim(strip_tags((string) $html));
+        $trimmed = trim(substr($text, 0, $earliestOffset));
 
-        return preg_replace('/\n{3,}/', "\n\n", $stripped) ?? $stripped;
+        return $trimmed !== '' ? $trimmed : $text;
     }
 
     private static function normalizeMessageId(?string $messageId): ?string
