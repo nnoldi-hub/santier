@@ -9,6 +9,7 @@ use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\BrochureContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -66,6 +67,7 @@ class AdminController extends Controller
         return Inertia::render('Admin/Index', [
             'plans' => config('pricing.plans', []),
             'settings' => AppSetting::allWithDefaults($defaults),
+            'brochureContent' => BrochureContent::current(),
             'users' => $users,
             'metrics' => [
                 'users_total' => $users->count(),
@@ -749,6 +751,19 @@ class AdminController extends Controller
             'trial_days' => ['required', 'integer', 'min:1', 'max:90'],
             'public_signup_enabled' => ['nullable', 'boolean'],
             'demo_mode_enabled' => ['nullable', 'boolean'],
+            'brochure_cover_title' => ['nullable', 'string', 'max:255'],
+            'brochure_cover_subtitle' => ['nullable', 'string', 'max:500'],
+            'brochure_closing_title' => ['nullable', 'string', 'max:255'],
+            'brochure_closing_text' => ['nullable', 'string', 'max:1000'],
+            'brochure_pain_points' => ['nullable', 'array', 'max:12'],
+            'brochure_pain_points.*.title' => ['nullable', 'string', 'max:100'],
+            'brochure_pain_points.*.text' => ['nullable', 'string', 'max:300'],
+            'brochure_features' => ['nullable', 'array', 'max:12'],
+            'brochure_features.*.title' => ['nullable', 'string', 'max:100'],
+            'brochure_features.*.text' => ['nullable', 'string', 'max:300'],
+            'brochure_how_it_works' => ['nullable', 'array', 'max:6'],
+            'brochure_how_it_works.*.title' => ['nullable', 'string', 'max:100'],
+            'brochure_how_it_works.*.text' => ['nullable', 'string', 'max:300'],
         ]);
 
         $documentLogoUrl = $validated['document_logo_url'] ?? '';
@@ -783,6 +798,8 @@ class AdminController extends Controller
             'public_signup_enabled' => (bool) ($validated['public_signup_enabled'] ?? false),
             'demo_mode_enabled' => (bool) ($validated['demo_mode_enabled'] ?? false),
         ]);
+
+        BrochureContent::persist($validated);
 
         return back()->with('success', 'Setarile globale au fost salvate.');
     }

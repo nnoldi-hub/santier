@@ -6,6 +6,7 @@ use App\Http\Requests\StoreBrochureRequestRequest;
 use App\Mail\BrochureRequestMail;
 use App\Models\AppSetting;
 use App\Models\BrochureRequest;
+use App\Support\BrochureContent;
 use App\Support\MarketingPricing;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,7 @@ class BrochureRequestController extends Controller
         $pdfBinary = Pdf::loadView('marketing.brochure', [
             'plans' => MarketingPricing::plans(),
             'settings' => $platformSettings,
+            'content' => BrochureContent::current(),
             'generatedAt' => now()->toDateTimeString(),
         ])->setPaper('a4')->output();
 

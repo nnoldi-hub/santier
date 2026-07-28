@@ -226,6 +226,88 @@
                             Demo mode activ
                         </label>
 
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                            <div>
+                                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Broșura PDF</div>
+                                <h3 class="mt-1 text-sm font-bold text-slate-900">Continutul broșurii trimise solicitantilor de pe pagina publica</h3>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Titlu copertă</label>
+                                <input v-model="settingsForm.brochure_cover_title" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Subtitlu copertă</label>
+                                <textarea v-model="settingsForm.brochure_cover_subtitle" rows="2" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm"></textarea>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Probleme rezolvate</label>
+                                    <button type="button" @click="addBrochurePainPoint" class="text-xs border border-slate-300 rounded px-2 py-1 text-slate-600 hover:bg-white">+ Adauga</button>
+                                </div>
+                                <div v-if="settingsForm.brochure_pain_points.length === 0" class="text-xs text-slate-400 border border-dashed border-slate-300 rounded-lg p-3 bg-white">
+                                    Fara probleme listate.
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div v-for="(item, index) in settingsForm.brochure_pain_points" :key="index" class="border border-slate-200 rounded-lg p-3 space-y-2 bg-white">
+                                        <div class="flex items-center gap-2">
+                                            <input v-model="item.title" type="text" class="flex-1 rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Titlu (ex: Taskuri pierdute)" />
+                                            <button type="button" @click="removeBrochurePainPoint(index)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50 shrink-0">X</button>
+                                        </div>
+                                        <textarea v-model="item.text" rows="2" class="w-full rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Descriere"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Functionalitati cheie</label>
+                                    <button type="button" @click="addBrochureFeature" class="text-xs border border-slate-300 rounded px-2 py-1 text-slate-600 hover:bg-white">+ Adauga</button>
+                                </div>
+                                <div v-if="settingsForm.brochure_features.length === 0" class="text-xs text-slate-400 border border-dashed border-slate-300 rounded-lg p-3 bg-white">
+                                    Fara functionalitati listate.
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div v-for="(item, index) in settingsForm.brochure_features" :key="index" class="border border-slate-200 rounded-lg p-3 space-y-2 bg-white">
+                                        <div class="flex items-center gap-2">
+                                            <input v-model="item.title" type="text" class="flex-1 rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Titlu (ex: Ofertare inteligenta)" />
+                                            <button type="button" @click="removeBrochureFeature(index)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50 shrink-0">X</button>
+                                        </div>
+                                        <textarea v-model="item.text" rows="2" class="w-full rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Descriere"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Cum functioneaza (pasi)</label>
+                                    <button type="button" @click="addBrochureHowItWorksStep" class="text-xs border border-slate-300 rounded px-2 py-1 text-slate-600 hover:bg-white">+ Adauga</button>
+                                </div>
+                                <div v-if="settingsForm.brochure_how_it_works.length === 0" class="text-xs text-slate-400 border border-dashed border-slate-300 rounded-lg p-3 bg-white">
+                                    Fara pasi listati.
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div v-for="(item, index) in settingsForm.brochure_how_it_works" :key="index" class="border border-slate-200 rounded-lg p-3 space-y-2 bg-white">
+                                        <div class="flex items-center gap-2">
+                                            <input v-model="item.title" type="text" class="flex-1 rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Titlu pas" />
+                                            <button type="button" @click="removeBrochureHowItWorksStep(index)" class="text-xs border border-red-200 text-red-600 rounded px-2 py-2 hover:bg-red-50 shrink-0">X</button>
+                                        </div>
+                                        <textarea v-model="item.text" rows="2" class="w-full rounded-lg border-slate-300 px-3 py-2 text-sm" placeholder="Descriere"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Titlu pagina finala</label>
+                                <input v-model="settingsForm.brochure_closing_title" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Mesaj pagina finala</label>
+                                <textarea v-model="settingsForm.brochure_closing_text" rows="2" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm"></textarea>
+                            </div>
+                        </div>
+
                         <button type="submit" class="rounded-xl bg-[#1A237E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#141b5c] disabled:opacity-60" :disabled="settingsForm.processing">
                             Salveaza setarile
                         </button>
@@ -246,6 +328,7 @@ import { DocumentTextIcon } from '@heroicons/vue/24/outline';
 const props = defineProps({
     plans: { type: Object, required: true },
     settings: { type: Object, required: true },
+    brochureContent: { type: Object, required: true },
     users: { type: Array, required: true },
     metrics: { type: Object, required: true },
 });
@@ -279,7 +362,41 @@ const settingsForm = useForm({
     trial_days: props.settings.trial_days || 14,
     public_signup_enabled: Boolean(props.settings.public_signup_enabled),
     demo_mode_enabled: Boolean(props.settings.demo_mode_enabled),
+    brochure_cover_title: props.brochureContent.cover_title || '',
+    brochure_cover_subtitle: props.brochureContent.cover_subtitle || '',
+    brochure_closing_title: props.brochureContent.closing_title || '',
+    brochure_closing_text: props.brochureContent.closing_text || '',
+    brochure_pain_points: (props.brochureContent.pain_points || []).map((item) => ({ ...item })),
+    brochure_features: (props.brochureContent.features || []).map((item) => ({ ...item })),
+    brochure_how_it_works: (props.brochureContent.how_it_works || []).map((item) => ({ ...item })),
 });
+
+function addBrochurePainPoint() {
+    if (settingsForm.brochure_pain_points.length >= 12) return;
+    settingsForm.brochure_pain_points.push({ title: '', text: '' });
+}
+
+function removeBrochurePainPoint(index) {
+    settingsForm.brochure_pain_points.splice(index, 1);
+}
+
+function addBrochureFeature() {
+    if (settingsForm.brochure_features.length >= 12) return;
+    settingsForm.brochure_features.push({ title: '', text: '' });
+}
+
+function removeBrochureFeature(index) {
+    settingsForm.brochure_features.splice(index, 1);
+}
+
+function addBrochureHowItWorksStep() {
+    if (settingsForm.brochure_how_it_works.length >= 6) return;
+    settingsForm.brochure_how_it_works.push({ title: '', text: '' });
+}
+
+function removeBrochureHowItWorksStep(index) {
+    settingsForm.brochure_how_it_works.splice(index, 1);
+}
 
 const logoPreview = ref(props.settings.document_logo_url || '');
 const uploadedLandingVideoPreviewUrl = ref('');

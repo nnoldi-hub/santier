@@ -741,3 +741,31 @@ Acelasi flux stabilit in aceasta sesiune:
   captcha/protectie anti-spam suplimentara fata de `throttle:6,1` (fara alt
   precedent in aplicatie), legarea unei solicitari de `PilotInvite`
   existent, broșura multi-limba sau personalizata pe segment.
+
+### Faza 23 - Editor de continut pentru broșura PDF, in Admin (Facut, 2026-07-27)
+- Broșura (Faza 22) avea tot continutul de marketing (probleme rezolvate,
+  functionalitati, pasi, copertă, inchidere) scris direct in
+  `marketing/brochure.blade.php` - orice schimbare cerea deploy. Acum se
+  editeaza din Admin, cu control total pe liste (adaugă/șterge fiecare
+  bloc, decizie confirmata).
+- **`App\Support\BrochureContent`** (helper nou) - singurul loc care
+  cunoaste atat textul implicit (mutat din Blade aici) cat si logica de
+  citire/scriere prin `AppSetting` (`tenant_id=0`, setari de platforma,
+  acelasi magazin folosit deja pentru `sales_email`/`company_name` etc.).
+  Listele (probleme/functionalitati/pasi) se salveaza `json_encode`-uite
+  intr-o singura coloana text - `AppSetting::setValues()` face `(string)`
+  pe orice valoare care nu e bool, deci un array trimis direct ar deveni
+  literal "Array".
+- **Formular extins, nu unul nou**: `settingsForm` deja existent in
+  `Admin/Index.vue` (tab-ul "documents") capata 7 campuri noi - un singur
+  PATCH salveaza tot. Cele 3 liste (probleme/functionalitati/pasi)
+  folosesc exact tiparul deja existent la `wbs_stages` din
+  `Recipes/Create.vue` (push/splice pe array, plafon client-side, buton
+  "+"/buton "Sterge" per rand).
+- Teste: `tests/Feature/AdminBrochureContentTest.php` (nou - superadmin
+  poate salva continutul si `BrochureContent::current()` il reflecta,
+  non-admin primeste 403, continutul implicit se foloseste cand nimic nu
+  a fost inca personalizat).
+- Ramas explicit in afara scopului: reordonare drag-and-drop (doar
+  adauga/sterge, consistent cu `wbs_stages`), preview live al PDF-ului in
+  admin, istoric de versiuni pentru continut.
