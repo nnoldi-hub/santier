@@ -34,12 +34,21 @@ class InboundEmailMapper
      * separators/headers used by Outlook and Gmail, in Romanian and English.
      */
     private const QUOTE_MARKERS = [
-        '/^[_-]{8,}\s*$/m',                                   // Outlook's horizontal rule separator
-        '/^From:\s*\S.*\n(?:Sent|Date):\s*\S.*/mi',           // Outlook header block (EN)
-        '/^De la:\s*\S.*\n(?:Trimis|Data):\s*\S.*/mi',        // Outlook header block (RO)
-        '/^.{0,160}\bwrote:\s*$/mi',                          // Gmail-style (EN) - "On ... wrote:"
-        '/^.{0,160}\ba scris:\s*$/mi',                        // Gmail-style (RO) - "mar., 28 iul. ... a scris:"
-        '/^>.*$/m',                                           // classic ">" quote prefix
+        '/^[_-]{8,}\s*$/mu',                                   // Outlook's horizontal rule separator
+        '/^From:\s*\S.*\n(?:Sent|Date):\s*\S.*/miu',           // Outlook header block (EN)
+        '/^De la:\s*\S.*\n(?:Trimis|Data):\s*\S.*/miu',        // Outlook header block (RO)
+        // Gmail-style attribution lines ("On ... wrote:" / "mar., 28 iul.
+        // ... a scris:") - deliberately NOT anchored to line-start with a
+        // ".{0,160}" prefix: Gmail mobile sometimes runs the attribution
+        // into the same line as the prospect's own text (no separating
+        // newline), and a ".{0,160}" prefix would then greedily eat that
+        // real text too. Anchoring directly on the distinctive "On "/
+        // weekday-abbreviation token avoids both problems at once - it
+        // matches whether the attribution starts its own line or not,
+        // without ever consuming genuine prospect text before it.
+        '/\bOn[\s\x{00A0}].{0,160}?\bwrote:/iu',
+        '/\b(?:lun|mar|mie|joi|vin|s[aâ]m|dum)\.,?[\s\x{00A0}]+\d{1,2}[\s\x{00A0}]+\w+\.?[\s\x{00A0}]+\d{4}.{0,120}?\ba scris:/iu',
+        '/^>.*$/mu',                                           // classic ">" quote prefix
     ];
 
     private static function extractBody(?string $text, ?string $html): string

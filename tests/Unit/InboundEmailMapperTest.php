@@ -227,6 +227,47 @@ class InboundEmailMapperTest extends TestCase
         $this->assertSame('Salutare sunt interesat', $mapped['body']);
     }
 
+    public function test_strips_romanian_gmail_quote_with_no_separating_newline(): void
+    {
+        // Real Gmail mobile reply observed live: the quote attribution ran
+        // into the same line as the prospect's own text (no newline before
+        // it), so a line-start-anchored pattern alone missed it.
+        $bodyText = 'Puteti sa imi trimiteti oferta?'
+            . "\n\nMultumesc mie., 29 iul. 2026, 08:33 Mihaita Purghel <instalatiisanitaresigure@gmail.com> a scris:\nCu drag";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame("Puteti sa imi trimiteti oferta?\n\nMultumesc", $mapped['body']);
+    }
+
+    public function test_strips_romanian_gmail_quote_separated_by_non_breaking_spaces(): void
+    {
+        $bodyText = "Multumesc\n\n"
+            . "mie.,\u{00A0}29\u{00A0}iul.\u{00A0}2026,\u{00A0}08:33 Mihaita Purghel <a@b.ro> a scris:\nCu drag";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame('Multumesc', $mapped['body']);
+    }
+
     public function test_leaves_a_reply_without_any_quote_markers_untouched(): void
     {
         $mapped = InboundEmailMapper::map([
