@@ -205,6 +205,28 @@ class InboundEmailMapperTest extends TestCase
         $this->assertSame('Suna bine, va rog trimiteti detalii.', $mapped['body']);
     }
 
+    public function test_strips_romanian_gmail_style_quoted_reply(): void
+    {
+        // Real Gmail RO format observed live: starts with the weekday
+        // abbreviation, not "Pe"/"În" as originally assumed.
+        $bodyText = "Salutare sunt interesat\n\n"
+            . "mar., 28 iul. 2026, 16:12 Mihaita Purghel <instalatiisanitaresigure@gmail.com> a scris:\n"
+            . "Cu drag";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame('Salutare sunt interesat', $mapped['body']);
+    }
+
     public function test_leaves_a_reply_without_any_quote_markers_untouched(): void
     {
         $mapped = InboundEmailMapper::map([

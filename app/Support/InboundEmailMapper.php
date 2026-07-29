@@ -37,8 +37,8 @@ class InboundEmailMapper
         '/^[_-]{8,}\s*$/m',                                   // Outlook's horizontal rule separator
         '/^From:\s*\S.*\n(?:Sent|Date):\s*\S.*/mi',           // Outlook header block (EN)
         '/^De la:\s*\S.*\n(?:Trimis|Data):\s*\S.*/mi',        // Outlook header block (RO)
-        '/^On .{0,120}wrote:\s*$/mi',                         // Gmail-style (EN)
-        '/^(?:În|In|Pe) .{0,120}a scris:\s*$/mi',             // Gmail-style (RO)
+        '/^.{0,160}\bwrote:\s*$/mi',                          // Gmail-style (EN) - "On ... wrote:"
+        '/^.{0,160}\ba scris:\s*$/mi',                        // Gmail-style (RO) - "mar., 28 iul. ... a scris:"
         '/^>.*$/m',                                           // classic ">" quote prefix
     ];
 
