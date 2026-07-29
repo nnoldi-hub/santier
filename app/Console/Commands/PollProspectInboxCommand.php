@@ -2,10 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\CommercialAction;
-use App\Models\PilotInvite;
-use App\Models\PilotInviteMessage;
 use App\Support\InboundEmailMapper;
+use App\Support\PilotInviteReplyImporter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Webklex\IMAP\Facades\Client as ClientFacade;
@@ -39,7 +37,7 @@ class PollProspectInboxCommand extends Command
         $imported = 0;
 
         foreach ($messages as $message) {
-            if ($this->importMessage($message)) {
+            if (PilotInviteReplyImporter::import($this->extractFields($message))) {
                 $imported++;
             }
         }
@@ -49,9 +47,9 @@ class PollProspectInboxCommand extends Command
         return self::SUCCESS;
     }
 
-    private function importMessage(Message $message): bool
+    private function extractFields(Message $message): array
     {
-        $mapped = InboundEmailMapper::map([
+        return InboundEmailMapper::map([
             'from_email' => $message->from->first()?->mail,
             'from_name' => $message->from->first()?->personal,
             'subject' => (string) $message->subject,
@@ -61,42 +59,5 @@ class PollProspectInboxCommand extends Command
             'in_reply_to' => $message->in_reply_to?->first(),
             'date' => $message->date?->first(),
         ]);
-
-        if ($mapped['message_id'] && PilotInviteMessage::query()->where('message_id', $mapped['message_id'])->exists()) {
-            return false;
-        }
-
-        if (!$mapped['from_email']) {
-            return false;
-        }
-
-        $invite = PilotInvite::query()
-            ->whereRaw('lower(contact_email) = ?', [strtolower($mapped['from_email'])])
-            ->latest('id')
-            ->first();
-
-        if (!$invite) {
-            Log::warning("emails:poll-prospect-inbox - no pilot invite found for reply from {$mapped['from_email']}");
-
-            return false;
-        }
-
-        PilotInviteMessage::create([
-            'tenant_id' => $invite->tenant_id,
-            'pilot_invite_id' => $invite->id,
-            ...$mapped,
-        ]);
-
-        CommercialAction::create([
-            'tenant_id' => $invite->tenant_id,
-            'pilot_invite_id' => $invite->id,
-            'actor_id' => null,
-            'action_type' => 'email',
-            'notes' => 'Raspuns primit pe email de la ' . ($mapped['from_name'] ?: $mapped['from_email']) . '.',
-        ]);
-
-        $invite->update(['last_contacted_at' => now()]);
-
-        return true;
     }
 }
