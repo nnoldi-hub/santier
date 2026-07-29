@@ -141,7 +141,7 @@
             </div>
 
             <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="min-w-full text-sm">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Companie</th>
@@ -252,7 +252,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">
+                            <td class="px-4 py-3 text-gray-600 min-w-[180px]">
                                 <div class="space-y-2">
                                     <select v-model="inviteDrafts[invite.id].owner_id" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
                                         <option value="">Fara responsabil</option>
