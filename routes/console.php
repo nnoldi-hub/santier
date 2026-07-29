@@ -8,9 +8,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('exports:run-scheduled')->everyMinute();
-Schedule::command('emails:send-trial-lifecycle')->dailyAt('09:00');
-Schedule::command('demo:refresh')->dailyAt('03:00');
-Schedule::command('notifications:send-operational-reminders')->dailyAt('08:00');
-Schedule::command('briefing:send-daily')->everyFiveMinutes();
-Schedule::command('emails:poll-prospect-inbox')->everyFiveMinutes();
+// Schedule::command() spawns each due job as a separate OS process (needs
+// proc_open), which is disabled on this shared host - every entry below runs
+// via Schedule::call()+Artisan::call() instead, in-process, no proc_open.
+Schedule::call(fn () => Artisan::call('exports:run-scheduled'))->everyMinute();
+Schedule::call(fn () => Artisan::call('emails:send-trial-lifecycle'))->dailyAt('09:00');
+Schedule::call(fn () => Artisan::call('demo:refresh'))->dailyAt('03:00');
+Schedule::call(fn () => Artisan::call('notifications:send-operational-reminders'))->dailyAt('08:00');
+Schedule::call(fn () => Artisan::call('briefing:send-daily'))->everyFiveMinutes();
+Schedule::call(fn () => Artisan::call('emails:poll-prospect-inbox'))->everyFiveMinutes();
