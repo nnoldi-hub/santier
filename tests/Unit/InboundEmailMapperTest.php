@@ -249,6 +249,30 @@ class InboundEmailMapperTest extends TestCase
         $this->assertSame("Puteti sa imi trimiteti oferta?\n\nMultumesc", $mapped['body']);
     }
 
+    public function test_strips_romanian_gmail_quote_wrapped_mid_address(): void
+    {
+        // Real Gmail mobile reply observed live: the raw text hard-wraps
+        // exactly between "<" and the email address, inserting a bare "\r\n"
+        // there ("var_export"+hex confirmed) - the marker phrase "a scris:"
+        // still follows a few characters later, on what is technically a
+        // different line.
+        $bodyText = "Astept sa discutam\n\n"
+            . "mie., 29 iul. 2026, 11:14 Mihaita Purghel <\r\ninstalatiisanitaresigure@gmail.com> a scris:";
+
+        $mapped = InboundEmailMapper::map([
+            'from_email' => 'prospect@example.com',
+            'from_name' => null,
+            'subject' => null,
+            'body_text' => $bodyText,
+            'body_html' => null,
+            'message_id' => null,
+            'in_reply_to' => null,
+            'date' => null,
+        ]);
+
+        $this->assertSame('Astept sa discutam', $mapped['body']);
+    }
+
     public function test_strips_romanian_gmail_quote_separated_by_non_breaking_spaces(): void
     {
         $bodyText = "Multumesc\n\n"

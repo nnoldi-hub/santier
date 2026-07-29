@@ -46,8 +46,12 @@ class InboundEmailMapper
         // weekday-abbreviation token avoids both problems at once - it
         // matches whether the attribution starts its own line or not,
         // without ever consuming genuine prospect text before it.
-        '/\bOn[\s\x{00A0}].{0,160}?\bwrote:/iu',
-        '/\b(?:lun|mar|mie|joi|vin|s[aâ]m|dum)\.,?[\s\x{00A0}]+\d{1,2}[\s\x{00A0}]+\w+\.?[\s\x{00A0}]+\d{4}.{0,120}?\ba scris:/iu',
+        // "s" (dotall) so "." also bridges a hard line-wrap landing mid-way
+        // through the quoted name/address (confirmed live: a mobile Gmail
+        // reply wrapped exactly between "<" and the email address with a
+        // bare "\r\n", which a non-dotall "." can never cross).
+        '/\bOn[\s\x{00A0}].{0,160}?\bwrote:/isu',
+        '/\b(?:lun|mar|mie|joi|vin|s[aâ]m|dum)\.,?[\s\x{00A0}]+\d{1,2}[\s\x{00A0}]+\w+\.?[\s\x{00A0}]+\d{4}.{0,120}?\ba scris:/isu',
         '/^>.*$/mu',                                           // classic ">" quote prefix
     ];
 
