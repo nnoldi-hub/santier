@@ -26,6 +26,15 @@
     @else
         <p style="margin: 0 0 12px;">Trial-ul tau se apropie de final. Continua fara intreruperi prin activarea unui plan platit.</p>
         <p style="margin: 0 0 14px;">Data expirare trial: <strong>{{ optional($trialEndsAt)->format('Y-m-d') ?? 'N/A' }}</strong></p>
+        <p style="margin: 0 0 14px; padding: 12px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; color: #9a3412;">
+            <strong>Oferta de lansare:</strong> daca preferi plata prin transfer bancar, poti cere acum o
+            <strong>factura proforma cu 20% discount</strong> - o primesti pe email in cateva secunde, valabila 14 zile.
+        </p>
+        <p style="margin: 0 0 14px;">
+            <a href="{{ route('billing.index') }}" style="display: inline-block; background: #f97316; color: #ffffff; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Vezi planurile si activeaza
+            </a>
+        </p>
     @endif
 
     <p style="margin: 0;">Poti gestiona planul direct din sectiunea <strong>Plan si Billing</strong> in aplicatie.</p>

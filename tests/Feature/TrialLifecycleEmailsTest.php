@@ -75,4 +75,30 @@ class TrialLifecycleEmailsTest extends TestCase
         $user = User::where('email', 'trial-user@example.com')->firstOrFail();
         $this->assertNotNull($user->billing_trial_ends_at);
     }
+
+    public function test_upgrade_prompt_email_mentions_the_proforma_discount_and_links_to_billing(): void
+    {
+        $user = User::factory()->create([
+            'billing_plan' => 'pro',
+            'billing_trial_ends_at' => now()->addDay(),
+        ]);
+
+        $html = (new TrialLifecycleMail($user, 'upgrade_prompt'))->render();
+
+        $this->assertStringContainsString('20% discount', $html);
+        $this->assertStringContainsString('factura proforma', $html);
+        $this->assertStringContainsString(route('billing.index'), $html);
+    }
+
+    public function test_earlier_campaigns_do_not_mention_the_proforma_discount(): void
+    {
+        $user = User::factory()->create([
+            'billing_plan' => 'pro',
+            'billing_trial_ends_at' => now()->addDays(10),
+        ]);
+
+        $html = (new TrialLifecycleMail($user, 'trial_day_10'))->render();
+
+        $this->assertStringNotContainsString('20% discount', $html);
+    }
 }
