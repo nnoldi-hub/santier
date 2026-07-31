@@ -32,7 +32,7 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="name" value="Nume" />
+                <InputLabel for="name" value="Nume" required />
 
                 <TextInput
                     id="name"
@@ -48,7 +48,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="Email" required />
 
                 <TextInput
                     id="email"
@@ -63,7 +63,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="phone" value="Telefon" />
+                <InputLabel for="phone" value="Telefon" required />
 
                 <TextInput
                     id="phone"
@@ -78,7 +78,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Parola" />
+                <InputLabel for="password" value="Parola" required />
 
                 <TextInput
                     id="password"
@@ -96,6 +96,7 @@ const submit = () => {
                 <InputLabel
                     for="password_confirmation"
                     value="Confirma parola"
+                    required
                 />
 
                 <TextInput
