@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Models\PilotInvite;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use App\Support\AnalyticsTracker;
 use App\Support\PricingPlan;
+use App\Support\TenantContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -49,6 +51,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'phone' => 'required|string|max:30',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -69,6 +72,7 @@ class RegisteredUserController extends Controller
             'current_tenant_id' => $tenant->id,
             'name' => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'billing_plan' => 'pro',
             'billing_trial_ends_at' => now()->addDays($trialDays),
@@ -86,6 +90,8 @@ class RegisteredUserController extends Controller
             $user->assignRole($tenantAdminRole);
         }
 
+        $this->trackPilotInvite($tenant, $user);
+
         event(new Registered($user));
 
         Auth::login($user);
@@ -95,6 +101,44 @@ class RegisteredUserController extends Controller
         ], oncePerUser: true);
 
         return redirect(route('onboarding.show', absolute: false));
+    }
+
+    /**
+     * Links this registration into the sales pipeline: if the prospect
+     * already has a PilotInvite (e.g. from the public demo-request form),
+     * mark it converted; otherwise create one so staff see every new
+     * trial, not just the ones who went through a lead form first.
+     */
+    private function trackPilotInvite(Tenant $tenant, User $user): void
+    {
+        $invite = PilotInvite::query()
+            ->whereRaw('lower(contact_email) = ?', [strtolower($user->email)])
+            ->latest('id')
+            ->first();
+
+        $attributes = [
+            'company_name' => $tenant->name,
+            'contact_name' => $user->name,
+            'contact_email' => $user->email,
+            'contact_phone' => $user->phone,
+            'status' => 'trial_started',
+            'commercial_stage' => 'trial',
+            'converted_tenant_id' => $tenant->id,
+            'last_contacted_at' => now(),
+        ];
+
+        if ($invite) {
+            $invite->update($attributes);
+
+            return;
+        }
+
+        PilotInvite::create([
+            'tenant_id' => TenantContext::id(),
+            'owner_id' => null,
+            'invited_at' => now(),
+            ...$attributes,
+        ]);
     }
 
     private function generateTenantSlug(string $name): string

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Cashier\Billable;
 
 class Tenant extends Model
@@ -36,5 +37,10 @@ class Tenant extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(TenantUser::class);
+    }
+
+    public function pilotInvite(): HasOne
+    {
+        return $this->hasOne(PilotInvite::class, 'converted_tenant_id');
     }
 }

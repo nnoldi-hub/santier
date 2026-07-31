@@ -12,6 +12,7 @@ class PilotInvite extends Model
 
     protected $fillable = [
         'tenant_id',
+        'converted_tenant_id',
         'owner_id',
         'company_name',
         'segment',
@@ -40,6 +41,11 @@ class PilotInvite extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function convertedTenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class, 'converted_tenant_id');
     }
 
     public function commercialTasks(): HasMany

@@ -60,6 +60,7 @@ class TrialLifecycleEmailsTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test Trial User',
             'email' => 'trial-user@example.com',
+            'phone' => '0722111222',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);

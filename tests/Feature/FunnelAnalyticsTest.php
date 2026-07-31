@@ -28,6 +28,7 @@ class FunnelAnalyticsTest extends TestCase
         $this->post('/register', [
             'name' => 'Analytics User',
             'email' => 'analytics@example.com',
+            'phone' => '0722111222',
             'password' => 'password',
             'password_confirmation' => 'password',
         ])->assertRedirect('/onboarding');
