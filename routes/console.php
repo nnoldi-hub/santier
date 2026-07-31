@@ -17,3 +17,4 @@ Schedule::call(fn () => Artisan::call('demo:refresh'))->dailyAt('03:00');
 Schedule::call(fn () => Artisan::call('notifications:send-operational-reminders'))->dailyAt('08:00');
 Schedule::call(fn () => Artisan::call('briefing:send-daily'))->everyFiveMinutes();
 Schedule::call(fn () => Artisan::call('emails:poll-prospect-inbox'))->everyFiveMinutes();
+Schedule::call(fn () => Artisan::call('backup:run'))->dailyAt('02:30');
