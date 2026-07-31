@@ -299,6 +299,7 @@
                                 <th class="px-5 py-3 text-left">Scor</th>
                                 <th class="px-5 py-3 text-left">Factori</th>
                                 <th class="px-5 py-3 text-left">Trial</th>
+                                <th class="px-5 py-3 text-left">Actiune</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -319,6 +320,24 @@
                                 <td class="px-5 py-4 text-slate-700">
                                     <div class="text-xs">{{ tenant.trial_expiring_soon ? 'Expira curand' : 'Stabil' }}</div>
                                     <div class="text-xs text-slate-500">{{ formatDate(tenant.trial_ends_at) }}</div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <Link
+                                        v-if="tenant.pilot_invite_id"
+                                        :href="route('pilot-invites.show', tenant.pilot_invite_id)"
+                                        class="text-xs font-semibold text-orange-600 hover:underline whitespace-nowrap"
+                                    >
+                                        Deschide conversatia
+                                    </Link>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        :disabled="creatingPilotInviteForTenantId === tenant.id"
+                                        @click="createPilotInvite(tenant)"
+                                        class="text-xs font-semibold text-[#1A237E] hover:underline disabled:opacity-50 whitespace-nowrap"
+                                    >
+                                        {{ creatingPilotInviteForTenantId === tenant.id ? 'Se creeaza...' : 'Creeaza fisa in pipeline' }}
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -401,6 +420,19 @@ function markHandoff(item) {
         preserveScroll: true,
         onFinish: () => {
             handoffProcessingId.value = null;
+        },
+    });
+}
+
+const creatingPilotInviteForTenantId = ref(null);
+
+function createPilotInvite(tenant) {
+    creatingPilotInviteForTenantId.value = tenant.id;
+
+    router.post(route('admin.tenants.pilot-invite.store', tenant.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            creatingPilotInviteForTenantId.value = null;
         },
     });
 }

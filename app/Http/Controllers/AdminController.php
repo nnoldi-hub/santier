@@ -388,6 +388,7 @@ class AdminController extends Controller
                     ->where('status', 'active')
                     ->whereHas('user', fn ($userQuery) => $userQuery->whereNull('onboarding_completed_at')),
             ])
+            ->with('pilotInvite:id,converted_tenant_id')
             ->get()
             ->map(function (Tenant $tenant) use ($today): array {
                 $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
@@ -424,6 +425,7 @@ class AdminController extends Controller
                     'churn_signal' => (bool) $churnSignal,
                     'risk_score' => $score,
                     'risk_level' => $riskLevel,
+                    'pilot_invite_id' => $tenant->pilotInvite?->id,
                 ];
             })
             ->filter(fn (array $tenant) => $tenant['risk_score'] > 0)

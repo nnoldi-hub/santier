@@ -10,6 +10,8 @@ use App\Models\CommercialAction;
 use App\Models\CommercialTask;
 use App\Models\PilotInvite;
 use App\Models\PilotInviteMessage;
+use App\Models\Tenant;
+use App\Models\TenantUser;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
 use App\Support\TenantContext;
@@ -322,6 +324,53 @@ class PilotInviteController extends Controller
         $pilotInvite->update(['onboarding_handoff_at' => now()]);
 
         return back()->with('success', 'Handoff catre onboarding marcat.');
+    }
+
+    /**
+     * Creates (or finds) a pipeline entry for a tenant that never went
+     * through the normal lead/registration flow with one already attached
+     * - used from the Dashboard-ul Comercial risk table, for tenants that
+     * registered before this link existed or came in some other way.
+     */
+    public function storeFromTenant(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $invite = PilotInvite::query()->where('converted_tenant_id', $tenant->id)->first();
+
+        if (!$invite) {
+            $owner = TenantUser::query()
+                ->where('tenant_id', $tenant->id)
+                ->whereNull('invited_by')
+                ->first()?->user
+                ?? $tenant->users()->first();
+
+            $invite = PilotInvite::query()
+                ->when($owner, fn ($query) => $query->whereRaw('lower(contact_email) = ?', [strtolower($owner->email)]))
+                ->first();
+
+            $attributes = [
+                'company_name' => $tenant->name,
+                'contact_name' => $owner?->name,
+                'contact_email' => $owner?->email,
+                'contact_phone' => $owner?->phone,
+                'status' => 'trial_started',
+                'commercial_stage' => 'trial',
+                'converted_tenant_id' => $tenant->id,
+                'last_contacted_at' => now(),
+            ];
+
+            if ($invite) {
+                $invite->update($attributes);
+            } else {
+                $invite = PilotInvite::create([
+                    'tenant_id' => TenantContext::id($request->user()),
+                    'owner_id' => null,
+                    'invited_at' => now(),
+                    ...$attributes,
+                ]);
+            }
+        }
+
+        return redirect()->route('pilot-invites.show', $invite->id);
     }
 
     private function buildTimeline(PilotInvite $invite): array

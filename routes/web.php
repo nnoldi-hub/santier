@@ -1410,6 +1410,7 @@ Route::middleware('auth')->group(function () {
         Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');
         Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
         Route::patch('admin/tenants/{tenant}/commercial', [AdminController::class, 'updateTenantCommercial'])->name('admin.tenants.commercial.update');
+        Route::post('admin/tenants/{tenant}/pilot-invite', [PilotInviteController::class, 'storeFromTenant'])->name('admin.tenants.pilot-invite.store');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
         Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
 
