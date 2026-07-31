@@ -121,14 +121,82 @@
                     Gestioneaza plata (card, facturi, anulare)
                 </a>
             </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-5 max-w-2xl">
+                <h3 class="font-semibold text-gray-800">Preferi factura si plata prin transfer?</h3>
+                <p class="mt-1 text-sm text-gray-600">
+                    Cere o factura proforma cu <strong>20% discount de lansare</strong> - o trimitem imediat pe email,
+                    platibila prin transfer bancar catre firma ta.
+                </p>
+
+                <div v-if="proformaForm.recentlySuccessful && $page.props.flash?.success" class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                    {{ $page.props.flash.success }}
+                </div>
+                <div v-if="proformaForm.recentlySuccessful && $page.props.flash?.error" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                    {{ $page.props.flash.error }}
+                </div>
+
+                <form v-if="!(proformaForm.recentlySuccessful && $page.props.flash?.success)" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3" @submit.prevent="submitProformaRequest">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Denumire firma *</label>
+                        <input v-model="proformaForm.company_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <div v-if="proformaForm.errors.company_name" class="mt-1 text-xs text-rose-600">{{ proformaForm.errors.company_name }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">CUI *</label>
+                        <input v-model="proformaForm.company_cui" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <div v-if="proformaForm.errors.company_cui" class="mt-1 text-xs text-rose-600">{{ proformaForm.errors.company_cui }}</div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Adresa firma</label>
+                        <input v-model="proformaForm.company_address" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Persoana de contact *</label>
+                        <input v-model="proformaForm.contact_name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <div v-if="proformaForm.errors.contact_name" class="mt-1 text-xs text-rose-600">{{ proformaForm.errors.contact_name }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Telefon *</label>
+                        <input v-model="proformaForm.contact_phone" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <div v-if="proformaForm.errors.contact_phone" class="mt-1 text-xs text-rose-600">{{ proformaForm.errors.contact_phone }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Email *</label>
+                        <input v-model="proformaForm.contact_email" type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                        <div v-if="proformaForm.errors.contact_email" class="mt-1 text-xs text-rose-600">{{ proformaForm.errors.contact_email }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Plan *</label>
+                        <select v-model="proformaForm.plan" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="start">Echipa Mica</option>
+                            <option value="pro">Brand complet</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-gray-600 mb-1">Perioada</label>
+                        <select v-model="proformaForm.interval" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="monthly">Lunar</option>
+                            <option value="yearly">Anual (2 luni gratis)</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button :disabled="proformaForm.processing" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60">
+                            {{ proformaForm.processing ? 'Se trimite...' : 'Trimite cererea' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </AppLayout>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+
+const page = usePage();
 
 const props = defineProps({
     currentPlan: { type: String, required: true },
@@ -188,5 +256,22 @@ function cancelSubscription() {
 
 function resumeSubscription() {
     resumeForm.patch(route('billing.resume'), { preserveScroll: true });
+}
+
+const proformaForm = useForm({
+    company_name: '',
+    company_cui: '',
+    company_address: '',
+    contact_name: page.props.auth?.user?.name || '',
+    contact_email: page.props.auth?.user?.email || '',
+    contact_phone: page.props.auth?.user?.phone || '',
+    plan: 'pro',
+    interval: 'monthly',
+});
+
+function submitProformaRequest() {
+    proformaForm.post(route('proforma-request.store'), {
+        preserveScroll: true,
+    });
 }
 </script>

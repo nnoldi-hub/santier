@@ -28,6 +28,7 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\BrochureRequestController;
+use App\Http\Controllers\ProformaRequestController;
 use App\Http\Controllers\PilotInviteController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\WbsController;
@@ -119,6 +120,10 @@ Route::post('/demo-request', [PilotInviteController::class, 'storePublic'])
 Route::post('/brochure-request', [BrochureRequestController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('brochure-request.store');
+
+Route::post('/proforma-request', [ProformaRequestController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('proforma-request.store');
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 

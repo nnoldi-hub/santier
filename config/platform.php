@@ -8,6 +8,8 @@ return [
         'document_issuer_name' => env('PLATFORM_DOCUMENT_ISSUER_NAME', ''),
         'company_phone' => env('PLATFORM_COMPANY_PHONE', ''),
         'company_address' => env('PLATFORM_COMPANY_ADDRESS', ''),
+        'company_cui' => env('PLATFORM_COMPANY_CUI', ''),
+        'company_iban' => env('PLATFORM_COMPANY_IBAN', ''),
         'support_email' => env('PLATFORM_SUPPORT_EMAIL', 'suport@modulia.ro'),
         'sales_email' => env('PLATFORM_SALES_EMAIL', 'vanzari@modulia.ro'),
         'landing_video_url' => env('PLATFORM_LANDING_VIDEO_URL', ''),
