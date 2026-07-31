@@ -18,10 +18,6 @@
                 </div>
             </section>
 
-            <div v-if="$page.props.flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {{ $page.props.flash.success }}
-            </div>
-
             <div class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div v-if="requests.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
                     Nu exista cereri de proforma inca.
