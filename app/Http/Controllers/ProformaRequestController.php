@@ -8,16 +8,81 @@ use App\Models\AppSetting;
 use App\Models\CommercialAction;
 use App\Models\PilotInvite;
 use App\Models\ProformaRequest;
+use App\Models\User;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Inertia\Inertia;
+use Inertia\Response;
 use Throwable;
 
 class ProformaRequestController extends Controller
 {
+    public function adminIndex(Request $request): Response
+    {
+        $this->ensureAdmin($request);
+
+        $requests = ProformaRequest::query()
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (ProformaRequest $proformaRequest) {
+                $invite = PilotInvite::query()
+                    ->whereRaw('lower(contact_email) = ?', [strtolower($proformaRequest->contact_email)])
+                    ->whereNotNull('converted_tenant_id')
+                    ->latest('id')
+                    ->first();
+
+                return [
+                    'id' => $proformaRequest->id,
+                    'company_name' => $proformaRequest->company_name,
+                    'company_cui' => $proformaRequest->company_cui,
+                    'contact_name' => $proformaRequest->contact_name,
+                    'contact_email' => $proformaRequest->contact_email,
+                    'contact_phone' => $proformaRequest->contact_phone,
+                    'plan_label' => config("pricing.plans.{$proformaRequest->plan}.label", $proformaRequest->plan),
+                    'interval' => $proformaRequest->interval === 'yearly' ? 'Anual' : 'Lunar',
+                    'discount_pct' => $proformaRequest->discount_pct,
+                    'status' => $proformaRequest->status,
+                    'created_at' => $proformaRequest->created_at->format('d.m.Y H:i'),
+                    'converted_tenant_name' => $invite?->convertedTenant?->name,
+                ];
+            });
+
+        return Inertia::render('Admin/ProformaRequests', [
+            'requests' => $requests,
+        ]);
+    }
+
+    public function markPaid(Request $request, ProformaRequest $proformaRequest): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $proformaRequest->update(['status' => 'paid']);
+
+        return back()->with('success', 'Cererea a fost marcata ca platita. Daca firma are deja cont, activeaza planul din Admin > Firme & Abonamente.');
+    }
+
+    private function ensureAdmin(Request $request): void
+    {
+        abort_unless($this->isAdmin($request->user()), 403);
+    }
+
+    private function isAdmin(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ((bool) ($user->is_superadmin ?? false)) {
+            return true;
+        }
+
+        return in_array(strtolower($user->email), array_map('strtolower', config('platform.admin_emails', [])), true);
+    }
+
     public function store(StoreProformaRequestRequest $request): RedirectResponse
     {
         $validated = $request->validated();

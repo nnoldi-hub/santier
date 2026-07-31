@@ -38,6 +38,7 @@
                         <NavItem :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" :icon="PresentationChartLineIcon" label="Dashboard Comercial" />
                         <NavItem :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" :icon="BuildingOffice2Icon" label="Firme & Abonamente" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" :icon="RocketLaunchIcon" label="Firme pilot" />
+                        <NavItem :href="routeOrFallback('admin.proforma-requests.index')" :disabled="routeMissing('admin.proforma-requests.index')" :icon="BanknotesIcon" label="Cereri proforma" />
                     </div>
                 </div>
 
@@ -384,7 +385,7 @@ const defaultSections = {
 const sections = reactive({ ...defaultSections });
 
 const sectionRoutes = {
-    platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index'],
+    platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index', 'admin.proforma-requests.index'],
     projects: ['projects.index', 'wbs.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'suppliers.index', 'recipes.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],

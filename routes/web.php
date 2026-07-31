@@ -1418,6 +1418,8 @@ Route::middleware('auth')->group(function () {
         Route::post('admin/tenants/{tenant}/pilot-invite', [PilotInviteController::class, 'storeFromTenant'])->name('admin.tenants.pilot-invite.store');
         Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
         Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
+        Route::get('admin/proforma-requests', [ProformaRequestController::class, 'adminIndex'])->name('admin.proforma-requests.index');
+        Route::patch('admin/proforma-requests/{proformaRequest}/mark-paid', [ProformaRequestController::class, 'markPaid'])->name('admin.proforma-requests.mark-paid');
 
         // Proiecte & Clienti
         Route::resource('projects', ProjectController::class)

@@ -726,6 +726,8 @@ class AdminController extends Controller
             'company_address' => ['nullable', 'string', 'max:255'],
             'support_email' => ['required', 'email', 'max:255'],
             'sales_email' => ['required', 'email', 'max:255'],
+            'company_cui' => ['nullable', 'string', 'max:20'],
+            'company_iban' => ['nullable', 'string', 'max:34'],
             'landing_video_url' => [
                 'nullable',
                 'max:500',
@@ -790,6 +792,8 @@ class AdminController extends Controller
             'company_address' => $validated['company_address'] ?? '',
             'support_email' => $validated['support_email'],
             'sales_email' => $validated['sales_email'],
+            'company_cui' => $validated['company_cui'] ?? '',
+            'company_iban' => $validated['company_iban'] ?? '',
             'landing_video_url' => $landingVideoUrl,
             'social_facebook_url' => $validated['social_facebook_url'] ?? '',
             'social_instagram_url' => $validated['social_instagram_url'] ?? '',

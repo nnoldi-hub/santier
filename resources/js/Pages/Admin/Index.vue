@@ -153,6 +153,20 @@
                         </div>
                         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
                             <div>
+                                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Facturare</div>
+                                <h3 class="mt-1 text-sm font-bold text-slate-900">Date emitent pentru facturile proforma trimise catre prospecti</h3>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">CUI</label>
+                                <input v-model="settingsForm.company_cui" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="RO12345678" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">IBAN</label>
+                                <input v-model="settingsForm.company_iban" type="text" class="w-full rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="RO49AAAA1B31007593840000" />
+                            </div>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                            <div>
                                 <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Social media</div>
                                 <h3 class="mt-1 text-sm font-bold text-slate-900">Linkuri publice pentru pagina de prezentare</h3>
                             </div>
@@ -349,6 +363,8 @@ const settingsForm = useForm({
     company_address: props.settings.company_address || '',
     support_email: props.settings.support_email || '',
     sales_email: props.settings.sales_email || '',
+    company_cui: props.settings.company_cui || '',
+    company_iban: props.settings.company_iban || '',
     social_facebook_url: props.settings.social_facebook_url || '',
     social_instagram_url: props.settings.social_instagram_url || '',
     social_linkedin_url: props.settings.social_linkedin_url || '',
