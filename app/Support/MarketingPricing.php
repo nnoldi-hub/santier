@@ -12,7 +12,7 @@ class MarketingPricing
     public static function plans(): array
     {
         return collect(config('pricing.plans', []))
-            ->only(['pro', 'enterprise'])
+            ->only(['start', 'pro', 'enterprise'])
             ->map(function (array $plan, string $key) {
                 return [
                     'key' => $key,
@@ -22,17 +22,20 @@ class MarketingPricing
                     'period' => $plan['billing_period'] ?? 'luna',
                     'highlight' => $key === 'pro',
                     'badge' => match ($key) {
+                        'start' => 'Echipe mici',
                         'pro' => 'Recomandat',
                         'enterprise' => 'White-label',
                         default => 'Plan',
                     },
                     'cta_label' => match ($key) {
+                        'start' => 'Alege echipa mica',
                         'pro' => 'Alege brand complet',
                         'enterprise' => 'Cere oferta enterprise',
                         default => 'Alege planul',
                     },
                     'items' => match ($key) {
-                        'pro' => ['Logo + culori', 'Antet si footer', 'Template documente', '10 utilizatori'],
+                        'start' => ['Pana la 2 santiere active', 'Pana la 3 utilizatori', 'Management defecte si status etape', 'Rapoarte de baza'],
+                        'pro' => ['Pana la 5 santiere active', 'Management defecte si status etape', 'Monitorizare buget vs. costuri', 'Rapoarte zilnice de santier', '10 utilizatori'],
                         'enterprise' => ['Mai multe sabloane', 'Aprobari', 'White-label', 'Domeniu propriu'],
                         default => [],
                     },

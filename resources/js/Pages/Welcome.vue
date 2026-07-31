@@ -363,10 +363,10 @@
                         </button>
                     </div>
                     <span v-if="pricingInterval === 'yearly'" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">
-                        6 luni gratis
+                        2 luni gratis
                     </span>
                 </div>
-                <div class="mt-6 grid md:grid-cols-2 gap-4 max-w-2xl">
+                <div class="mt-6 grid md:grid-cols-3 gap-4 max-w-4xl">
                     <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border p-5 bg-white" :class="plan.highlight ? 'border-[var(--brand-orange)] shadow-lg shadow-orange-300/20' : 'border-slate-200'">
                         <div class="flex items-center justify-between">
                             <h3 class="font-bold text-lg">{{ plan.name }}</h3>

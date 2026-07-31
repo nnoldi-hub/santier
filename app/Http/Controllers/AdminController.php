@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
-    private const PAID_PLANS = ['pro', 'enterprise'];
+    private const PAID_PLANS = ['start', 'pro', 'enterprise'];
 
     public function index(Request $request): Response
     {

@@ -12,7 +12,7 @@ use Inertia\Response;
 
 class BillingController extends Controller
 {
-    private const PAID_PLANS = ['pro'];
+    private const PAID_PLANS = ['start', 'pro'];
 
     public function index(Request $request): Response
     {
@@ -22,7 +22,7 @@ class BillingController extends Controller
 
         return Inertia::render('Billing/Index', [
             'currentPlan' => PricingPlan::current($user),
-            'plans' => collect(config('pricing.plans', []))->only(['free', 'pro'])->all(),
+            'plans' => collect(config('pricing.plans', []))->only(['free', 'start', 'pro'])->all(),
             'subscription' => $subscription ? [
                 'onGracePeriod' => $subscription->onGracePeriod(),
                 'active' => $subscription->active(),

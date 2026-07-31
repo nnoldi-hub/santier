@@ -353,7 +353,7 @@ const requiresTrialDate = computed(() => {
         return false;
     }
 
-    return !['pro', 'enterprise'].includes(editForm.billing_plan);
+    return !['start', 'pro', 'enterprise'].includes(editForm.billing_plan);
 });
 
 const localValidationMessage = computed(() => {
