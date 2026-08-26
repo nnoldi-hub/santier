@@ -1,3 +1,14 @@
+cd ~/repositories/modulia-app
+git pull
+composer dump-autoload --no-scripts
+php artisan optimize:clear
+Dacă la un moment dat mai apare și o migrație nouă sau modificări de frontend (cum a fost la fazele cu tabele noi), mai adaugi și:
+
+
+php artisan migrate --force
+rm -rf ~/public_html/build && cp -r ~/repositories/modulia-app/public/build ~/public_html/build
+
+
 # PLAN LANSARE SANTIER SAAS - V2 EXECUTABIL
 
 ## 1) Obiectiv
