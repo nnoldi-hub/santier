@@ -31,10 +31,8 @@
 </head>
 <body>
     @php
-        $logoUrl = $settings['document_logo_url'] ?? '';
-        $isAbsoluteLogo = (bool) preg_match('#^https?://#i', (string) $logoUrl);
-        $fallbackLogo = public_path('brand/logo_modulia.png');
-        $logoSource = $isAbsoluteLogo ? $logoUrl : (file_exists($fallbackLogo) ? $fallbackLogo : null);
+        // Logo-ul e deja rezolvat la o cale reala pe disc de BrochureRequestController.
+        $logoSource = $settings['document_logo_url'] ?? null;
 
         $painPoints = $content['pain_points'];
         $features = $content['features'];
@@ -111,7 +109,7 @@
                 @foreach($plans as $plan)
                     <tr class="{{ $plan['highlight'] ? 'highlight-col' : '' }}">
                         <td><strong>{{ $plan['name'] }}</strong>@if($plan['highlight']) <span class="brand-color">({{ $plan['badge'] }})</span>@endif</td>
-                        <td>{{ $plan['price'] > 0 ? number_format($plan['price'], 0, ',', '.') . ' lei' : 'Gratuit' }}</td>
+                        <td>{{ !empty($plan['is_custom_price']) ? 'Personalizat' : ($plan['price'] > 0 ? number_format($plan['price'], 0, ',', '.') . ' lei' : 'Gratuit') }}</td>
                         <td>{{ implode(' · ', $plan['items']) }}</td>
                     </tr>
                 @endforeach

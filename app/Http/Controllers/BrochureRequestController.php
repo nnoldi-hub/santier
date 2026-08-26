@@ -7,6 +7,7 @@ use App\Mail\BrochureRequestMail;
 use App\Models\AppSetting;
 use App\Models\BrochureRequest;
 use App\Support\BrochureContent;
+use App\Support\DocumentBranding;
 use App\Support\MarketingPricing;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +30,10 @@ class BrochureRequestController extends Controller
         ]);
 
         $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
+
+        // Stocat ca URL relativ (ex: /brand/logo_modulia.png sau /storage/...), dompdf are nevoie de o cale reala pe disc.
+        $platformSettings['document_logo_url'] = DocumentBranding::resolveLogoPath($platformSettings['document_logo_url'] ?? null)
+            ?? public_path('brand/logo_modulia.png');
 
         $pdfBinary = Pdf::loadView('marketing.brochure', [
             'plans' => MarketingPricing::plans(),

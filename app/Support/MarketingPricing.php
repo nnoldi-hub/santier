@@ -21,6 +21,8 @@ class MarketingPricing
                     'price_yearly' => (int) ($plan['price_yearly'] ?? 0),
                     'period' => $plan['billing_period'] ?? 'luna',
                     'highlight' => $key === 'pro',
+                    // Enterprise are pret la cerere pe site (landing); brosura trebuie sa reflecte acelasi lucru, nu suma bruta din config.
+                    'is_custom_price' => $key === 'enterprise',
                     'badge' => match ($key) {
                         'start' => 'Echipe mici',
                         'pro' => 'Recomandat',
