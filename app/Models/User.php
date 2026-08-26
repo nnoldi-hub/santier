@@ -38,6 +38,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'onboarding_data' => 'array',
             'onboarding_completed_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'billing_trial_ends_at' => 'datetime',
             'is_superadmin' => 'boolean',
         ];

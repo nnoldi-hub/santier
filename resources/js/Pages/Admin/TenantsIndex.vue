@@ -245,6 +245,12 @@
                                         <span v-if="isEditing(tenant.id) && editHasChanges" class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
                                             Modificari nesalvate
                                         </span>
+                                        <Link
+                                            :href="route('admin.tenants.activity', tenant.id)"
+                                            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                        >
+                                            Activitate
+                                        </Link>
                                         <button
                                             v-if="!isEditing(tenant.id)"
                                             type="button"

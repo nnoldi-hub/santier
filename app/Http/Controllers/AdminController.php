@@ -310,6 +310,100 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * Vedere simpla de "e activa firma asta?", nu un audit al datelor introduse:
+     * conectari recente, proiecte create, onboarding si semnale de nevoie de ajutor.
+     */
+    public function tenantActivity(Request $request, Tenant $tenant): Response
+    {
+        $this->ensureAdmin($request);
+
+        $plans = config('pricing.plans', []);
+
+        $members = $tenant->users()
+            ->wherePivot('status', 'active')
+            ->select(['users.id', 'users.name', 'users.email', 'users.onboarding_completed_at', 'users.last_login_at'])
+            ->orderByDesc('users.last_login_at')
+            ->get()
+            ->map(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'onboarding_completed' => $user->onboarding_completed_at !== null,
+                'last_login_at' => optional($user->last_login_at)->toDateTimeString(),
+                'last_login_days_ago' => $user->last_login_at ? Carbon::parse($user->last_login_at)->diffInDays(now()) : null,
+            ])
+            ->values();
+
+        $lastLoginAt = $members->pluck('last_login_at')->filter()->map(fn (string $date) => Carbon::parse($date))->sortDesc()->first();
+        $activeInLast7Days = $members->filter(fn (array $member) => $member['last_login_days_ago'] !== null && $member['last_login_days_ago'] <= 7)->count();
+
+        $projects = Project::query()
+            ->where('tenant_id', $tenant->id)
+            ->select(['id', 'name', 'status', 'created_at', 'updated_at'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $lastProject = $projects->first();
+
+        $openDefectsCount = Defect::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereNotIn('status', ['resolved', 'rejected'])
+            ->count();
+
+        $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
+
+        $needsHelpSignals = [];
+        if ($members->isEmpty()) {
+            $needsHelpSignals[] = 'Firma nu are niciun utilizator activ.';
+        } elseif ($lastLoginAt === null) {
+            $needsHelpSignals[] = 'Niciun utilizator nu s-a conectat inca vreodata.';
+        } elseif ($lastLoginAt->diffInDays(now()) > 7) {
+            $needsHelpSignals[] = 'Nimeni nu s-a conectat in ultimele ' . $lastLoginAt->diffInDays(now()) . ' zile.';
+        }
+        if ($projects->isEmpty()) {
+            $needsHelpSignals[] = 'Nu a creat inca niciun proiect.';
+        }
+        if ($members->contains(fn (array $member) => ! $member['onboarding_completed'])) {
+            $needsHelpSignals[] = 'Are utilizatori care nu au terminat onboarding-ul.';
+        }
+
+        $milestones = collect([
+            ['label' => 'Cont creat', 'at' => optional($tenant->created_at)->toDateTimeString()],
+            ['label' => 'Ultima conectare', 'at' => optional($lastLoginAt)?->toDateTimeString()],
+            ['label' => 'Ultimul proiect actualizat', 'at' => optional($lastProject?->updated_at)?->toDateTimeString()],
+        ])->filter(fn (array $item) => $item['at'] !== null)
+            ->sortByDesc('at')
+            ->values();
+
+        return Inertia::render('Admin/TenantActivity', [
+            'tenant' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'slug' => $tenant->slug,
+                'status' => $tenant->status,
+                'billing_plan' => $tenant->billing_plan,
+                'billing_plan_label' => $plans[$tenant->billing_plan]['label'] ?? $tenant->billing_plan,
+                'trial_ends_at' => optional($trialEndsAt)->toDateString(),
+                'created_at' => optional($tenant->created_at)->toDateString(),
+            ],
+            'summary' => [
+                'members_count' => $members->count(),
+                'active_in_last_7_days' => $activeInLast7Days,
+                'last_login_at' => optional($lastLoginAt)?->toDateTimeString(),
+                'last_login_days_ago' => $lastLoginAt ? $lastLoginAt->diffInDays(now()) : null,
+                'total_projects' => $projects->count(),
+                'active_projects' => $projects->where('status', 'active')->count(),
+                'last_project_name' => $lastProject?->name,
+                'last_project_at' => optional($lastProject?->updated_at)?->toDateTimeString(),
+                'open_defects_count' => $openDefectsCount,
+            ],
+            'needsHelpSignals' => $needsHelpSignals,
+            'members' => $members,
+            'milestones' => $milestones,
+        ]);
+    }
+
     public function commercialDashboard(Request $request): Response
     {
         $this->ensureAdmin($request);

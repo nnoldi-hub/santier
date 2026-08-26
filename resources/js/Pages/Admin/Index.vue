@@ -103,6 +103,14 @@
                                 Firma nu are niciun proiect creat inca - poate avea nevoie de ajutor la onboarding.
                             </div>
 
+                            <Link
+                                v-if="selectedUser.tenant_id"
+                                :href="route('admin.tenants.activity', selectedUser.tenant_id)"
+                                class="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                            >
+                                Vezi istoricul de activitate
+                            </Link>
+
                             <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
                                 Editezi planul firmei din contextul tenant. Valorile de trial si abonament nu mai sunt tratate ca proprietati ale utilizatorului.
                             </div>
@@ -363,7 +371,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import { DocumentTextIcon } from '@heroicons/vue/24/outline';
