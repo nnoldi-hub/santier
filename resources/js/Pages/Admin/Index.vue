@@ -74,6 +74,35 @@
                                 <div v-if="selectedUser.tenant_slug" class="text-xs text-slate-400 mt-1">Slug firma: {{ selectedUser.tenant_slug }}</div>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.15em] text-slate-400">Utilizatori activi</div>
+                                    <div class="mt-1 text-xl font-black text-slate-900">{{ selectedUser.activity.members_count }}</div>
+                                </div>
+                                <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.15em] text-slate-400">Proiecte (active / total)</div>
+                                    <div class="mt-1 text-xl font-black text-slate-900">{{ selectedUser.activity.active_projects }} / {{ selectedUser.activity.total_projects }}</div>
+                                </div>
+                                <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.15em] text-slate-400">Defecte deschise</div>
+                                    <div class="mt-1 text-xl font-black text-slate-900">{{ selectedUser.activity.open_defects }}</div>
+                                </div>
+                                <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.15em] text-slate-400">Ultima activitate</div>
+                                    <div class="mt-1 text-sm font-semibold text-slate-900">
+                                        <template v-if="selectedUser.activity.last_activity_at">
+                                            {{ formatDate(selectedUser.activity.last_activity_at) }}
+                                            <span class="block text-xs font-normal text-slate-500">acum {{ selectedUser.activity.last_activity_days_ago }} zile</span>
+                                        </template>
+                                        <span v-else class="text-slate-400">Fara activitate</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="selectedUser.activity.total_projects === 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                                Firma nu are niciun proiect creat inca - poate avea nevoie de ajutor la onboarding.
+                            </div>
+
                             <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
                                 Editezi planul firmei din contextul tenant. Valorile de trial si abonament nu mai sunt tratate ca proprietati ale utilizatorului.
                             </div>

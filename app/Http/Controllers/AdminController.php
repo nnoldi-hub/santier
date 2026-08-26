@@ -6,7 +6,9 @@ use App\Exports\CommercialDashboardWorkbookExport;
 use App\Models\AppSetting;
 use App\Models\AccessAuditLog;
 use App\Models\CommercialTask;
+use App\Models\Defect;
 use App\Models\PilotInvite;
+use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\BrochureContent;
@@ -64,6 +66,15 @@ class AdminController extends Controller
             })
             ->values();
 
+        $tenantIds = $users->pluck('tenant_id')->filter()->unique()->values();
+        $tenantActivity = $this->buildTenantActivitySummary($tenantIds);
+
+        $users = $users->map(function (array $user) use ($tenantActivity): array {
+            $user['activity'] = $tenantActivity[$user['tenant_id']] ?? $this->emptyTenantActivity();
+
+            return $user;
+        });
+
         return Inertia::render('Admin/Index', [
             'plans' => config('pricing.plans', []),
             'settings' => AppSetting::allWithDefaults($defaults),
@@ -80,6 +91,64 @@ class AdminController extends Controller
                     ->count(),
             ],
         ]);
+    }
+
+    /**
+     * Per-tenant snapshot (users, projects, defects deschise, ultima activitate)
+     * afisat in panoul "Firma selectata", ca adminul sa poata discuta cu clientul cu date reale.
+     */
+    private function buildTenantActivitySummary(\Illuminate\Support\Collection $tenantIds): array
+    {
+        if ($tenantIds->isEmpty()) {
+            return [];
+        }
+
+        $membersCount = Tenant::query()
+            ->whereIn('id', $tenantIds)
+            ->withCount(['memberships as members_count' => fn ($query) => $query->where('status', 'active')])
+            ->get(['id'])
+            ->keyBy('id');
+
+        $projectStats = Project::query()
+            ->selectRaw('tenant_id, count(*) as total_projects, sum(case when status = ? then 1 else 0 end) as active_projects, max(updated_at) as last_project_activity_at', ['active'])
+            ->whereIn('tenant_id', $tenantIds)
+            ->groupBy('tenant_id')
+            ->get()
+            ->keyBy('tenant_id');
+
+        $openDefects = Defect::query()
+            ->selectRaw('tenant_id, count(*) as open_defects')
+            ->whereIn('tenant_id', $tenantIds)
+            ->whereNotIn('status', ['resolved', 'rejected'])
+            ->groupBy('tenant_id')
+            ->get()
+            ->keyBy('tenant_id');
+
+        return $tenantIds->mapWithKeys(function ($tenantId) use ($membersCount, $projectStats, $openDefects): array {
+            $projects = $projectStats->get($tenantId);
+            $lastActivity = $projects?->last_project_activity_at ? Carbon::parse($projects->last_project_activity_at) : null;
+
+            return [$tenantId => [
+                'members_count' => (int) ($membersCount->get($tenantId)?->members_count ?? 0),
+                'total_projects' => (int) ($projects?->total_projects ?? 0),
+                'active_projects' => (int) ($projects?->active_projects ?? 0),
+                'open_defects' => (int) ($openDefects->get($tenantId)?->open_defects ?? 0),
+                'last_activity_at' => $lastActivity?->toDateString(),
+                'last_activity_days_ago' => $lastActivity?->diffInDays(now()),
+            ]];
+        })->all();
+    }
+
+    private function emptyTenantActivity(): array
+    {
+        return [
+            'members_count' => 0,
+            'total_projects' => 0,
+            'active_projects' => 0,
+            'open_defects' => 0,
+            'last_activity_at' => null,
+            'last_activity_days_ago' => null,
+        ];
     }
 
     public function tenantsIndex(Request $request): Response
