@@ -427,6 +427,7 @@ const props = defineProps({
     settings: { type: Object, required: true },
     brochureContent: { type: Object, required: true },
     users: { type: Array, required: true },
+    platformAlerts: { type: Array, default: () => [] },
     metrics: { type: Object, required: true },
 });
 
