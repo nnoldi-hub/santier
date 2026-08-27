@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -27,6 +28,8 @@ class PublicDemoRefreshTest extends TestCase
         $this->assertNotNull($demoUser);
         $this->assertTrue(Hash::check($demoPassword, $demoUser->password));
         $this->assertNotNull($demoUser->onboarding_completed_at);
+        $this->assertNotSame(1, (int) $demoUser->tenant_id);
+        $this->assertSame('demo-public', Tenant::findOrFail($demoUser->tenant_id)->slug);
 
         $this->assertTrue(Project::where('created_by', $demoUser->id)->where('notes', 'like', '%' . $marker . '%')->count() >= 2);
         $this->assertTrue(Client::where('notes', 'like', '%' . $marker . '%')->count() >= 1);

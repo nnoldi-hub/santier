@@ -25,5 +25,5 @@ return [
         'public_signup_enabled' => filter_var(env('PLATFORM_PUBLIC_SIGNUP_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'demo_mode_enabled' => filter_var(env('PLATFORM_DEMO_MODE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
     ],
-    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', env('PLATFORM_ADMIN_EMAILS', env('DEMO_USER_EMAIL', 'demo@santier.local') . ',iproiect2014@gmail.com'))))),
+    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', env('PLATFORM_ADMIN_EMAILS', 'iproiect2014@gmail.com'))))),
 ];

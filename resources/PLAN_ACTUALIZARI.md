@@ -216,6 +216,21 @@ Recomandarea initiala este comision pentru primele 3 luni ale unui client platit
 
 Se extinde mecanismul existent `access_audit_logs`, fara un sistem paralel.
 
+## Cont demo pentru filmari si tutoriale
+
+Demo-ul oficial este o firma separata, nu tenantul implicit si nu o firma reala:
+
+- tenant: `demo-public` / `Modulia Demo`;
+- utilizator: `demo@santier.local` sau valoarea din `DEMO_USER_EMAIL`;
+- plan demo: Enterprise, fara plata Stripe;
+- date: proiecte, etape, taskuri, defecte, oferte, documente, materiale, echipe, utilaje, verificari de calitate si costuri;
+- refresh: `php artisan demo:refresh`;
+- marker pentru datele generate: `[demo_seed]`.
+
+Seederul curata si recreeaza doar datele marcate demo. Nu se foloseste pentru
+tenantul implicit si nu modifica firme reale. Demo-ul ramane utilizator tenant
+normal, deci filmarile arata exact experienta unui client fara meniul Superadmin.
+
 ## Testare si publicare live
 
 Pentru fiecare faza:
@@ -254,3 +269,4 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 | 2026-08-27 | Faza 9 | Anunturi globale cu programare, banner pentru utilizatori si audit | 4 teste dedicate, regresie 15 teste, build Vite | Finalizat |
 | 2026-08-27 | Lifecycle firme | Suspendare, programare stergere la 30 zile si anonimizare date personale | 3 teste dedicate, regresie 13 teste, build Vite | Finalizat |
 | 2026-08-27 | Notificari platforma | Superadmin notificat la cereri trial si raspunsuri de prospecti | 2 teste dedicate, regresie 22 teste, build Vite | Finalizat |
+| 2026-08-27 | Cont demo | Tenant demo dedicat Enterprise, seed idempotent si izolare de Superadmin | 3 teste demo, 8 teste izolare | Finalizat |

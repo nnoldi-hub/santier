@@ -21,6 +21,8 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Models\Tenant;
+use App\Models\TenantUser;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,6 +33,16 @@ class PublicDemoSeeder extends Seeder
         $marker = config('demo.seed_marker', '[demo_seed]');
         $email = config('demo.email', 'demo@santier.local');
 
+        $demoTenant = Tenant::updateOrCreate(
+            ['slug' => 'demo-public'],
+            [
+                'name' => 'Modulia Demo',
+                'billing_plan' => 'enterprise',
+                'status' => 'active',
+                'module_flags' => [],
+            ]
+        );
+
         $demoUser = User::updateOrCreate(
             ['email' => $email],
             [
@@ -39,15 +51,29 @@ class PublicDemoSeeder extends Seeder
                 'email_verified_at' => now(),
                 'onboarding_step' => 3,
                 'onboarding_completed_at' => now(),
-                'billing_plan' => 'pro',
+                'billing_plan' => 'enterprise',
                 'billing_trial_ends_at' => now()->addDays(14),
+                'tenant_id' => $demoTenant->id,
+                'current_tenant_id' => $demoTenant->id,
+                'is_superadmin' => false,
             ]
         );
+
+        $demoUser->tenant_id = $demoTenant->id;
+        $demoUser->current_tenant_id = $demoTenant->id;
+        $demoUser->save();
+
+        TenantUser::updateOrCreate(
+            ['tenant_id' => $demoTenant->id, 'user_id' => $demoUser->id],
+            ['status' => 'active', 'joined_at' => now()]
+        );
+
+        $demoTenantId = $demoTenant->id;
 
         $this->cleanupDemoData($demoUser->id, $marker);
 
         $client = Client::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Client Demo Office Park',
             'type' => 'company',
             'email' => 'client.demo@santier.local',
@@ -59,7 +85,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $projectA = Project::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'client_id' => $client->id,
             'created_by' => $demoUser->id,
             'name' => 'Renovare Office Park - Corp A',
@@ -73,7 +99,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $projectB = Project::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'client_id' => $client->id,
             'created_by' => $demoUser->id,
             'name' => 'Amenajare Showroom - Corp B',
@@ -87,7 +113,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $electricalContractor = Contractor::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Electro Demo Systems',
             'type' => Contractor::TYPE_SUBCONTRACTOR,
             'contact_name' => 'Mihai Radu',
@@ -98,7 +124,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $finishesContractor = Contractor::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Finisaje Premium Demo',
             'type' => Contractor::TYPE_SUBCONTRACTOR,
             'contact_name' => 'Bianca Stan',
@@ -109,7 +135,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $supplierContractor = Contractor::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Utilaje & Materiale Demo',
             'type' => Contractor::TYPE_EQUIPMENT_SUPPLIER,
             'contact_name' => 'Sorin Pavel',
@@ -173,7 +199,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $team = Team::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Echipa Demo Finisaje',
             'specialty' => 'Renovari interioare',
             'leader_id' => $demoUser->id,
@@ -210,7 +236,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $equipmentA = Equipment::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Generator 60kVA Demo',
             'type' => 'generator',
             'supplier_name' => $supplierContractor->name,
@@ -221,7 +247,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $equipmentB = Equipment::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'name' => 'Schela mobila aluminiu Demo',
             'type' => 'scaffold',
             'supplier_name' => $supplierContractor->name,
@@ -250,7 +276,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Task::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA1->id,
             'assigned_to' => $demoUser->id,
@@ -263,7 +289,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Task::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA2->id,
             'assigned_to' => $demoUser->id,
@@ -276,7 +302,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Defect::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA1->id,
             'reported_by' => $demoUser->id,
@@ -290,7 +316,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Quote::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'version' => 1,
             'title' => 'Deviz lucrari etapa instalatii',
@@ -306,7 +332,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Quote::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'version' => 2,
             'title' => 'Oferta finisaje si mobilier fix',
@@ -321,7 +347,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Material::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'code' => 'DEMO-CABLU-01',
             'name' => 'Cablu electric FY 2.5',
             'category' => 'Instalatii electrice',
@@ -333,7 +359,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Material::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'code' => 'DEMO-GLET-02',
             'name' => 'Glet finisaj premium',
             'category' => 'Finisaje',
@@ -345,7 +371,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         $materialA = Material::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'code' => 'DEMO-VOPSEA-03',
             'name' => 'Vopsea lavabila trafic intens',
             'category' => 'Finisaje',
@@ -357,7 +383,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'contractor_id' => $electricalContractor->id,
             'project_id' => $projectA->id,
             'stage_id' => $phaseA1->id,
@@ -374,7 +400,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'contractor_id' => $electricalContractor->id,
             'project_id' => $projectA->id,
             'stage_id' => $phaseA1->id,
@@ -391,7 +417,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'contractor_id' => $finishesContractor->id,
             'project_id' => $projectA->id,
             'stage_id' => $phaseA2->id,
@@ -408,7 +434,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Document::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'contractor_id' => $finishesContractor->id,
             'project_id' => $projectA->id,
             'stage_id' => $phaseA2->id,
@@ -481,7 +507,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         QualityCheck::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA1->id,
             'assigned_to' => $demoUser->id,
@@ -494,7 +520,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         QualityCheck::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA2->id,
             'assigned_to' => $demoUser->id,
@@ -507,7 +533,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         MaterialInvoice::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA1->id,
             'material_id' => $materialA->id,
@@ -523,7 +549,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         MaterialInvoice::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectA->id,
             'phase_id' => $phaseA2->id,
             'material_id' => $materialA->id,
@@ -539,7 +565,7 @@ class PublicDemoSeeder extends Seeder
         ]);
 
         Task::create([
-            'tenant_id' => 1,
+            'tenant_id' => $demoTenantId,
             'project_id' => $projectB->id,
             'phase_id' => $phaseB1->id,
             'assigned_to' => $demoUser->id,
