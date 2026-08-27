@@ -56,6 +56,7 @@ class PilotInviteReplyImporter
         $invite->update(['last_contacted_at' => now()]);
 
         self::notifyOwner($invite, $mapped);
+        PlatformNotifier::notifyReply($invite, $mapped);
 
         return true;
     }

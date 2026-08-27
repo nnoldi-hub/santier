@@ -253,3 +253,4 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 | 2026-08-27 | Faza 8 | Atribuire referral la inregistrare si overview afiliati pentru Superadmin | 3 teste dedicate, regresie 17 teste, build Vite | Finalizat |
 | 2026-08-27 | Faza 9 | Anunturi globale cu programare, banner pentru utilizatori si audit | 4 teste dedicate, regresie 15 teste, build Vite | Finalizat |
 | 2026-08-27 | Lifecycle firme | Suspendare, programare stergere la 30 zile si anonimizare date personale | 3 teste dedicate, regresie 13 teste, build Vite | Finalizat |
+| 2026-08-27 | Notificari platforma | Superadmin notificat la cereri trial si raspunsuri de prospecti | 2 teste dedicate, regresie 22 teste, build Vite | Finalizat |

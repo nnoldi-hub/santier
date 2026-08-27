@@ -214,7 +214,7 @@
                     <span class="text-amber-700">Scenariu evaluare activ</span>
                 </div>
                 <div class="ml-auto flex items-center gap-3">
-                    <div v-if="!isPlatformAdmin" class="relative">
+                    <div class="relative">
                         <button
                             class="relative text-gray-500 hover:text-gray-700"
                             @click="notificationsOpen = !notificationsOpen"
@@ -237,7 +237,7 @@
                                 <div class="text-sm font-semibold text-gray-700">Notificari</div>
                                 <div class="flex items-center gap-3">
                                     <Link
-                                        v-if="hasRoute('account.notifications.index')"
+                                        v-if="!isPlatformAdmin && hasRoute('account.notifications.index')"
                                         :href="route('account.notifications.index')"
                                         class="text-xs text-blue-600 hover:text-blue-700"
                                         @click="notificationsOpen = false"

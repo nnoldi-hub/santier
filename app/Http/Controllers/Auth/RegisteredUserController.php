@@ -19,6 +19,7 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use App\Support\AnalyticsTracker;
 use App\Support\PricingPlan;
+use App\Support\PlatformNotifier;
 use App\Support\TenantContext;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -93,6 +94,10 @@ class RegisteredUserController extends Controller
         }
 
         $this->trackPilotInvite($tenant, $user);
+        $invite = PilotInvite::query()->where('converted_tenant_id', $tenant->id)->latest('id')->first();
+        if ($invite) {
+            PlatformNotifier::notifyNewTrial($invite);
+        }
 
         event(new Registered($user));
 

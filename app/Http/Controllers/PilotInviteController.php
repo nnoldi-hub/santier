@@ -15,6 +15,7 @@ use App\Models\TenantUser;
 use App\Models\User;
 use App\Notifications\OperationalReminderNotification;
 use App\Support\TenantContext;
+use App\Support\PlatformNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -135,6 +136,7 @@ class PilotInviteController extends Controller
     {
         $invite = $this->persistInvite($request, null);
         $this->syncCommercialTaskAutomation($invite, 0);
+        PlatformNotifier::notifyNewTrial($invite);
 
         return back()->with('success', 'Solicitarea ta a fost trimisa. Te contactam in cel mai scurt timp.');
     }
