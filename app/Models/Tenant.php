@@ -22,11 +22,19 @@ class Tenant extends Model
         'status',
         'module_flags',
         'affiliate_partner_id',
+        'lifecycle_status',
+        'deletion_requested_at',
+        'deletion_scheduled_for',
+        'anonymized_at',
+        'lifecycle_reason',
     ];
 
     protected $casts = [
         'module_flags' => 'array',
         'billing_trial_ends_at' => 'datetime',
+        'deletion_requested_at' => 'datetime',
+        'deletion_scheduled_for' => 'datetime',
+        'anonymized_at' => 'datetime',
     ];
 
     public function users(): BelongsToMany

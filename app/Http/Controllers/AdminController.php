@@ -13,10 +13,12 @@ use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\BrochureContent;
+use App\Support\AccessAudit;
 use App\Support\PricingPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -459,6 +461,9 @@ class AdminController extends Controller
                         'name' => $tenant->users->first()->name,
                     ] : null,
                     'created_at' => optional($tenant->created_at)->toDateString(),
+                    'lifecycle_status' => $tenant->lifecycle_status ?? 'active',
+                    'deletion_scheduled_for' => optional($tenant->deletion_scheduled_for)->toDateString(),
+                    'anonymized_at' => optional($tenant->anonymized_at)->toDateString(),
                 ];
             })
             ->withQueryString();
@@ -1122,6 +1127,87 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', 'Firma a fost actualizata.');
+    }
+
+    public function suspendTenant(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+        abort_if($tenant->lifecycle_status === 'anonymized', 422, 'Firma este deja anonimizata.');
+
+        $tenant->update([
+            'status' => 'suspended',
+            'lifecycle_status' => 'suspended',
+            'lifecycle_reason' => trim((string) $request->input('reason', 'Suspendata de Superadmin')),
+        ]);
+
+        AccessAudit::log('platform.tenant.suspended', $request->user(), $request, 'tenant', $tenant->id, [
+            'reason' => $tenant->lifecycle_reason,
+        ]);
+
+        return back()->with('success', 'Firma a fost suspendata. Datele au ramas pastrate.');
+    }
+
+    public function scheduleTenantDeletion(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+        abort_if($tenant->lifecycle_status === 'anonymized', 422, 'Firma este deja anonimizata.');
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+        $scheduledFor = now()->addDays(30);
+
+        $tenant->update([
+            'status' => 'suspended',
+            'lifecycle_status' => 'pending_deletion',
+            'deletion_requested_at' => now(),
+            'deletion_scheduled_for' => $scheduledFor,
+            'lifecycle_reason' => trim((string) ($validated['reason'] ?? 'Stergere solicitata de Superadmin')),
+        ]);
+
+        AccessAudit::log('platform.tenant.deletion_requested', $request->user(), $request, 'tenant', $tenant->id, [
+            'scheduled_for' => $scheduledFor->toIso8601String(),
+            'reason' => $tenant->lifecycle_reason,
+        ]);
+
+        return back()->with('success', 'Stergerea a fost programata peste 30 de zile.');
+    }
+
+    public function anonymizeTenant(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+        abort_if($tenant->anonymized_at !== null, 422, 'Datele firmei sunt deja anonimizate.');
+
+        DB::transaction(function () use ($request, $tenant): void {
+            $tenant->users()->get()->each(function (User $user): void {
+                if ($user->is_superadmin) {
+                    return;
+                }
+
+                $user->forceFill([
+                    'name' => 'Utilizator eliminat #' . $user->id,
+                    'email' => 'deleted-user-' . $user->id . '@invalid.local',
+                    'phone' => null,
+                    'password' => bin2hex(random_bytes(32)),
+                    'onboarding_data' => null,
+                ])->save();
+                $user->notifications()->delete();
+            });
+
+            $tenant->update([
+                'name' => 'Firma arhivata #' . $tenant->id,
+                'slug' => 'firma-arhivata-' . $tenant->id,
+                'status' => 'suspended',
+                'lifecycle_status' => 'anonymized',
+                'anonymized_at' => now(),
+                'deletion_scheduled_for' => null,
+                'lifecycle_reason' => 'Date personale anonimizate de Superadmin',
+            ]);
+        });
+
+        AccessAudit::log('platform.tenant.anonymized', $request->user(), $request, 'tenant', $tenant->id);
+
+        return back()->with('success', 'Datele personale ale firmei au fost anonimizate.');
     }
 
     public function updateSettings(Request $request): RedirectResponse

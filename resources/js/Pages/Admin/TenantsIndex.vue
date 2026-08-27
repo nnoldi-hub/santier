@@ -246,6 +246,10 @@
                                 <td class="px-5 py-4 font-semibold text-slate-900">{{ formatMoney(tenant.estimated_mrr) }}</td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap items-center gap-2">
+                                        <span class="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" :class="lifecycleTone(tenant.lifecycle_status)">
+                                            {{ lifecycleLabel(tenant.lifecycle_status) }}
+                                        </span>
+                                        <span v-if="tenant.deletion_scheduled_for" class="w-full text-[11px] text-amber-700">Stergere programata: {{ formatDate(tenant.deletion_scheduled_for) }}</span>
                                         <span v-if="isEditing(tenant.id) && editHasChanges" class="inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
                                             Modificari nesalvate
                                         </span>
@@ -272,6 +276,9 @@
                                         >
                                             Editeaza
                                         </button>
+                                        <button v-if="!['suspended', 'anonymized', 'pending_deletion'].includes(tenant.lifecycle_status)" type="button" class="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50" @click="suspendTenant(tenant)">Suspenda</button>
+                                        <button v-if="!['anonymized', 'pending_deletion'].includes(tenant.lifecycle_status)" type="button" class="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50" @click="scheduleDeletion(tenant)">Programeaza stergerea</button>
+                                        <button v-if="tenant.lifecycle_status !== 'anonymized'" type="button" class="rounded-lg border border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" @click="anonymizeTenant(tenant)">Anonimizeaza datele</button>
                                         <template v-else>
                                             <button
                                                 type="button"
@@ -455,6 +462,21 @@ function saveEdit(tenantId) {
     });
 }
 
+function suspendTenant(tenant) {
+    if (!window.confirm(`Suspenda firma ${tenant.name}? Datele raman pastrate.`)) return;
+    router.post(route('admin.tenants.suspend', tenant.id), {}, { preserveScroll: true });
+}
+
+function scheduleDeletion(tenant) {
+    if (!window.confirm(`Programeaza stergerea firmei ${tenant.name} peste 30 de zile?`)) return;
+    router.post(route('admin.tenants.schedule-deletion', tenant.id), {}, { preserveScroll: true });
+}
+
+function anonymizeTenant(tenant) {
+    if (!window.confirm(`Anonimizeaza datele personale pentru ${tenant.name}? Actiunea nu poate fi anulata.`)) return;
+    router.post(route('admin.tenants.anonymize', tenant.id), {}, { preserveScroll: true });
+}
+
 function formatDate(value) {
     if (!value) {
         return '-';
@@ -489,4 +511,12 @@ function planTone(plan) {
 
 const riskTone = commercialRiskTone;
 const riskLabel = labelCommercialRisk;
+
+function lifecycleTone(status) {
+    return status === 'anonymized' ? 'bg-slate-200 text-slate-600' : status === 'pending_deletion' ? 'bg-rose-100 text-rose-700' : status === 'suspended' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+}
+
+function lifecycleLabel(status) {
+    return { active: 'Activa', suspended: 'Suspendata', pending_deletion: 'Stergere programata', anonymized: 'Anonimizata' }[status] || 'Activa';
+}
 </script>

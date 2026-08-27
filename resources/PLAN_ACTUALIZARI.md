@@ -252,3 +252,4 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 | 2026-08-27 | Faza 7 | Overview read-only Cashier pentru abonamente, status Stripe si probleme de plata | 2 teste dedicate, regresie 29 teste, build Vite | Finalizat |
 | 2026-08-27 | Faza 8 | Atribuire referral la inregistrare si overview afiliati pentru Superadmin | 3 teste dedicate, regresie 17 teste, build Vite | Finalizat |
 | 2026-08-27 | Faza 9 | Anunturi globale cu programare, banner pentru utilizatori si audit | 4 teste dedicate, regresie 15 teste, build Vite | Finalizat |
+| 2026-08-27 | Lifecycle firme | Suspendare, programare stergere la 30 zile si anonimizare date personale | 3 teste dedicate, regresie 13 teste, build Vite | Finalizat |

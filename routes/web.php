@@ -1438,6 +1438,9 @@ Route::middleware('auth')->group(function () {
             Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
             Route::get('admin/tenants/{tenant}/activity', [AdminController::class, 'tenantActivity'])->name('admin.tenants.activity');
             Route::patch('admin/tenants/{tenant}/commercial', [AdminController::class, 'updateTenantCommercial'])->name('admin.tenants.commercial.update');
+            Route::post('admin/tenants/{tenant}/suspend', [AdminController::class, 'suspendTenant'])->name('admin.tenants.suspend');
+            Route::post('admin/tenants/{tenant}/schedule-deletion', [AdminController::class, 'scheduleTenantDeletion'])->name('admin.tenants.schedule-deletion');
+            Route::post('admin/tenants/{tenant}/anonymize', [AdminController::class, 'anonymizeTenant'])->name('admin.tenants.anonymize');
             Route::post('admin/tenants/{tenant}/pilot-invite', [PilotInviteController::class, 'storeFromTenant'])->name('admin.tenants.pilot-invite.store');
             Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
             Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
