@@ -64,6 +64,17 @@ git push origin v2.0.0
 - ruleaza `composer install --no-dev --optimize-autoloader`
 - ruleaza `npm ci` si `npm run build` (daca hostingul permite Node)
 
+Ordinea este obligatorie: `npm run build` importa Ziggy din `vendor/tightenco/ziggy`,
+deci build-ul va esua daca `composer install` nu a fost rulat sau daca folderul
+`vendor` este incomplet. Dupa fiecare `git pull`, verifica mai intai:
+
+```bash
+test -f vendor/tightenco/ziggy/package.json && echo "Ziggy prezent" || echo "Ziggy lipseste"
+```
+
+Daca lipseste, ruleaza `composer install --no-dev --optimize-autoloader` in radacina
+proiectului, apoi `npm ci` si `npm run build`.
+
 Daca Node nu este disponibil pe hosting:
 - rulezi `npm run build` local
 - comiti `public/build` in branch-ul de productie (sau incarci build-ul prin File Manager)
