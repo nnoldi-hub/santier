@@ -43,6 +43,7 @@
                         <NavItem :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" :icon="PresentationChartLineIcon" label="Dashboard Comercial" />
                         <NavItem :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" :icon="BuildingOffice2Icon" label="Firme & Abonamente" />
                         <NavItem :href="routeOrFallback('admin.billing.index')" :disabled="routeMissing('admin.billing.index')" :icon="CreditCardIcon" label="Facturare & Incasari" />
+                        <NavItem :href="routeOrFallback('admin.affiliates.index')" :disabled="routeMissing('admin.affiliates.index')" :icon="UsersIcon" label="Afiliati & Campanii" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" :icon="RocketLaunchIcon" label="Firme pilot" />
                         <NavItem :href="routeOrFallback('admin.proforma-requests.index')" :disabled="routeMissing('admin.proforma-requests.index')" :icon="BanknotesIcon" label="Cereri proforma" />
                     </div>

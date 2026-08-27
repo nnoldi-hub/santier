@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Models\AffiliatePartner;
 use App\Models\PilotInvite;
 use App\Models\Tenant;
 use App\Models\TenantUser;
@@ -65,6 +66,7 @@ class RegisteredUserController extends Controller
             'billing_trial_ends_at' => now()->addDays($trialDays),
             'status' => 'active',
             'module_flags' => [],
+            'affiliate_partner_id' => $this->resolveAffiliatePartnerId($request),
         ]);
 
         $user = User::create([
@@ -101,6 +103,19 @@ class RegisteredUserController extends Controller
         ], oncePerUser: true);
 
         return redirect(route('onboarding.show', absolute: false));
+    }
+
+    private function resolveAffiliatePartnerId(Request $request): ?int
+    {
+        $code = trim((string) $request->session()->get('affiliate_code', ''));
+        if ($code === '') {
+            return null;
+        }
+
+        return AffiliatePartner::query()
+            ->where('code', $code)
+            ->where('active', true)
+            ->value('id');
     }
 
     /**

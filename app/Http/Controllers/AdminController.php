@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\CommercialDashboardWorkbookExport;
 use App\Models\AppSetting;
+use App\Models\AffiliatePartner;
 use App\Models\AccessAuditLog;
 use App\Models\CommercialTask;
 use App\Models\Defect;
@@ -165,6 +166,41 @@ class AdminController extends Controller
                 'active' => $statusCounts['active'] ?? 0,
                 'past_due' => $statusCounts['past_due'] ?? 0,
                 'incomplete' => $statusCounts['incomplete'] ?? 0,
+            ],
+        ]);
+    }
+
+    public function affiliateOverview(Request $request): Response
+    {
+        $this->ensureAdmin($request);
+
+        $partners = AffiliatePartner::query()
+            ->withCount([
+                'tenants',
+                'tenants as paid_tenants_count' => fn ($query) => $query->whereIn('billing_plan', self::PAID_PLANS)->where('status', 'active'),
+            ])
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'email', 'commission_rate', 'active'])
+            ->map(fn (AffiliatePartner $partner): array => [
+                'id' => $partner->id,
+                'name' => $partner->name,
+                'code' => $partner->code,
+                'email' => $partner->email,
+                'commission_rate' => (float) $partner->commission_rate,
+                'active' => (bool) $partner->active,
+                'referral_url' => url('/?ref=' . urlencode($partner->code)),
+                'tenants_count' => (int) $partner->tenants_count,
+                'paid_tenants_count' => (int) $partner->paid_tenants_count,
+            ])
+            ->values();
+
+        return Inertia::render('Admin/AffiliateOverview', [
+            'partners' => $partners,
+            'metrics' => [
+                'partners_total' => $partners->count(),
+                'active_partners' => $partners->where('active', true)->count(),
+                'referred_tenants' => $partners->sum('tenants_count'),
+                'referred_paid_tenants' => $partners->sum('paid_tenants_count'),
             ],
         ]);
     }

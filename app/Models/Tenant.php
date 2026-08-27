@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -20,6 +21,7 @@ class Tenant extends Model
         'billing_trial_ends_at',
         'status',
         'module_flags',
+        'affiliate_partner_id',
     ];
 
     protected $casts = [
@@ -42,5 +44,10 @@ class Tenant extends Model
     public function pilotInvite(): HasOne
     {
         return $this->hasOne(PilotInvite::class, 'converted_tenant_id');
+    }
+
+    public function affiliatePartner(): BelongsTo
+    {
+        return $this->belongsTo(AffiliatePartner::class);
     }
 }

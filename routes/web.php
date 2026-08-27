@@ -83,6 +83,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function (Request $request) {
+    $referralCode = trim((string) $request->query('ref', ''));
+    if ($referralCode !== '' && preg_match('/^[a-zA-Z0-9_-]{2,80}$/', $referralCode)) {
+        $request->session()->put('affiliate_code', $referralCode);
+    }
+
     AnalyticsTracker::track($request, 'landing_view', [
         'path' => '/',
     ]);
@@ -1421,6 +1426,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware('platform.admin')->group(function () {
             Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
             Route::get('admin/billing', [AdminController::class, 'billingOverview'])->name('admin.billing.index');
+            Route::get('admin/affiliates', [AdminController::class, 'affiliateOverview'])->name('admin.affiliates.index');
             Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
             Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
             Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');
