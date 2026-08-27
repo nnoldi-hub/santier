@@ -75,8 +75,33 @@ class AdminController extends Controller
             return $user;
         });
 
+        $today = Carbon::today();
+        $plans = config('pricing.plans', []);
+        $platformMetrics = [
+            'tenants_total' => Tenant::query()->count(),
+            'tenants_active' => Tenant::query()->where('status', 'active')->count(),
+            'tenants_suspended' => Tenant::query()->where('status', 'suspended')->count(),
+            'tenants_trial' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->whereDate('billing_trial_ends_at', '>=', $today->toDateString())
+                ->count(),
+            'trial_expiring_soon' => Tenant::query()
+                ->where('status', 'active')
+                ->whereNotIn('billing_plan', self::PAID_PLANS)
+                ->whereBetween('billing_trial_ends_at', [$today->copy()->startOfDay(), $today->copy()->addDays(7)->endOfDay()])
+                ->count(),
+            'active_users_30d' => User::query()
+                ->whereNotNull('last_login_at')
+                ->where('last_login_at', '>=', now()->subDays(30))
+                ->count(),
+            'monthly_mrr_estimate' => (int) Tenant::query()
+                ->get(['billing_plan'])
+                ->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0)),
+        ];
+
         return Inertia::render('Admin/Index', [
-            'plans' => config('pricing.plans', []),
+            'plans' => $plans,
             'settings' => AppSetting::allWithDefaults($defaults),
             'brochureContent' => BrochureContent::current(),
             'users' => $users,
@@ -89,6 +114,7 @@ class AdminController extends Controller
                     ->where('is_superadmin', true)
                     ->orWhereIn('email', config('platform.admin_emails', []))
                     ->count(),
+                ...$platformMetrics,
             ],
         ]);
     }

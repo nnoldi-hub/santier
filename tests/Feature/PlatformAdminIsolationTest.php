@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class PlatformAdminIsolationTest extends TestCase
@@ -16,7 +17,14 @@ class PlatformAdminIsolationTest extends TestCase
 
         $this->actingAs($superadmin)
             ->get(route('admin.index'))
-            ->assertOk();
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Index')
+                ->where('metrics.tenants_total', 1)
+                ->where('metrics.tenants_active', 1)
+                ->where('metrics.tenants_trial', 0)
+                ->where('metrics.trial_expiring_soon', 0)
+            );
     }
 
     public function test_tenant_user_cannot_access_platform_routes(): void

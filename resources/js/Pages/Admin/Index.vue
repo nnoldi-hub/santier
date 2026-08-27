@@ -1,24 +1,46 @@
 <template>
-    <AppLayout title="Administrare">
+    <AppLayout title="Dashboard Global">
         <div class="space-y-6 max-w-7xl mx-auto">
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Operatori listati</div>
-                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_total }}</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Firme in platforma</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.tenants_total }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ metrics.tenants_active }} active</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Firme cu plan platit</div>
-                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_paid }}</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Utilizatori activi</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.active_users_30d }}</div>
+                    <div class="mt-1 text-xs text-slate-500">conectati in ultimele 30 zile</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Firme in trial</div>
-                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.users_on_trial }}</div>
+                    <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Trial-uri active</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ metrics.tenants_trial }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ metrics.trial_expiring_soon }} expira in 7 zile</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs uppercase tracking-[0.2em] text-slate-400">MRR estimat</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ formatMoney(metrics.monthly_mrr_estimate) }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ metrics.tenants_suspended }} firme suspendate</div>
                 </div>
             </div>
+
+            <section class="rounded-3xl border border-orange-200 bg-orange-50/60 p-6">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">Control platforma</div>
+                        <h2 class="mt-2 text-2xl font-black text-slate-900">Rezumatul zilei</h2>
+                        <p class="mt-2 text-sm text-slate-700">Urmareste firmele care au nevoie de o decizie comerciala sau de suport.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <Link :href="route('admin.tenants.index')" class="inline-flex items-center justify-center rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 transition">
+                            Gestioneaza firmele
+                        </Link>
+                        <Link :href="route('admin.commercial-dashboard.index')" class="inline-flex items-center justify-center rounded-xl border border-orange-300 bg-white px-4 py-3 text-sm font-semibold text-orange-800 hover:bg-orange-50 transition">
+                            Vezi dashboard comercial
+                        </Link>
+                    </div>
+                </div>
+            </section>
 
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-4">
