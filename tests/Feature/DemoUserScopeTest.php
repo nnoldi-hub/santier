@@ -33,7 +33,7 @@ class DemoUserScopeTest extends TestCase
 
         $demoUser = User::factory()->create([
             'name' => 'Demo Public Santier',
-            'email' => config('demo.email', 'demo@santier.local'),
+            'email' => config('demo.email', 'demo@modulia.ro'),
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
             'billing_plan' => 'pro',

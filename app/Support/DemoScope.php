@@ -11,7 +11,7 @@ class DemoScope
     public static function isDemoUser(?User $user): bool
     {
         return $user !== null
-            && $user->email === config('demo.email', 'demo@santier.local');
+            && $user->email === config('demo.email', 'demo@modulia.ro');
     }
 
     public static function applyProjectScope(Builder|QueryBuilder $query, ?User $user): Builder|QueryBuilder

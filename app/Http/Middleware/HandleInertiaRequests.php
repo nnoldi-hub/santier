@@ -98,7 +98,7 @@ class HandleInertiaRequests extends Middleware
                 'planLabel' => $user ? PricingPlan::label($user) : null,
             ],
             'demoMode' => [
-                'enabled' => $user?->email === config('demo.email', 'demo@santier.local'),
+                'enabled' => $user?->email === config('demo.email', 'demo@modulia.ro'),
                 'label' => 'Mod demo',
                 'description' => 'Vezi doar proiectele si datele din scenariul de evaluare.',
             ],

@@ -31,7 +31,7 @@ class PublicDemoSeeder extends Seeder
     public function run(): void
     {
         $marker = config('demo.seed_marker', '[demo_seed]');
-        $email = config('demo.email', 'demo@santier.local');
+        $email = config('demo.email', 'demo@modulia.ro');
 
         $demoTenant = Tenant::updateOrCreate(
             ['slug' => 'demo-public'],

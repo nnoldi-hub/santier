@@ -221,7 +221,7 @@ Se extinde mecanismul existent `access_audit_logs`, fara un sistem paralel.
 Demo-ul oficial este o firma separata, nu tenantul implicit si nu o firma reala:
 
 - tenant: `demo-public` / `Modulia Demo`;
-- utilizator: `demo@santier.local` sau valoarea din `DEMO_USER_EMAIL`;
+- utilizator: `demo@modulia.ro` sau valoarea din `DEMO_USER_EMAIL`;
 - plan demo: Enterprise, fara plata Stripe;
 - date: proiecte, etape, taskuri, defecte, oferte, documente, materiale, echipe, utilaje, verificari de calitate si costuri;
 - refresh: `php artisan demo:refresh`;
