@@ -1420,6 +1420,7 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('platform.admin')->group(function () {
             Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
+            Route::get('admin/billing', [AdminController::class, 'billingOverview'])->name('admin.billing.index');
             Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
             Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
             Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');

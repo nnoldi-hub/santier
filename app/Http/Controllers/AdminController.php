@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\BrochureContent;
+use App\Support\PricingPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -117,6 +118,53 @@ class AdminController extends Controller
                     ->orWhereIn('email', config('platform.admin_emails', []))
                     ->count(),
                 ...$platformMetrics,
+            ],
+        ]);
+    }
+
+    public function billingOverview(Request $request): Response
+    {
+        $this->ensureAdmin($request);
+
+        $subscriptions = \Laravel\Cashier\Subscription::query()
+            ->with('owner:id,name,slug,billing_plan')
+            ->with('items')
+            ->latest('id')
+            ->paginate(25)
+            ->through(function (\Laravel\Cashier\Subscription $subscription): array {
+                $priceId = (string) ($subscription->stripe_price ?? $subscription->items->first()?->stripe_price ?? '');
+
+                return [
+                    'id' => $subscription->id,
+                    'tenant_id' => $subscription->owner?->id,
+                    'tenant_name' => $subscription->owner?->name,
+                    'tenant_slug' => $subscription->owner?->slug,
+                    'plan' => PricingPlan::planForStripePrice($priceId) ?? $subscription->owner?->billing_plan ?? 'free',
+                    'price_id' => $priceId,
+                    'status' => $subscription->stripe_status,
+                    'interval' => $priceId !== '' ? PricingPlan::intervalForStripePrice($priceId) : null,
+                    'trial_ends_at' => optional($subscription->trial_ends_at)->toDateString(),
+                    'ends_at' => optional($subscription->ends_at)->toDateString(),
+                    'created_at' => optional($subscription->created_at)->toDateString(),
+                ];
+            })
+            ->withQueryString();
+
+        $statusCounts = \Laravel\Cashier\Subscription::query()
+            ->selectRaw('stripe_status, count(*) as total')
+            ->groupBy('stripe_status')
+            ->pluck('total', 'stripe_status')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+
+        return Inertia::render('Admin/BillingOverview', [
+            'subscriptions' => $subscriptions,
+            'statusCounts' => $statusCounts,
+            'metrics' => [
+                'total' => array_sum($statusCounts),
+                'active' => $statusCounts['active'] ?? 0,
+                'past_due' => $statusCounts['past_due'] ?? 0,
+                'incomplete' => $statusCounts['incomplete'] ?? 0,
             ],
         ]);
     }
