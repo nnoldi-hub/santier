@@ -1,12 +1,28 @@
-cd ~/repositories/modulia-app
-git pull
-composer dump-autoload --no-scripts
-php artisan optimize:clear
-Dacă la un moment dat mai apare și o migrație nouă sau modificări de frontend (cum a fost la fazele cu tabele noi), mai adaugi și:
+## Deploy curent Hostico: repository privat + public_html separat
 
-
+```bash
+cd /home/rlwrgzez/repositories/santier
+git pull origin main
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
 php artisan migrate --force
-rm -rf ~/public_html/build && cp -r ~/repositories/modulia-app/public/build ~/public_html/build
+php artisan optimize:clear
+rm -rf /home/rlwrgzez/public_html/build
+cp -R /home/rlwrgzez/repositories/santier/public/build /home/rlwrgzez/public_html/build
+```
+
+`git pull` actualizeaza doar repository-ul. Domeniul serveste fisierele din
+`public_html`, de aceea pasul `rm/cp` este obligatoriu dupa orice modificare
+frontend. Build-ul trebuie rulat dupa `composer install`, deoarece Ziggy este
+importat din `vendor/tightenco/ziggy`.
+
+Verificare rapida dupa deploy:
+
+```bash
+grep -R "Facturare" /home/rlwrgzez/public_html/build/assets
+grep -R "Afiliati" /home/rlwrgzez/public_html/build/assets
+```
 
 
 # PLAN LANSARE SANTIER SAAS - V2 EXECUTABIL
