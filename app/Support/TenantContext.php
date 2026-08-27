@@ -48,6 +48,10 @@ class TenantContext
             return false;
         }
 
+        if (strtolower((string) $resolvedUser->email) === strtolower((string) config('demo.email', 'demo@modulia.ro'))) {
+            return false;
+        }
+
         return self::isSuperadmin($resolvedUser)
             || in_array(strtolower($resolvedUser->email), array_map('strtolower', config('platform.admin_emails', [])), true);
     }

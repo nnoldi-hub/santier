@@ -25,11 +25,14 @@ use App\Models\Tenant;
 use App\Models\TenantUser;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class PublicDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(IamSeeder::class);
+
         $marker = config('demo.seed_marker', '[demo_seed]');
         $email = config('demo.email', 'demo@modulia.ro');
 
@@ -67,6 +70,14 @@ class PublicDemoSeeder extends Seeder
             ['tenant_id' => $demoTenant->id, 'user_id' => $demoUser->id],
             ['status' => 'active', 'joined_at' => now()]
         );
+
+        $tenantAdminRole = Role::query()
+            ->whereNull('tenant_id')
+            ->where('guard_name', 'web')
+            ->firstWhere('name', 'tenant_admin');
+        if ($tenantAdminRole) {
+            $demoUser->syncRoles([$tenantAdminRole]);
+        }
 
         $demoTenantId = $demoTenant->id;
 

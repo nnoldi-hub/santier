@@ -16,6 +16,7 @@ use App\Models\StageEquipment;
 use App\Models\Team;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantContext;
 use Database\Seeders\IamSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -48,6 +49,7 @@ class DemoUserScopeTest extends TestCase
         $this->seed(IamSeeder::class);
         Tenant::find(1)?->update(['billing_plan' => 'pro']);
         $demoUser = $demoUser->fresh();
+        $this->assertFalse(TenantContext::isPlatformAdmin($demoUser));
 
         $client = Client::create([
             'tenant_id' => 1,
