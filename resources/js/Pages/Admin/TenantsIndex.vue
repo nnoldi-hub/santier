@@ -44,7 +44,7 @@
                         </button>
                     </div>
 
-                    <form class="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3" @submit.prevent="applyFilters">
+                    <form class="mt-5 grid grid-cols-1 md:grid-cols-5 gap-3" @submit.prevent="applyFilters">
                         <input v-model="filterForm.search" type="text" class="rounded-xl border-slate-300 px-3 py-2 text-sm" placeholder="Cauta dupa nume sau slug" />
                         <select v-model="filterForm.plan" class="rounded-xl border-slate-300 px-3 py-2 text-sm">
                             <option value="">Toate planurile</option>
@@ -53,6 +53,10 @@
                         <select v-model="filterForm.status" class="rounded-xl border-slate-300 px-3 py-2 text-sm">
                             <option value="">Toate statusurile</option>
                             <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                        <select v-model="filterForm.commercial_status" class="rounded-xl border-slate-300 px-3 py-2 text-sm">
+                            <option value="">Toate statusurile comerciale</option>
+                            <option v-for="option in commercialStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
                         <button type="submit" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition">
                             Aplica filtre
@@ -317,12 +321,14 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     planOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
+    commercialStatusOptions: { type: Array, default: () => [] },
 });
 
 const filterForm = reactive({
     search: props.filters.search || '',
     plan: props.filters.plan || '',
     status: props.filters.status || '',
+    commercial_status: props.filters.commercial_status || '',
 });
 
 const editingTenantId = ref(null);
@@ -375,6 +381,7 @@ function applyFilters() {
         search: filterForm.search,
         plan: filterForm.plan,
         status: filterForm.status,
+        commercial_status: filterForm.commercial_status,
     }, {
         preserveScroll: true,
         preserveState: true,

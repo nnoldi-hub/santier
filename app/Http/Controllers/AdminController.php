@@ -185,6 +185,7 @@ class AdminController extends Controller
             'search' => trim((string) $request->string('search')->toString()),
             'plan' => trim((string) $request->string('plan')->toString()),
             'status' => trim((string) $request->string('status')->toString()),
+            'commercial_status' => trim((string) $request->string('commercial_status')->toString()),
         ];
 
         $today = Carbon::today();
@@ -211,6 +212,25 @@ class AdminController extends Controller
 
         if ($filters['status'] !== '' && in_array($filters['status'], ['active', 'suspended'], true)) {
             $tenantQuery->where('status', $filters['status']);
+        }
+
+        if (in_array($filters['commercial_status'], ['Platitoare', 'Trial activ', 'Free', 'Suspendata'], true)) {
+            $tenantQuery->where(function ($query) use ($filters, $today): void {
+                match ($filters['commercial_status']) {
+                    'Platitoare' => $query->whereIn('billing_plan', self::PAID_PLANS)->where('status', 'active'),
+                    'Trial activ' => $query->where('status', 'active')
+                        ->whereNotIn('billing_plan', self::PAID_PLANS)
+                        ->whereDate('billing_trial_ends_at', '>=', $today->toDateString()),
+                    'Suspendata' => $query->where('status', 'suspended'),
+                    default => $query->where('status', 'active')
+                        ->whereNotIn('billing_plan', self::PAID_PLANS)
+                        ->where(function ($freeQuery) use ($today): void {
+                            $freeQuery
+                                ->whereNull('billing_trial_ends_at')
+                                ->orWhereDate('billing_trial_ends_at', '<', $today->toDateString());
+                        }),
+                };
+            });
         }
 
         $tenants = $tenantQuery
@@ -332,6 +352,12 @@ class AdminController extends Controller
             'statusOptions' => [
                 ['value' => 'active', 'label' => 'Active'],
                 ['value' => 'suspended', 'label' => 'Suspendate'],
+            ],
+            'commercialStatusOptions' => [
+                ['value' => 'Platitoare', 'label' => 'Platitoare'],
+                ['value' => 'Trial activ', 'label' => 'Trial activ'],
+                ['value' => 'Free', 'label' => 'Free'],
+                ['value' => 'Suspendata', 'label' => 'Suspendata'],
             ],
         ]);
     }
