@@ -9,7 +9,8 @@ npm run build
 php artisan migrate --force
 php artisan optimize:clear
 rm -rf /home/rlwrgzez/public_html/build
-cp -R /home/rlwrgzez/repositories/santier/public/build /home/rlwrgzez/public_html/build
+mkdir -p /home/rlwrgzez/public_html/build
+cp -a /home/rlwrgzez/repositories/santier/public/build/. /home/rlwrgzez/public_html/build/
 ```
 
 `git pull` actualizeaza doar repository-ul. Domeniul serveste fisierele din
@@ -22,6 +23,8 @@ Verificare rapida dupa deploy:
 ```bash
 grep -R "Facturare" /home/rlwrgzez/public_html/build/assets
 grep -R "Afiliati" /home/rlwrgzez/public_html/build/assets
+
+find /home/rlwrgzez/public_html/build -maxdepth 2 -type f | head -20
 ```
 
 
