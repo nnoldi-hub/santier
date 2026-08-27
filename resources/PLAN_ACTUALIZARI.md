@@ -35,7 +35,7 @@ Principiul de lucru: intai protejam si testam granitele de acces, apoi adaugam f
 - [x] Faza 2 - middleware `EnsurePlatformAdmin`
 - [x] Faza 3 - dashboard global comercial
 - [x] Faza 4 - firme, statusuri comerciale si abonamente
-- [ ] Faza 5 - impersonare controlata si auditata
+- [x] Faza 5 - impersonare controlata si auditata
 - [ ] Faza 6 - alerte de vanzari si churn
 - [ ] Faza 7 - pachete, Stripe, facturare si cupoane
 - [ ] Faza 8 - afiliati si campanii
@@ -247,3 +247,4 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 | 2026-08-27 | Fazele 0-2 | Middleware platforma/tenant, navigatie separata si redirect dashboard | 4 teste de izolare, 12 teste admin, build Vite | Finalizat |
 | 2026-08-27 | Faza 3 | Metrici globale server-side si rezumat Dashboard Global | 13 teste backend, build Vite | Finalizat |
 | 2026-08-27 | Faza 4 | Filtrare server-side dupa status comercial in Firme & Abonamente | 2 teste dedicate, regresie 12 teste, sintaxa PHP | Finalizat |
+| 2026-08-27 | Faza 5 | Impersonare utilizator tenant cu banner, revenire si audit | 3 teste dedicate, regresie 18 teste, build Vite | Finalizat |

@@ -76,6 +76,13 @@ class HandleInertiaRequests extends Middleware
                         || in_array(strtolower($user->email), array_map('strtolower', config('platform.admin_emails', [])), true))
                     : false,
             ],
+            'impersonation' => [
+                'active' => $request->session()->has('impersonation.admin_id'),
+                'adminName' => $request->session()->has('impersonation.admin_id')
+                    ? optional(\App\Models\User::query()->find($request->session()->get('impersonation.admin_id')))->name
+                    : null,
+                'targetName' => $user?->name,
+            ],
             'billing' => [
                 'plan' => $user ? PricingPlan::current($user) : null,
                 'planLabel' => $user ? PricingPlan::label($user) : null,

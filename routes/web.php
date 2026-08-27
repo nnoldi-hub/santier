@@ -50,6 +50,7 @@ use App\Http\Controllers\TenantRoleController;
 use App\Http\Controllers\TenantUserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationCenterController;
+use App\Http\Controllers\ImpersonationController;
 use App\Notifications\OperationalReminderNotification;
 use App\Models\AppSetting;
 use App\Support\MarketingPricing;
@@ -1369,6 +1370,7 @@ Route::middleware('auth')->get('/help', function () {
 })->name('help.index');
 
 Route::middleware('auth')->group(function () {
+    Route::post('impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
     Route::get('onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
     Route::post('onboarding/step-1', [OnboardingController::class, 'storeStep1'])->name('onboarding.step1');
     Route::post('onboarding/step-2', [OnboardingController::class, 'storeStep2'])->name('onboarding.step2');
@@ -1429,6 +1431,7 @@ Route::middleware('auth')->group(function () {
             Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
             Route::get('admin/proforma-requests', [ProformaRequestController::class, 'adminIndex'])->name('admin.proforma-requests.index');
             Route::patch('admin/proforma-requests/{proformaRequest}/mark-paid', [ProformaRequestController::class, 'markPaid'])->name('admin.proforma-requests.mark-paid');
+            Route::post('admin/impersonation/{user}', [ImpersonationController::class, 'start'])->name('admin.impersonation.start');
         });
 
         // Proiecte & Clienti

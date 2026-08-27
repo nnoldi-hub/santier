@@ -192,6 +192,11 @@ class AdminController extends Controller
         $plans = config('pricing.plans', []);
 
         $tenantQuery = Tenant::query()
+            ->with(['users' => fn ($query) => $query
+                ->where('users.is_superadmin', false)
+                ->wherePivot('status', 'active')
+                ->orderBy('users.created_at')
+                ->limit(1)])
             ->withCount([
                 'memberships as total_memberships_count' => fn ($query) => $query,
                 'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
@@ -264,6 +269,10 @@ class AdminController extends Controller
                     'active_memberships_count' => (int) ($tenant->active_memberships_count ?? 0),
                     'total_memberships_count' => (int) ($tenant->total_memberships_count ?? 0),
                     'estimated_mrr' => (int) ($plans[$tenant->billing_plan]['price'] ?? 0),
+                    'impersonation_user' => $tenant->users->first() ? [
+                        'id' => $tenant->users->first()->id,
+                        'name' => $tenant->users->first()->name,
+                    ] : null,
                     'created_at' => optional($tenant->created_at)->toDateString(),
                 ];
             })

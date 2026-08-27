@@ -255,6 +255,15 @@
                                         >
                                             Activitate
                                         </Link>
+                                        <Link
+                                            v-if="tenant.impersonation_user"
+                                            :href="route('admin.impersonation.start', tenant.impersonation_user.id)"
+                                            method="post"
+                                            as="button"
+                                            class="rounded-lg border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-50"
+                                        >
+                                            Conecteaza-te ca utilizator
+                                        </Link>
                                         <button
                                             v-if="!isEditing(tenant.id)"
                                             type="button"

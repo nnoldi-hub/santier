@@ -285,6 +285,15 @@
             </header>
 
             <main class="flex-1 p-6">
+                <div v-if="isImpersonating" class="mb-4 flex flex-col gap-3 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-950 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <div class="font-semibold">Sesiune de suport activa</div>
+                        <div class="text-orange-800">Vezi aplicatia ca {{ impersonatedTargetName }}. Contul original: {{ impersonatingAdminName }}.</div>
+                    </div>
+                    <Link :href="route('impersonation.stop')" method="post" as="button" class="inline-flex items-center justify-center rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-700">
+                        Revino la Superadmin
+                    </Link>
+                </div>
                 <div v-if="isDemoMode" class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 md:hidden">
                     <div class="font-semibold">{{ demoModeLabel }}</div>
                     <div class="text-amber-800">{{ demoModeDescription }}</div>
@@ -439,6 +448,9 @@ const routeMissing = (name) => !hasRoute(name);
 
 const platformAppName = computed(() => page.props.platform?.appName || 'Modulia');
 const isPlatformAdmin = computed(() => Boolean(page.props.platform?.isAdmin));
+const isImpersonating = computed(() => page.props.impersonation?.active === true);
+const impersonatingAdminName = computed(() => page.props.impersonation?.adminName || 'Superadmin');
+const impersonatedTargetName = computed(() => page.props.impersonation?.targetName || page.props.auth?.user?.name || 'utilizator');
 const canManageDocumentBranding = computed(() => ['pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
 
 const userInitials = computed(() => {
