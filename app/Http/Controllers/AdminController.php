@@ -99,12 +99,14 @@ class AdminController extends Controller
                 ->get(['billing_plan'])
                 ->sum(fn (Tenant $tenant) => (int) ($plans[$tenant->billing_plan]['price'] ?? 0)),
         ];
+            $platformAlerts = $this->buildPlatformAlerts($today);
 
         return Inertia::render('Admin/Index', [
             'plans' => $plans,
             'settings' => AppSetting::allWithDefaults($defaults),
             'brochureContent' => BrochureContent::current(),
             'users' => $users,
+            'platformAlerts' => $platformAlerts,
             'metrics' => [
                 'users_total' => $users->count(),
                 'users_paid' => $users->whereIn('billing_plan', self::PAID_PLANS)->count(),
@@ -117,6 +119,105 @@ class AdminController extends Controller
                 ...$platformMetrics,
             ],
         ]);
+    }
+
+    private function buildPlatformAlerts(Carbon $today): array
+    {
+        $plans = config('pricing.plans', []);
+        $paidPlans = self::PAID_PLANS;
+        $tenants = Tenant::query()
+            ->withCount([
+                'memberships as active_memberships_count' => fn ($query) => $query->where('status', 'active'),
+            ])
+            ->withMax('users', 'last_login_at')
+            ->orderByDesc('created_at')
+            ->get();
+        $projectCounts = Project::query()
+            ->selectRaw('tenant_id, count(*) as projects_count')
+            ->groupBy('tenant_id')
+            ->pluck('projects_count', 'tenant_id');
+        $alerts = collect();
+
+        foreach ($tenants as $tenant) {
+            $projectsCount = (int) ($projectCounts[$tenant->id] ?? 0);
+            $trialEndsAt = $tenant->billing_trial_ends_at ? Carbon::parse((string) $tenant->billing_trial_ends_at) : null;
+            $daysToTrialEnd = $trialEndsAt ? $today->diffInDays($trialEndsAt, false) : null;
+            $tenantUrl = route('admin.tenants.activity', $tenant->id);
+
+            if ($tenant->status === 'suspended') {
+                $alerts->push([
+                    'type' => 'suspended',
+                    'severity' => 'high',
+                    'title' => 'Firma suspendata',
+                    'tenant_id' => $tenant->id,
+                    'tenant_name' => $tenant->name,
+                    'reason' => 'Accesul firmei este suspendat.',
+                    'action_url' => $tenantUrl,
+                    'action_label' => 'Vezi activitatea',
+                ]);
+            }
+
+            if (! in_array($tenant->billing_plan, $paidPlans, true) && $daysToTrialEnd !== null && $daysToTrialEnd >= 0 && $daysToTrialEnd <= 7) {
+                $alerts->push([
+                    'type' => 'trial_expiring',
+                    'severity' => $daysToTrialEnd <= 3 ? 'high' : 'medium',
+                    'title' => 'Trial aproape de expirare',
+                    'tenant_id' => $tenant->id,
+                    'tenant_name' => $tenant->name,
+                    'reason' => 'Trial-ul expira in ' . $daysToTrialEnd . ' zile.',
+                    'action_url' => $tenantUrl,
+                    'action_label' => 'Contacteaza firma',
+                ]);
+            }
+
+            $createdAt = $tenant->created_at ? Carbon::parse((string) $tenant->created_at) : null;
+            if ($createdAt && $createdAt->lte(now()->subHours(48)) && ($projectsCount === 0 || $tenant->last_login_at === null)) {
+                $alerts->push([
+                    'type' => 'abandoned',
+                    'severity' => 'medium',
+                    'title' => 'Cont posibil abandonat',
+                    'tenant_id' => $tenant->id,
+                    'tenant_name' => $tenant->name,
+                    'reason' => $projectsCount === 0 ? 'Nu are proiecte dupa primele 48 de ore.' : 'Nu exista conectari inregistrate.',
+                    'action_url' => $tenantUrl,
+                    'action_label' => 'Verifica onboarding-ul',
+                ]);
+            }
+        }
+
+        $warmLeadTenantIds = Project::query()
+            ->where('created_at', '>=', now()->subDays(3))
+            ->whereIn('tenant_id', $tenants->filter(fn (Tenant $tenant) => $tenant->status === 'active' && ! in_array($tenant->billing_plan, $paidPlans, true))->pluck('id'))
+            ->pluck('tenant_id')
+            ->unique();
+
+        Tenant::query()
+            ->whereIn('id', $warmLeadTenantIds)
+            ->whereNotIn('billing_plan', $paidPlans)
+            ->where('status', 'active')
+            ->get(['id', 'name'])
+            ->each(function (Tenant $tenant) use ($alerts): void {
+                $alerts->push([
+                    'type' => 'warm_lead',
+                    'severity' => 'low',
+                    'title' => 'Lead cald',
+                    'tenant_id' => $tenant->id,
+                    'tenant_name' => $tenant->name,
+                    'reason' => 'A creat un proiect in ultimele 3 zile si este inca pe un plan neplatit.',
+                    'action_url' => route('admin.tenants.activity', $tenant->id),
+                    'action_label' => 'Vezi activitatea',
+                ]);
+            });
+
+        return $alerts
+            ->sortByDesc(fn (array $alert): int => match ($alert['severity']) {
+                'high' => 3,
+                'medium' => 2,
+                default => 1,
+            })
+            ->take(12)
+            ->values()
+            ->all();
     }
 
     /**

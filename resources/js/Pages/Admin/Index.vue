@@ -42,6 +42,30 @@
                 </div>
             </section>
 
+            <section class="rounded-3xl border border-rose-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-rose-100 bg-rose-50/70 px-5 py-4">
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-rose-700">Alerte si oportunitati</div>
+                    <h2 class="mt-1 text-lg font-bold text-slate-900">Ce necesita atentie acum</h2>
+                </div>
+                <div v-if="!platformAlerts.length" class="px-5 py-8 text-sm text-slate-500">
+                    Nu exista semnale de platforma active.
+                </div>
+                <div v-else class="divide-y divide-slate-100">
+                    <div v-for="alert in platformAlerts" :key="`${alert.type}-${alert.tenant_id}`" class="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                        <div class="flex items-start gap-3">
+                            <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" :class="alertDot(alert.severity)"></span>
+                            <div>
+                                <div class="font-semibold text-slate-900">{{ alert.title }} · {{ alert.tenant_name }}</div>
+                                <div class="mt-1 text-sm text-slate-600">{{ alert.reason }}</div>
+                            </div>
+                        </div>
+                        <Link :href="alert.action_url" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            {{ alert.action_label }}
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
