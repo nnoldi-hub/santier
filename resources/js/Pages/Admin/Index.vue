@@ -434,6 +434,13 @@ const props = defineProps({
 const selectedUser = ref(props.users[0] || null);
 const activeAdminTab = ref('documents');
 
+function alertDot(severity) {
+    if (severity === 'high') return 'bg-rose-500';
+    if (severity === 'medium') return 'bg-amber-500';
+
+    return 'bg-sky-500';
+}
+
 const subscriptionForm = useForm({
     billing_plan: selectedUser.value?.billing_plan || 'free',
     billing_trial_ends_at: formatDateInput(selectedUser.value?.billing_trial_ends_at),
