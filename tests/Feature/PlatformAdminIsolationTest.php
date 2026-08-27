@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Project;
 use App\Models\Tenant;
+use App\Models\SystemAnnouncement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -103,6 +104,42 @@ class PlatformAdminIsolationTest extends TestCase
                 ->where('platformAlerts', fn ($alerts) => collect($alerts)->pluck('type')->contains('warm_lead'))
                 ->where('platformAlerts', fn ($alerts) => collect($alerts)->every(fn (array $alert) => isset($alert['action_url'], $alert['action_label'])))
             );
+    }
+
+    public function test_active_system_announcement_is_shared_to_authenticated_users(): void
+    {
+        $user = $this->createTenantUser('announcement-user@example.com');
+        $announcement = SystemAnnouncement::query()->create([
+            'title' => 'Mentenanta programata',
+            'message' => 'Platforma se actualizeaza la 23:00.',
+            'level' => 'warning',
+            'is_active' => true,
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('systemAnnouncements.0.id', $announcement->id)
+                ->where('systemAnnouncements.0.title', fn ($value) => $value === 'Mentenanta programata')
+            );
+    }
+
+    public function test_expired_system_announcement_is_not_shared(): void
+    {
+        $user = $this->createTenantUser('expired-announcement@example.com');
+        SystemAnnouncement::query()->create([
+            'title' => 'Anunt expirat',
+            'message' => 'Nu trebuie afisat.',
+            'level' => 'info',
+            'is_active' => true,
+            'ends_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('systemAnnouncements', fn ($items) => collect($items)->isEmpty()));
     }
 
     private function createSuperadmin(string $email): User

@@ -51,6 +51,7 @@ use App\Http\Controllers\TenantUserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\SystemAnnouncementController;
 use App\Notifications\OperationalReminderNotification;
 use App\Models\AppSetting;
 use App\Support\MarketingPricing;
@@ -1427,6 +1428,10 @@ Route::middleware('auth')->group(function () {
             Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
             Route::get('admin/billing', [AdminController::class, 'billingOverview'])->name('admin.billing.index');
             Route::get('admin/affiliates', [AdminController::class, 'affiliateOverview'])->name('admin.affiliates.index');
+            Route::get('admin/announcements', [SystemAnnouncementController::class, 'index'])->name('admin.announcements.index');
+            Route::post('admin/announcements', [SystemAnnouncementController::class, 'store'])->name('admin.announcements.store');
+            Route::patch('admin/announcements/{announcement}', [SystemAnnouncementController::class, 'update'])->name('admin.announcements.update');
+            Route::delete('admin/announcements/{announcement}', [SystemAnnouncementController::class, 'destroy'])->name('admin.announcements.destroy');
             Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
             Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
             Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');

@@ -44,6 +44,7 @@
                         <NavItem :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" :icon="BuildingOffice2Icon" label="Firme & Abonamente" />
                         <NavItem :href="routeOrFallback('admin.billing.index')" :disabled="routeMissing('admin.billing.index')" :icon="CreditCardIcon" label="Facturare & Incasari" />
                         <NavItem :href="routeOrFallback('admin.affiliates.index')" :disabled="routeMissing('admin.affiliates.index')" :icon="UsersIcon" label="Afiliati & Campanii" />
+                        <NavItem :href="routeOrFallback('admin.announcements.index')" :disabled="routeMissing('admin.announcements.index')" :icon="BellIcon" label="Anunturi globale" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" :icon="RocketLaunchIcon" label="Firme pilot" />
                         <NavItem :href="routeOrFallback('admin.proforma-requests.index')" :disabled="routeMissing('admin.proforma-requests.index')" :icon="BanknotesIcon" label="Cereri proforma" />
                     </div>
@@ -287,6 +288,10 @@
             </header>
 
             <main class="flex-1 p-6">
+                <div v-for="announcement in visibleAnnouncements" :key="announcement.id" class="mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm" :class="announcementTone(announcement.level)">
+                    <div class="min-w-0 flex-1"><div class="font-semibold">{{ announcement.title }}</div><div class="mt-1">{{ announcement.message }}</div></div>
+                    <button type="button" class="shrink-0 text-xs font-semibold opacity-70 hover:opacity-100" @click="dismissAnnouncement(announcement.id)">Inchide</button>
+                </div>
                 <div v-if="isImpersonating" class="mb-4 flex flex-col gap-3 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-950 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div class="font-semibold">Sesiune de suport activa</div>
@@ -451,8 +456,16 @@ const routeMissing = (name) => !hasRoute(name);
 const platformAppName = computed(() => page.props.platform?.appName || 'Modulia');
 const isPlatformAdmin = computed(() => Boolean(page.props.platform?.isAdmin));
 const isImpersonating = computed(() => page.props.impersonation?.active === true);
+const visibleAnnouncements = computed(() => (page.props.systemAnnouncements || []).filter((announcement) => !dismissedAnnouncements.value.includes(announcement.id)));
+const dismissedAnnouncements = ref([]);
 const impersonatingAdminName = computed(() => page.props.impersonation?.adminName || 'Superadmin');
 const impersonatedTargetName = computed(() => page.props.impersonation?.targetName || page.props.auth?.user?.name || 'utilizator');
+const announcementTone = (level) => ({
+    info: 'border-sky-200 bg-sky-50 text-sky-950',
+    warning: 'border-amber-200 bg-amber-50 text-amber-950',
+    critical: 'border-rose-200 bg-rose-50 text-rose-950',
+}[level] || 'border-slate-200 bg-slate-50 text-slate-900');
+const dismissAnnouncement = (id) => { dismissedAnnouncements.value = [...dismissedAnnouncements.value, id]; };
 const canManageDocumentBranding = computed(() => ['pro', 'enterprise'].includes(page.props.billing?.plan || 'free'));
 
 const userInitials = computed(() => {

@@ -35,6 +35,15 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $platformSettings = AppSetting::allWithDefaults(config('platform.defaults', []));
         $notificationsEnabled = Schema::hasTable('notifications');
+        $announcements = Schema::hasTable('system_announcements')
+            ? \App\Models\SystemAnnouncement::query()
+                ->where('is_active', true)
+                ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+                ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+                ->orderByDesc('id')
+                ->get(['id', 'title', 'message', 'level'])
+                ->values()
+            : collect();
 
         return [
             ...parent::share($request),
@@ -83,6 +92,7 @@ class HandleInertiaRequests extends Middleware
                     : null,
                 'targetName' => $user?->name,
             ],
+            'systemAnnouncements' => $announcements,
             'billing' => [
                 'plan' => $user ? PricingPlan::current($user) : null,
                 'planLabel' => $user ? PricingPlan::label($user) : null,

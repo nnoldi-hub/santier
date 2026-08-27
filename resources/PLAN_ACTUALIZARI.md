@@ -39,7 +39,7 @@ Principiul de lucru: intai protejam si testam granitele de acces, apoi adaugam f
 - [x] Faza 6 - alerte de vanzari si churn
 - [x] Faza 7 - pachete, Stripe, facturare si cupoane
 - [x] Faza 8 - afiliati si campanii
-- [ ] Faza 9 - storage, anunturi globale si securitate
+- [x] Faza 9 - storage, anunturi globale si securitate
 - [ ] Faza 10 - verificare live si documentare operationala
 
 ## Faza 0 - Inventariere si regresie
@@ -251,3 +251,4 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 | 2026-08-27 | Faza 6 | Inbox server-side pentru trial, conturi abandonate, firme suspendate si lead-uri calde | 6 teste dashboard, regresie 19 teste, build Vite | Finalizat |
 | 2026-08-27 | Faza 7 | Overview read-only Cashier pentru abonamente, status Stripe si probleme de plata | 2 teste dedicate, regresie 29 teste, build Vite | Finalizat |
 | 2026-08-27 | Faza 8 | Atribuire referral la inregistrare si overview afiliati pentru Superadmin | 3 teste dedicate, regresie 17 teste, build Vite | Finalizat |
+| 2026-08-27 | Faza 9 | Anunturi globale cu programare, banner pentru utilizatori si audit | 4 teste dedicate, regresie 15 teste, build Vite | Finalizat |
