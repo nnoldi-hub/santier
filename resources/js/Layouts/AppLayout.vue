@@ -39,14 +39,18 @@
                         <span :class="['transition-transform', sections.platform ? 'rotate-0' : '-rotate-90']">▾</span>
                     </button>
                     <div v-show="sections.platform" class="mt-1 space-y-1 pl-2 border-l border-orange-500/30">
-                        <NavItem :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" :icon="Cog6ToothIcon" label="Administrare" />
-                        <NavItem :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" :icon="PresentationChartLineIcon" label="Dashboard Comercial" />
+                        <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-200/70">Clienti</div>
                         <NavItem :href="routeOrFallback('admin.tenants.index')" :disabled="routeMissing('admin.tenants.index')" :icon="BuildingOffice2Icon" label="Firme & Abonamente" />
-                        <NavItem :href="routeOrFallback('admin.billing.index')" :disabled="routeMissing('admin.billing.index')" :icon="CreditCardIcon" label="Facturare & Incasari" />
-                        <NavItem :href="routeOrFallback('admin.affiliates.index')" :disabled="routeMissing('admin.affiliates.index')" :icon="UsersIcon" label="Afiliati & Campanii" />
-                        <NavItem :href="routeOrFallback('admin.announcements.index')" :disabled="routeMissing('admin.announcements.index')" :icon="BellIcon" label="Anunturi globale" />
                         <NavItem :href="routeOrFallback('pilot-invites.index')" :disabled="routeMissing('pilot-invites.index')" :icon="RocketLaunchIcon" label="Firme pilot" />
+                        <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-200/70">Financiar</div>
+                        <NavItem :href="routeOrFallback('admin.billing.index')" :disabled="routeMissing('admin.billing.index')" :icon="CreditCardIcon" label="Facturare & Incasari" />
                         <NavItem :href="routeOrFallback('admin.proforma-requests.index')" :disabled="routeMissing('admin.proforma-requests.index')" :icon="BanknotesIcon" label="Cereri proforma" />
+                        <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-200/70">Marketing</div>
+                        <NavItem :href="routeOrFallback('admin.affiliates.index')" :disabled="routeMissing('admin.affiliates.index')" :icon="UsersIcon" label="Afiliati & Campanii" />
+                        <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-200/70">Platforma</div>
+                        <NavItem :href="routeOrFallback('admin.commercial-dashboard.index')" :disabled="routeMissing('admin.commercial-dashboard.index')" :icon="PresentationChartLineIcon" label="Dashboard Comercial" />
+                        <NavItem :href="routeOrFallback('admin.announcements.index')" :disabled="routeMissing('admin.announcements.index')" :icon="BellIcon" label="Anunturi globale" />
+                        <NavItem :href="routeOrFallback('admin.index')" :disabled="routeMissing('admin.index')" :icon="Cog6ToothIcon" label="Setari platforma" />
                     </div>
                 </div>
 
@@ -408,7 +412,7 @@ const defaultSections = {
 const sections = reactive({ ...defaultSections });
 
 const sectionRoutes = {
-    platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'pilot-invites.index', 'admin.proforma-requests.index'],
+    platform: ['admin.index', 'admin.commercial-dashboard.index', 'admin.tenants.index', 'admin.billing.index', 'admin.affiliates.index', 'admin.announcements.index', 'pilot-invites.index', 'admin.proforma-requests.index'],
     projects: ['projects.index', 'wbs.index', 'stage-reports.index'],
     planning: ['gantt.index', 'tasks.index', 'stage-tasks.index', 'team-calendar.index', 'equipment-calendar.index', 'resource-calendar.index'],
     resources: ['teams.index', 'contractors.index', 'equipment.index', 'materials.index', 'suppliers.index', 'recipes.index', 'resource-orders.index', 'trasabilitate-materiale.index', 'trasabilitate-utilaje.index'],
