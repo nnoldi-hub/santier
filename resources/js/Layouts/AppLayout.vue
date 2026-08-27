@@ -22,7 +22,12 @@
                 <div class="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
                     Acces rapid
                 </div>
-                <NavItem :href="routeOrFallback('dashboard')" :disabled="routeMissing('dashboard')" :icon="Squares2X2Icon" label="Dashboard" />
+                <NavItem
+                    :href="isPlatformAdmin ? routeOrFallback('admin.index') : routeOrFallback('dashboard')"
+                    :disabled="isPlatformAdmin ? routeMissing('admin.index') : routeMissing('dashboard')"
+                    :icon="Squares2X2Icon"
+                    :label="isPlatformAdmin ? 'Dashboard Global' : 'Dashboard'"
+                />
                 <NavItem :href="routeOrFallback('help.index')" :disabled="routeMissing('help.index')" :icon="QuestionMarkCircleIcon" label="Ajutor" />
 
                 <div v-if="isPlatformAdmin" class="pt-3">
@@ -42,6 +47,7 @@
                     </div>
                 </div>
 
+                <template v-if="!isPlatformAdmin">
                 <div class="pt-3">
                     <div class="px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
                         Operare firma
@@ -159,6 +165,7 @@
                         <NavItem :href="routeOrFallback('billing.index')" :disabled="routeMissing('billing.index')" :icon="CreditCardIcon" label="Plan & Billing" />
                     </div>
                 </div>
+                </template>
             </nav>
 
             <div class="border-t border-gray-700 p-4">

@@ -30,9 +30,9 @@ Principiul de lucru: intai protejam si testam granitele de acces, apoi adaugam f
 
 ## Tablou de progres
 
-- [ ] Faza 0 - inventariere si teste de regresie
-- [ ] Faza 1 - separare meniu Superadmin si dashboard implicit
-- [ ] Faza 2 - middleware `EnsurePlatformAdmin`
+- [x] Faza 0 - inventariere si teste de regresie
+- [x] Faza 1 - separare meniu Superadmin si dashboard implicit
+- [x] Faza 2 - middleware `EnsurePlatformAdmin`
 - [ ] Faza 3 - dashboard global comercial
 - [ ] Faza 4 - firme, statusuri comerciale si abonamente
 - [ ] Faza 5 - impersonare controlata si auditata
@@ -243,4 +243,5 @@ Aceasta rezolva problema Superadminului cu risc redus. Functiile de billing, imp
 
 | Data | Faza | Modificare | Verificare | Status |
 |---|---|---|---|---|
-| 2026-08-27 | Planificare | Plan initial adaugat in repository | Revizuire arhitecturala si stare Git | In lucru |
+| 2026-08-27 | Planificare | Plan initial adaugat in repository | Revizuire arhitecturala si stare Git | Finalizat |
+| 2026-08-27 | Fazele 0-2 | Middleware platforma/tenant, navigatie separata si redirect dashboard | 4 teste de izolare, 12 teste admin, build Vite | Finalizat |

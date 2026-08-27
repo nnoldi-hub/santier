@@ -133,6 +133,10 @@ Route::get('oferte/{quote}/vizualizare', [PublicQuoteController::class, 'show'])
 
 Route::get('/dashboard', function () {
     $dashboardRequest = request();
+    if (TenantContext::isPlatformAdmin($dashboardRequest->user())) {
+        return redirect()->route('admin.index');
+    }
+
     $today = now()->toDateString();
     $user = $dashboardRequest->user();
     $tenantId = TenantContext::id($user);
@@ -1376,7 +1380,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
-    Route::middleware(EnsureOnboardingCompleted::class)->group(function () {
+    Route::middleware([
+        EnsureOnboardingCompleted::class,
+        'tenant.access',
+    ])->group(function () {
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('pilot-invites', [PilotInviteController::class, 'index'])->name('pilot-invites.index');
         Route::post('pilot-invites', [PilotInviteController::class, 'store'])->name('pilot-invites.store');
@@ -1409,18 +1416,20 @@ Route::middleware('auth')->group(function () {
         Route::get('account/audit/export', [AccessAuditLogController::class, 'exportCsv'])->name('account.audit.export');
         Route::get('account/notifications', [NotificationCenterController::class, 'index'])->name('account.notifications.index');
 
-        Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
-        Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
-        Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
-        Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');
-        Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
-        Route::get('admin/tenants/{tenant}/activity', [AdminController::class, 'tenantActivity'])->name('admin.tenants.activity');
-        Route::patch('admin/tenants/{tenant}/commercial', [AdminController::class, 'updateTenantCommercial'])->name('admin.tenants.commercial.update');
-        Route::post('admin/tenants/{tenant}/pilot-invite', [PilotInviteController::class, 'storeFromTenant'])->name('admin.tenants.pilot-invite.store');
-        Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
-        Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
-        Route::get('admin/proforma-requests', [ProformaRequestController::class, 'adminIndex'])->name('admin.proforma-requests.index');
-        Route::patch('admin/proforma-requests/{proformaRequest}/mark-paid', [ProformaRequestController::class, 'markPaid'])->name('admin.proforma-requests.mark-paid');
+        Route::middleware('platform.admin')->group(function () {
+            Route::get('admin', [AdminController::class, 'index'])->name('admin.index');
+            Route::get('admin/commercial-dashboard', [AdminController::class, 'commercialDashboard'])->name('admin.commercial-dashboard.index');
+            Route::get('admin/commercial-dashboard/export', [AdminController::class, 'exportCommercialCsv'])->name('admin.commercial-dashboard.export');
+            Route::get('admin/commercial-dashboard/export-xlsx', [AdminController::class, 'exportCommercialXlsx'])->name('admin.commercial-dashboard.export-xlsx');
+            Route::get('admin/tenants', [AdminController::class, 'tenantsIndex'])->name('admin.tenants.index');
+            Route::get('admin/tenants/{tenant}/activity', [AdminController::class, 'tenantActivity'])->name('admin.tenants.activity');
+            Route::patch('admin/tenants/{tenant}/commercial', [AdminController::class, 'updateTenantCommercial'])->name('admin.tenants.commercial.update');
+            Route::post('admin/tenants/{tenant}/pilot-invite', [PilotInviteController::class, 'storeFromTenant'])->name('admin.tenants.pilot-invite.store');
+            Route::patch('admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
+            Route::patch('admin/users/{user}/subscription', [AdminController::class, 'updateSubscription'])->name('admin.users.subscription.update');
+            Route::get('admin/proforma-requests', [ProformaRequestController::class, 'adminIndex'])->name('admin.proforma-requests.index');
+            Route::patch('admin/proforma-requests/{proformaRequest}/mark-paid', [ProformaRequestController::class, 'markPaid'])->name('admin.proforma-requests.mark-paid');
+        });
 
         // Proiecte & Clienti
         Route::resource('projects', ProjectController::class)

@@ -39,4 +39,16 @@ class TenantContext
 
         return (bool) ($resolvedUser?->is_superadmin ?? false);
     }
+
+    public static function isPlatformAdmin(?User $user = null): bool
+    {
+        $resolvedUser = $user ?? self::user();
+
+        if (! $resolvedUser) {
+            return false;
+        }
+
+        return self::isSuperadmin($resolvedUser)
+            || in_array(strtolower($resolvedUser->email), array_map('strtolower', config('platform.admin_emails', [])), true);
+    }
 }
