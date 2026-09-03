@@ -17,8 +17,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'tenant_id', 'current_tenant_id', 'is_superadmin', 'onboarding_step', 'onboarding_data', 'onboarding_completed_at', 'billing_plan', 'billing_trial_ends_at'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'tenant_id', 'current_tenant_id', 'is_superadmin', 'onboarding_step', 'onboarding_data', 'onboarding_completed_at', 'billing_plan', 'billing_trial_ends_at', 'two_factor_enabled'])]
+#[Hidden(['password', 'remember_token', 'two_factor_code_hash', 'two_factor_code_expires_at'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -41,6 +41,8 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'billing_trial_ends_at' => 'datetime',
             'is_superadmin' => 'boolean',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_code_expires_at' => 'datetime',
         ];
     }
 
@@ -99,6 +101,11 @@ class User extends Authenticatable
     public function emailCampaignLogs(): HasMany
     {
         return $this->hasMany(EmailCampaignLog::class);
+    }
+
+    public function trustedDevices(): HasMany
+    {
+        return $this->hasMany(TrustedDevice::class);
     }
 
     public function projectRoleAssignments(): HasMany
