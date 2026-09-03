@@ -308,10 +308,17 @@ class TenantAdministrationTest extends TestCase
             'email' => $email,
             'tenant_id' => 1,
             'current_tenant_id' => 1,
-            'is_superadmin' => true,
+            'is_superadmin' => false,
             'onboarding_step' => 3,
             'onboarding_completed_at' => now(),
         ]);
+
+        // EnsureTenantAccess ('tenant.access' middleware) walls platform admins
+        // (is_superadmin / platform.admin_emails) off from every tenant-scoped
+        // route except admin.*/pilot-invites.* - so managing a tenant's own users
+        // has to go through a real tenant_admin, not a platform superadmin.
+        $tenantAdminRole = Role::query()->whereNull('tenant_id')->firstWhere('name', 'tenant_admin');
+        $user->syncRoles([$tenantAdminRole]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
