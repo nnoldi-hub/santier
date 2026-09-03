@@ -587,6 +587,578 @@ class PublicDemoSeeder extends Seeder
             'priority' => 'medium',
             'deadline' => now()->addDays(4),
         ]);
+
+        $this->seedAdditionalDemoProjects($demoTenantId, $demoUser, $marker, $supplierContractor, $finishesContractor);
+    }
+
+    /**
+     * Portofoliu extins pentru filmari/promovare: proiecte distincte de
+     * constructii, instalatii si finisaje, plus un proiect finalizat si unul
+     * suspendat, ca dashboard-urile si rapoartele sa arate un portofoliu real.
+     */
+    private function seedAdditionalDemoProjects(int $demoTenantId, User $demoUser, string $marker, Contractor $supplierContractor, Contractor $finishesContractor): void
+    {
+        $clientResidential = Client::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Rezidential Grup Ilfov',
+            'type' => 'company',
+            'email' => 'client.rezidential.demo@santier.local',
+            'phone' => '0722000005',
+            'address' => 'Sos. Bucuresti-Ploiesti 45, Voluntari',
+            'contact_person' => 'Ioana Marinescu',
+            'active' => true,
+            'notes' => $marker,
+        ]);
+
+        $clientIndustrial = Client::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Logistic Depo Industrial SRL',
+            'type' => 'company',
+            'email' => 'client.industrial.demo@santier.local',
+            'phone' => '0722000006',
+            'address' => 'DN1 Km 22, Ploiesti',
+            'contact_person' => 'Radu Constantin',
+            'active' => true,
+            'notes' => $marker,
+        ]);
+
+        $structuralContractor = Contractor::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Structuri & Fundatii Demo',
+            'type' => Contractor::TYPE_SUBCONTRACTOR,
+            'contact_name' => 'Vasile Toma',
+            'phone' => '0722000007',
+            'email' => 'structuri.demo@santier.local',
+            'notes' => $marker,
+            'active' => true,
+        ]);
+
+        $sanitaryContractor = Contractor::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Sanitare & Termice Demo',
+            'type' => Contractor::TYPE_SUBCONTRACTOR,
+            'contact_name' => 'Elena Dumitrescu',
+            'phone' => '0722000008',
+            'email' => 'sanitare.demo@santier.local',
+            'notes' => $marker,
+            'active' => true,
+        ]);
+
+        $materialCiment = Material::create([
+            'tenant_id' => $demoTenantId,
+            'code' => 'DEMO-CIMENT-04',
+            'name' => 'Ciment Portland CEM II',
+            'category' => 'Constructii',
+            'unit' => 'sac',
+            'unit_price' => 38,
+            'supplier' => 'Furnizor Demo Constructii',
+            'notes' => $marker,
+            'active' => true,
+        ]);
+
+        $materialTeava = Material::create([
+            'tenant_id' => $demoTenantId,
+            'code' => 'DEMO-TEAVA-05',
+            'name' => 'Teava PPR 25mm',
+            'category' => 'Instalatii sanitare',
+            'unit' => 'bucata',
+            'unit_price' => 18,
+            'supplier' => 'Furnizor Demo Instalatii',
+            'notes' => $marker,
+            'active' => true,
+        ]);
+
+        $equipmentExcavator = Equipment::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Excavator pe senile Demo',
+            'type' => 'excavator',
+            'supplier_name' => $supplierContractor->name,
+            'cost_per_hour' => 180,
+            'availability_status' => Equipment::STATUS_RESERVED,
+            'active' => true,
+            'notes' => $marker,
+        ]);
+
+        $equipmentPompa = Equipment::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Pompa presiune instalatii Demo',
+            'type' => 'pump',
+            'supplier_name' => $supplierContractor->name,
+            'cost_per_hour' => 35,
+            'availability_status' => Equipment::STATUS_AVAILABLE,
+            'active' => true,
+            'notes' => $marker,
+        ]);
+
+        $teamConstructii = Team::create([
+            'tenant_id' => $demoTenantId,
+            'name' => 'Echipa Demo Constructii Civile',
+            'specialty' => 'Structuri si fundatii',
+            'leader_id' => $demoUser->id,
+            'active' => true,
+            'notes' => $marker,
+        ]);
+
+        TeamMember::create([
+            'team_id' => $teamConstructii->id,
+            'user_id' => $demoUser->id,
+            'role' => 'Sef de santier',
+            'hourly_rate' => 140,
+            'joined_at' => now()->subDays(60)->toDateString(),
+        ]);
+
+        // --- Proiect Constructii: hala industriala, activ ---
+        $projectConstructii = Project::create([
+            'tenant_id' => $demoTenantId,
+            'client_id' => $clientIndustrial->id,
+            'created_by' => $demoUser->id,
+            'name' => 'Constructie Hala Industriala - Faza 1',
+            'description' => 'Proiect demo de constructii civile: demolare, fundatie si structura de rezistenta.',
+            'address' => 'DN1 Km 22, Ploiesti',
+            'status' => 'active',
+            'start_date' => now()->subDays(35)->toDateString(),
+            'end_date' => now()->addDays(90)->toDateString(),
+            'total_budget' => 850000,
+            'notes' => $marker,
+        ]);
+
+        $phaseDemolare = ProjectPhase::create([
+            'project_id' => $projectConstructii->id,
+            'name' => 'Demolare structuri existente',
+            'type' => 'demolare',
+            'order' => 1,
+            'start_date' => now()->subDays(35)->toDateString(),
+            'end_date' => now()->subDays(20)->toDateString(),
+            'status' => 'completed',
+            'progress_pct' => 100,
+            'contractor_id' => $structuralContractor->id,
+            'notes' => $marker,
+        ]);
+
+        $phaseStructura = ProjectPhase::create([
+            'project_id' => $projectConstructii->id,
+            'name' => 'Structura de rezistenta si fundatie',
+            'type' => 'structura',
+            'order' => 2,
+            'start_date' => now()->subDays(19)->toDateString(),
+            'end_date' => now()->addDays(35)->toDateString(),
+            'status' => 'in_progress',
+            'progress_pct' => 45,
+            'contractor_id' => $structuralContractor->id,
+            'notes' => $marker,
+        ]);
+
+        PhaseTeamAssignment::create([
+            'phase_id' => $phaseStructura->id,
+            'team_id' => $teamConstructii->id,
+            'workers_needed' => 10,
+            'workers_assigned' => 8,
+            'start_date' => now()->subDays(10)->toDateString(),
+            'end_date' => now()->addDays(9)->toDateString(),
+            'notes' => $marker,
+        ]);
+
+        StageEquipment::create([
+            'stage_id' => $phaseStructura->id,
+            'equipment_id' => $equipmentExcavator->id,
+            'quantity' => 1,
+            'usage_start' => now()->subDays(3)->toDateString(),
+            'usage_end' => now()->addDays(4)->toDateString(),
+            'notes' => $marker,
+        ]);
+
+        Task::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'phase_id' => $phaseStructura->id,
+            'assigned_to' => $demoUser->id,
+            'created_by' => $demoUser->id,
+            'title' => 'Turnare fundatie corp productie',
+            'description' => 'Coordonare turnare beton si verificare armaturi.',
+            'status' => 'in_progress',
+            'priority' => 'high',
+            'deadline' => now()->addDays(5),
+        ]);
+
+        Task::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'phase_id' => $phaseStructura->id,
+            'assigned_to' => $demoUser->id,
+            'created_by' => $demoUser->id,
+            'title' => 'Montaj structura metalica hala',
+            'description' => 'Pregatire echipa si utilaje pentru ridicarea structurii.',
+            'status' => 'todo',
+            'priority' => 'high',
+            'deadline' => now()->addDays(15),
+        ]);
+
+        Defect::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'phase_id' => $phaseStructura->id,
+            'reported_by' => $demoUser->id,
+            'assigned_to' => $demoUser->id,
+            'title' => 'Fisura minora in placa turnata',
+            'description' => 'Necesita evaluare structurala inainte de continuarea lucrarilor.',
+            'location' => 'Zona productie - ax B3',
+            'status' => 'open',
+            'priority' => 'high',
+            'due_date' => now()->addDays(3)->toDateString(),
+        ]);
+
+        Quote::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'version' => 1,
+            'title' => 'Deviz structura de rezistenta',
+            'status' => 'accepted',
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'notes' => $marker,
+            'total_net' => 520000,
+            'total_tva' => 98800,
+            'total_gross' => 618800,
+            'created_by' => $demoUser->id,
+            'sent_at' => now()->subDays(30),
+            'accepted_at' => now()->subDays(28),
+        ]);
+
+        Document::create([
+            'tenant_id' => $demoTenantId,
+            'contractor_id' => $structuralContractor->id,
+            'project_id' => $projectConstructii->id,
+            'stage_id' => $phaseStructura->id,
+            'type' => 'invoice',
+            'amount' => 210000,
+            'issued_at' => now()->subDays(12)->toDateString(),
+            'payment_status' => 'partial',
+            'title' => 'Factura progres structura - transa 1',
+            'file_path' => 'demo/invoices/factura-structura-transa1.pdf',
+            'file_name' => 'factura-structura-transa1.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 189000,
+            'notes' => $marker,
+        ]);
+
+        QualityCheck::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'phase_id' => $phaseStructura->id,
+            'assigned_to' => $demoUser->id,
+            'title' => 'Verificare rezistenta beton fundatie',
+            'description' => 'Testare cuburi de beton conform normativ, inainte de continuarea structurii.',
+            'check_type' => 'materials',
+            'status' => 'in_progress',
+            'planned_at' => now()->addDays(2),
+            'notes' => $marker,
+        ]);
+
+        StageReport::create([
+            'stage_id' => $phaseStructura->id,
+            'contractor_id' => $structuralContractor->id,
+            'report_date' => now()->subDay()->toDateString(),
+            'progress_pct' => 45,
+            'activities' => 'Cofrare si armare stalpi zona B, pregatire turnare pentru saptamana urmatoare.',
+            'issues' => 'Intarziere livrare armatura suplimentara, impact minor asupra graficului.',
+            'materials_used' => [['name' => 'Ciment Portland CEM II', 'qty' => 80, 'unit' => 'sac']],
+            'equipment_used' => [['name' => 'Excavator pe senile Demo', 'hours' => 18]],
+            'images' => ['demo/reports/constructii-1.jpg'],
+            'created_by' => $demoUser->id,
+        ]);
+
+        MaterialInvoice::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectConstructii->id,
+            'phase_id' => $phaseStructura->id,
+            'material_id' => $materialCiment->id,
+            'supplier_name' => 'Furnizor Demo Constructii',
+            'invoice_no' => 'DEMO-MAT-003',
+            'issue_date' => now()->subDays(6)->toDateString(),
+            'due_date' => now()->addDays(9)->toDateString(),
+            'amount_net' => 15200,
+            'amount_vat' => 2888,
+            'amount_total' => 18088,
+            'payment_status' => 'unpaid',
+            'notes' => $marker,
+        ]);
+
+        // --- Proiect Instalatii: modernizare sanitare/termice, activ ---
+        $projectInstalatii = Project::create([
+            'tenant_id' => $demoTenantId,
+            'client_id' => $clientResidential->id,
+            'created_by' => $demoUser->id,
+            'name' => 'Modernizare Instalatii Sanitare si Termice - Bloc Rezidential',
+            'description' => 'Proiect demo dedicat exclusiv instalatiilor sanitare si termice.',
+            'address' => 'Sos. Bucuresti-Ploiesti 45, Voluntari',
+            'status' => 'active',
+            'start_date' => now()->subDays(14)->toDateString(),
+            'end_date' => now()->addDays(25)->toDateString(),
+            'total_budget' => 210000,
+            'notes' => $marker,
+        ]);
+
+        $phaseInstalatiiParter = ProjectPhase::create([
+            'project_id' => $projectInstalatii->id,
+            'name' => 'Instalatii sanitare parter',
+            'type' => 'instalatii_brute',
+            'order' => 1,
+            'start_date' => now()->subDays(14)->toDateString(),
+            'end_date' => now()->addDays(3)->toDateString(),
+            'status' => 'in_progress',
+            'progress_pct' => 70,
+            'contractor_id' => $sanitaryContractor->id,
+            'notes' => $marker,
+        ]);
+
+        $phaseInstalatiiEtaj = ProjectPhase::create([
+            'project_id' => $projectInstalatii->id,
+            'name' => 'Instalatii termice etaj 1',
+            'type' => 'instalatii_brute',
+            'order' => 2,
+            'start_date' => now()->addDays(4)->toDateString(),
+            'end_date' => now()->addDays(25)->toDateString(),
+            'status' => 'pending',
+            'progress_pct' => 0,
+            'contractor_id' => $sanitaryContractor->id,
+            'notes' => $marker,
+        ]);
+
+        StageEquipment::create([
+            'stage_id' => $phaseInstalatiiParter->id,
+            'equipment_id' => $equipmentPompa->id,
+            'quantity' => 1,
+            'usage_start' => now()->subDays(2)->toDateString(),
+            'usage_end' => now()->addDays(5)->toDateString(),
+            'notes' => $marker,
+        ]);
+
+        Task::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectInstalatii->id,
+            'phase_id' => $phaseInstalatiiParter->id,
+            'assigned_to' => $demoUser->id,
+            'created_by' => $demoUser->id,
+            'title' => 'Inlocuire coloane sanitare parter',
+            'description' => 'Coordonare cu locatarii pentru accesul in apartamente.',
+            'status' => 'in_progress',
+            'priority' => 'medium',
+            'deadline' => now()->addDays(4),
+        ]);
+
+        Task::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectInstalatii->id,
+            'phase_id' => $phaseInstalatiiEtaj->id,
+            'assigned_to' => $demoUser->id,
+            'created_by' => $demoUser->id,
+            'title' => 'Comanda materiale instalatii termice etaj 1',
+            'description' => 'Finalizare lista de materiale si confirmare furnizor.',
+            'status' => 'todo',
+            'priority' => 'medium',
+            'deadline' => now()->addDays(6),
+        ]);
+
+        Defect::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectInstalatii->id,
+            'phase_id' => $phaseInstalatiiParter->id,
+            'reported_by' => $demoUser->id,
+            'assigned_to' => $demoUser->id,
+            'title' => 'Scurgere minora la imbinare teava',
+            'description' => 'Reparata pe loc, necesita confirmare finala la receptie.',
+            'location' => 'Parter - apartament 2',
+            'status' => 'in_progress',
+            'priority' => 'low',
+            'due_date' => now()->addDays(2)->toDateString(),
+        ]);
+
+        Quote::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectInstalatii->id,
+            'version' => 1,
+            'title' => 'Deviz modernizare instalatii sanitare si termice',
+            'status' => 'sent',
+            'valid_until' => now()->addDays(15)->toDateString(),
+            'notes' => $marker,
+            'total_net' => 176000,
+            'total_tva' => 33440,
+            'total_gross' => 209440,
+            'created_by' => $demoUser->id,
+            'sent_at' => now()->subDays(4),
+        ]);
+
+        Document::create([
+            'tenant_id' => $demoTenantId,
+            'contractor_id' => $sanitaryContractor->id,
+            'project_id' => $projectInstalatii->id,
+            'stage_id' => $phaseInstalatiiParter->id,
+            'type' => 'contract',
+            'amount' => 210000,
+            'issued_at' => now()->subDays(14)->toDateString(),
+            'payment_status' => 'partial',
+            'title' => 'Contract modernizare instalatii sanitare/termice',
+            'file_path' => 'demo/contracts/contract-instalatii-sanitare.pdf',
+            'file_name' => 'contract-instalatii-sanitare.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 201000,
+            'notes' => $marker,
+        ]);
+
+        StageTask::create([
+            'stage_id' => $phaseInstalatiiParter->id,
+            'title' => 'Programare receptie partiala sanitare parter',
+            'description' => 'Confirmare disponibilitate diriginte de santier.',
+            'assignee_type' => 'user',
+            'assignee_id' => $demoUser->id,
+            'deadline' => now()->addDays(3),
+            'status' => 'todo',
+        ]);
+
+        MaterialInvoice::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectInstalatii->id,
+            'phase_id' => $phaseInstalatiiParter->id,
+            'material_id' => $materialTeava->id,
+            'supplier_name' => 'Furnizor Demo Instalatii',
+            'invoice_no' => 'DEMO-MAT-004',
+            'issue_date' => now()->subDays(5)->toDateString(),
+            'due_date' => now()->addDays(10)->toDateString(),
+            'amount_net' => 3200,
+            'amount_vat' => 608,
+            'amount_total' => 3808,
+            'payment_status' => 'paid',
+            'notes' => $marker,
+        ]);
+
+        // --- Proiect Finisaje: apartamente bloc nou, finalizat ---
+        $projectFinisaje = Project::create([
+            'tenant_id' => $demoTenantId,
+            'client_id' => $clientResidential->id,
+            'created_by' => $demoUser->id,
+            'name' => 'Finisaje Apartamente Bloc Nou - Etapa 2',
+            'description' => 'Proiect demo finalizat, pentru portofoliu si istoric de referinte.',
+            'address' => 'Str. Narciselor 8, Voluntari',
+            'status' => 'completed',
+            'start_date' => now()->subDays(90)->toDateString(),
+            'end_date' => now()->subDays(5)->toDateString(),
+            'total_budget' => 175000,
+            'notes' => $marker,
+        ]);
+
+        $phaseFinisajeGleturi = ProjectPhase::create([
+            'project_id' => $projectFinisaje->id,
+            'name' => 'Gleturi si zugraveli apartamente',
+            'type' => 'zugraveli',
+            'order' => 1,
+            'start_date' => now()->subDays(90)->toDateString(),
+            'end_date' => now()->subDays(40)->toDateString(),
+            'status' => 'completed',
+            'progress_pct' => 100,
+            'contractor_id' => $finishesContractor->id,
+            'notes' => $marker,
+        ]);
+
+        $phaseFinisajePardoseli = ProjectPhase::create([
+            'project_id' => $projectFinisaje->id,
+            'name' => 'Montaj pardoseli si tamplarie interioara',
+            'type' => 'pardoseli',
+            'order' => 2,
+            'start_date' => now()->subDays(39)->toDateString(),
+            'end_date' => now()->subDays(5)->toDateString(),
+            'status' => 'completed',
+            'progress_pct' => 100,
+            'contractor_id' => $finishesContractor->id,
+            'notes' => $marker,
+        ]);
+
+        Task::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectFinisaje->id,
+            'phase_id' => $phaseFinisajePardoseli->id,
+            'assigned_to' => $demoUser->id,
+            'created_by' => $demoUser->id,
+            'title' => 'Predare finala apartamente etapa 2',
+            'description' => 'Semnare proces verbal de predare-primire cu clientul.',
+            'status' => 'done',
+            'priority' => 'medium',
+            'deadline' => now()->subDays(5),
+            'completed_at' => now()->subDays(5),
+        ]);
+
+        Defect::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectFinisaje->id,
+            'phase_id' => $phaseFinisajePardoseli->id,
+            'reported_by' => $demoUser->id,
+            'assigned_to' => $demoUser->id,
+            'title' => 'Zgarietura parchet apartament 12',
+            'description' => 'Remediata inainte de predarea finala catre client.',
+            'location' => 'Apartament 12',
+            'status' => 'resolved',
+            'priority' => 'low',
+            'due_date' => now()->subDays(6)->toDateString(),
+        ]);
+
+        Quote::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectFinisaje->id,
+            'version' => 1,
+            'title' => 'Deviz finisaje apartamente etapa 2',
+            'status' => 'accepted',
+            'valid_until' => now()->subDays(60)->toDateString(),
+            'notes' => $marker,
+            'total_net' => 147000,
+            'total_tva' => 27930,
+            'total_gross' => 174930,
+            'created_by' => $demoUser->id,
+            'sent_at' => now()->subDays(92),
+            'accepted_at' => now()->subDays(90),
+        ]);
+
+        Document::create([
+            'tenant_id' => $demoTenantId,
+            'contractor_id' => $finishesContractor->id,
+            'project_id' => $projectFinisaje->id,
+            'stage_id' => $phaseFinisajePardoseli->id,
+            'type' => 'invoice',
+            'amount' => 174930,
+            'issued_at' => now()->subDays(5)->toDateString(),
+            'payment_status' => 'paid',
+            'title' => 'Factura finala finisaje etapa 2',
+            'file_path' => 'demo/invoices/factura-finisaje-etapa2.pdf',
+            'file_name' => 'factura-finisaje-etapa2.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 156000,
+            'notes' => $marker,
+        ]);
+
+        QualityCheck::create([
+            'tenant_id' => $demoTenantId,
+            'project_id' => $projectFinisaje->id,
+            'phase_id' => $phaseFinisajePardoseli->id,
+            'assigned_to' => $demoUser->id,
+            'title' => 'Verificare finala calitate finisaje',
+            'description' => 'Control vizual si masuratori inainte de predare.',
+            'check_type' => 'execution',
+            'status' => 'completed',
+            'planned_at' => now()->subDays(6),
+            'notes' => $marker,
+        ]);
+
+        // --- Proiect Constructii suspendat, pentru diversitate de status ---
+        Project::create([
+            'tenant_id' => $demoTenantId,
+            'client_id' => $clientIndustrial->id,
+            'created_by' => $demoUser->id,
+            'name' => 'Extindere Depozit Logistic Nord',
+            'description' => 'Proiect demo suspendat temporar, in asteptarea avizelor.',
+            'address' => 'DN1 Km 30, Ploiesti',
+            'status' => 'paused',
+            'start_date' => now()->subDays(50)->toDateString(),
+            'end_date' => now()->addDays(120)->toDateString(),
+            'total_budget' => 480000,
+            'notes' => $marker,
+        ]);
     }
 
     private function cleanupDemoData(int $demoUserId, string $marker): void

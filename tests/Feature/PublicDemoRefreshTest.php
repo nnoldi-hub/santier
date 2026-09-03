@@ -47,6 +47,6 @@ class PublicDemoRefreshTest extends TestCase
             ->where('notes', 'like', '%' . $marker . '%')
             ->count();
 
-        $this->assertSame(2, $count);
+        $this->assertSame(6, $count);
     }
 }
