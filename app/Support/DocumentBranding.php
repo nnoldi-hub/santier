@@ -53,7 +53,16 @@ class DocumentBranding
             return null;
         }
 
-        if (preg_match('#^https?://#i', $value)) {
+        // Uploaded logos are stored via Storage::url(), which returns a full
+        // APP_URL-prefixed address (e.g. https://modulia.ro/storage/branding/x.png)
+        // meant for the browser. Dompdf has enable_remote disabled by default, so
+        // it can never fetch that over HTTP - strip our own host back off first
+        // so it resolves to the real local file, same as a site-relative path.
+        $ownStorageUrl = rtrim((string) config('app.url'), '/') . '/storage/';
+
+        if (str_starts_with($value, $ownStorageUrl)) {
+            $value = 'storage/' . substr($value, strlen($ownStorageUrl));
+        } elseif (preg_match('#^https?://#i', $value)) {
             return $value;
         }
 
