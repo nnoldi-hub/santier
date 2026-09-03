@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Models\Material;
 use App\Models\Tenant;
 use App\Models\TaskTemplate;
+use App\Support\FreshManifestVite;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Foundation\Vite as ViteEngine;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
@@ -17,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ViteEngine::class, FreshManifestVite::class);
     }
 
     /**
