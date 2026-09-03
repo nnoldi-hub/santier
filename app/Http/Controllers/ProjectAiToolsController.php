@@ -572,7 +572,7 @@ class ProjectAiToolsController extends Controller
         $vatGuess = $this->guessVatFromText($ocrText);
 
         if ($vatGuess === null && $amountGuess > 0) {
-            $vatGuess = round($amountGuess * 0.19, 2);
+            $vatGuess = round($amountGuess * 0.21, 2);
         }
 
         $invoiceNumber = $this->guessInvoiceNumberFromText($ocrText !== '' ? $ocrText : $originalName);
