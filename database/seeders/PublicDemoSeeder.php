@@ -81,7 +81,7 @@ class PublicDemoSeeder extends Seeder
 
         $demoTenantId = $demoTenant->id;
 
-        $this->cleanupDemoData($demoUser->id, $marker);
+        $this->cleanupDemoData($demoUser->id, $marker, $demoTenantId);
 
         $client = Client::create([
             'tenant_id' => $demoTenantId,
@@ -1161,9 +1161,10 @@ class PublicDemoSeeder extends Seeder
         ]);
     }
 
-    private function cleanupDemoData(int $demoUserId, string $marker): void
+    private function cleanupDemoData(int $demoUserId, string $marker, int $demoTenantId): void
     {
         $projectIds = Project::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('created_by', $demoUserId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->pluck('id');
@@ -1193,6 +1194,7 @@ class PublicDemoSeeder extends Seeder
         }
 
         $teamIds = Team::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('leader_id', $demoUserId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->pluck('id');
@@ -1202,23 +1204,28 @@ class PublicDemoSeeder extends Seeder
         }
 
         Team::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('leader_id', $demoUserId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->forceDelete();
 
         Contractor::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->forceDelete();
 
         Equipment::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->forceDelete();
 
         Material::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('code', 'like', 'DEMO-%')
             ->forceDelete();
 
         Client::query()
+            ->where('tenant_id', $demoTenantId)
             ->where('notes', 'like', '%' . $marker . '%')
             ->forceDelete();
     }
